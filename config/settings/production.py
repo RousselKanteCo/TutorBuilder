@@ -12,7 +12,7 @@ from .base import *  # noqa: F401, F403
 DEBUG = False
 
 SECURE_SSL_REDIRECT = False
-SECURE_HSTS_SECONDS = 31536000          # 1 an
+SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -23,7 +23,7 @@ CSRF_COOKIE_HTTPONLY = True
 
 
 # ─────────────────────────────────────────
-#  BASE DE DONNÉES (PostgreSQL obligatoire en prod)
+#  BASE DE DONNÉES (SQLite)
 # ─────────────────────────────────────────
 
 DATABASES = {
@@ -35,7 +35,7 @@ DATABASES = {
 
 
 # ─────────────────────────────────────────
-#  CACHE REDIS (sessions, rate-limiting)
+#  CACHE REDIS (optionnel)
 # ─────────────────────────────────────────
 
 _redis_url = env("REDIS_URL", default="")
@@ -67,10 +67,12 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@tutobuilder.io")
 #  LOGGING (fichier en prod)
 # ─────────────────────────────────────────
 
-LOGGING["handlers"]["file"] = {
+LOGGING["handlers"]["file"] = {  # type: ignore[name-defined]
     "class": "logging.handlers.RotatingFileHandler",
     "filename": "/app/logs/django.log",
     "maxBytes": 10 * 1024 * 1024,
     "backupCount": 5,
     "formatter": "verbose",
 }
+
+LOGGING["root"]["handlers"].append("file")  # type: ignore[name-defined]

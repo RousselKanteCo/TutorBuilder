@@ -41,11 +41,15 @@ COPY . .
 ENV DJANGO_SETTINGS_MODULE=config.settings.production
 ENV PYTHONUNBUFFERED=1
 
+# Créer les répertoires nécessaires
+RUN mkdir -p /app/logs
+
 # Collecter les fichiers statiques
 RUN python manage.py collectstatic --noinput || true
 
-EXPOSE 8000
+# Migrations au démarrage
+RUN python manage.py migrate --noinput || true
 
-RUN mkdir -p /app/logs
+EXPOSE 8000
 
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
