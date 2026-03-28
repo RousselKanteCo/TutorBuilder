@@ -1,0 +1,37 @@
+# ── Environnement virtuel ──
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# ── Django ──
+*.pyc
+__pycache__/
+db_dev.sqlite3
+staticfiles/
+media/
+outputs/
+models/
+
+# ── Fichiers temporaires ──
+temp/
+*.wav
+*.mp3
+*.mp4
+test_piper.py
+test*.wav
+
+# ── IDE ──
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ──
+*.log

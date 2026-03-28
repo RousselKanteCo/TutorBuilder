@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — TutoBuilder Vision</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000; --bg2: #0a0a0a; --bg3: #111;
+      --border: rgba(0,255,255,.12); --cyan: #00FFFF; --green: #00FF7F;
+      --text: #E0E0E0; --text-muted: #888; --red: #FF4444;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    }
+    .login-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 40px; width: 360px;
+    }
+    .login-title {
+      font-size: 20px; font-weight: 700; color: var(--cyan);
+      text-align: center; margin-bottom: 6px;
+    }
+    .login-sub {
+      font-size: 12px; color: var(--text-muted);
+      text-align: center; margin-bottom: 28px;
+    }
+    .login-sub span { color: var(--green); }
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--cyan); margin-bottom: 5px;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    input {
+      width: 100%; padding: 9px 12px; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 13px; outline: none;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: var(--cyan); }
+    .btn-login {
+      width: 100%; padding: 10px; margin-top: 8px;
+      background: rgba(0,40,40,.8); color: var(--cyan);
+      border: 1px solid rgba(0,255,255,.4); border-radius: 10px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: all .15s; letter-spacing: .5px;
+    }
+    .btn-login:hover { background: rgba(0,255,255,.15); }
+    .error-list { list-style: none; margin-bottom: 16px; }
+    .error-list li {
+      background: rgba(239,68,68,.1); border-left: 3px solid var(--red);
+      color: #F87171; padding: 8px 12px; border-radius: 6px;
+      font-size: 12px; margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+<div class="login-box">
+  <div class="login-title">TUTOBUILDER VISION</div>
+  <div class="login-sub">Par <span>Graphelya</span></div>
+
+  {% if form.errors %}
+    <ul class="error-list">
+      <li>Identifiant ou mot de passe incorrect.</li>
+    </ul>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="id_username">Nom d'utilisateur</label>
+      <input type="text" id="id_username" name="username"
+             value="{{ form.username.value|default:'' }}" autofocus>
+    </div>
+    <div class="form-group">
+      <label for="id_password">Mot de passe</label>
+      <input type="password" id="id_password" name="password">
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn-login">SE CONNECTER</button>
+  </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,919 @@
+{% extends "base.html" %}
+{% block title %}Cockpit — Studio{% endblock %}
+
+{% block extra_style %}
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg-base:     #07090E;
+  --bg-1:        #0C0F17;
+  --bg-2:        #111621;
+  --bg-3:        #16202E;
+  --blue:        #3B82F6;
+  --blue-dim:    rgba(59,130,246,.1);
+  --blue-border: rgba(59,130,246,.3);
+  --teal:        #06B6D4;
+  --green:       #10B981;
+  --amber:       #F59E0B;
+  --red:         #EF4444;
+  --text-1:      #F1F5F9;
+  --text-2:      #94A3B8;
+  --text-3:      #475569;
+  --border-1:    rgba(255,255,255,.055);
+  --border-2:    rgba(255,255,255,.09);
+  --font-ui:     'Outfit', system-ui, sans-serif;
+  --font-mono:   'JetBrains Mono', monospace;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+  --t: all .18s cubic-bezier(.4,0,.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg-base); color: var(--text-1); font-family: var(--font-ui); font-size: 13px; -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+
+/* ── TOPBAR ── */
+.studio-topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 44px; display: flex; align-items: center;
+  background: rgba(7,9,14,.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-1);
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 18px; height: 100%; border-right: 1px solid var(--border-1);
+  min-width: 220px; flex-shrink: 0;
+}
+.brand-mark {
+  width: 26px; height: 26px; background: var(--blue); border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.brand-mark svg { width: 13px; height: 13px; color: #fff; }
+.brand-name { font-size: 13px; font-weight: 600; letter-spacing: .2px; }
+.brand-name span { color: var(--text-3); font-weight: 400; }
+.topbar-nav { display: flex; align-items: center; gap: 2px; padding: 0 10px; height: 100%; }
+.topbar-nav a {
+  display: flex; align-items: center; gap: 6px; padding: 0 11px; height: 28px;
+  border-radius: var(--r-sm); font-size: 12px; font-weight: 500;
+  color: var(--text-3); text-decoration: none; transition: var(--t);
+}
+.topbar-nav a:hover { color: var(--text-2); background: rgba(255,255,255,.04); text-decoration: none; }
+.topbar-nav a.active { color: var(--text-1); background: var(--bg-2); }
+.topbar-nav a svg { width: 12px; height: 12px; }
+.topbar-end { margin-left: auto; display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+.user-pill {
+  display: flex; align-items: center; gap: 7px; padding: 4px 10px 4px 6px;
+  background: var(--bg-2); border: 1px solid var(--border-1); border-radius: 20px;
+}
+.user-av {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.user-name { font-size: 11px; color: var(--text-2); }
+.mini-btn {
+  display: flex; align-items: center; gap: 5px; padding: 5px 10px;
+  border-radius: var(--r-sm); border: 1px solid var(--border-1); background: var(--bg-2);
+  color: var(--text-2); font-size: 11px; font-weight: 500; cursor: pointer;
+  text-decoration: none; transition: var(--t); font-family: var(--font-ui);
+}
+.mini-btn:hover { border-color: var(--border-2); color: var(--text-1); text-decoration: none; }
+.mini-btn svg { width: 11px; height: 11px; }
+
+/* ── COCKPIT SHELL ── */
+.cockpit {
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  height: 100vh; padding-top: 44px; overflow: hidden;
+}
+
+/* ── LEFT PANEL ── */
+.panel-l {
+  background: var(--bg-1); border-right: 1px solid var(--border-1);
+  display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+}
+.psec { padding: 14px 14px; border-bottom: 1px solid var(--border-1); }
+.psec:last-child { border-bottom: none; }
+.plabel {
+  font-size: 9px; font-weight: 600; letter-spacing: .9px; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 5px;
+}
+.plabel svg { width: 10px; height: 10px; }
+
+/* Upload */
+.drop-zone {
+  position: relative; border: 1.5px dashed rgba(255,255,255,.1);
+  border-radius: var(--r-md); padding: 14px 10px;
+  text-align: center; cursor: pointer; transition: var(--t);
+  background: rgba(255,255,255,.02);
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--blue); background: var(--blue-dim);
+}
+#file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-ico {
+  width: 30px; height: 30px; margin: 0 auto 7px;
+  background: var(--bg-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center;
+}
+.drop-ico svg { width: 14px; height: 14px; color: var(--text-2); }
+.drop-zone:hover .drop-ico { border-color: var(--blue-border); background: var(--blue-dim); }
+.drop-zone:hover .drop-ico svg { color: var(--blue); }
+.drop-text { font-size: 11px; font-weight: 500; color: var(--text-2); }
+.drop-sub  { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+#upload-filename {
+  font-size: 10px; color: #60A5FA; margin-top: 6px;
+  font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fgroup { margin-top: 10px; }
+.flabel { font-size: 10px; color: var(--text-3); font-weight: 500; margin-bottom: 4px; }
+.fselect {
+  width: 100%; padding: 7px 28px 7px 9px;
+  background: var(--bg-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-sm); color: var(--text-1);
+  font-size: 12px; font-family: var(--font-ui); outline: none; cursor: pointer;
+  appearance: none; transition: var(--t);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+.fselect:focus { border-color: var(--blue-border); }
+.fselect option { background: #111621; }
+
+/* Action buttons */
+.act-btn {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 8px 10px; margin-bottom: 5px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border-1);
+  border-radius: var(--r-md); color: var(--text-2);
+  font-size: 12px; font-weight: 500; font-family: var(--font-ui);
+  cursor: pointer; text-align: left; transition: var(--t);
+}
+.act-btn:last-child { margin-bottom: 0; }
+.act-btn:hover:not(:disabled) {
+  border-color: var(--blue-border); color: var(--text-1); background: var(--blue-dim);
+}
+.act-btn:disabled { opacity: .3; cursor: not-allowed; }
+.act-btn.primary { background: var(--blue-dim); border-color: var(--blue-border); color: #93C5FD; }
+.act-btn.primary:hover:not(:disabled) { background: rgba(59,130,246,.18); color: #BFDBFE; box-shadow: 0 0 16px rgba(59,130,246,.12); }
+.act-btn.success { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.25); color: #6EE7B7; }
+.act-btn.success:hover:not(:disabled) { background: rgba(16,185,129,.14); color: #A7F3D0; }
+.act-ico {
+  width: 24px; height: 24px; border-radius: 5px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.06);
+}
+.act-ico svg { width: 12px; height: 12px; }
+.act-btn.primary .act-ico { background: rgba(59,130,246,.2); }
+.act-btn.success .act-ico { background: rgba(16,185,129,.15); }
+
+/* WS + Progress */
+.ws-pill {
+  display: flex; align-items: center; gap: 6px; padding: 5px 10px;
+  background: var(--bg-2); border: 1px solid var(--border-1);
+  border-radius: 20px; font-size: 10px; color: var(--text-3);
+}
+.ws-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; transition: var(--t); }
+.ws-dot.connected { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.ws-dot.error     { background: var(--red); }
+.prog-wrap { margin-top: 12px; }
+.prog-labels { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.prog-lbl { font-size: 10px; color: var(--text-3); }
+.prog-pct { font-size: 10px; font-family: var(--font-mono); color: var(--blue); }
+.prog-track { height: 3px; background: var(--bg-2); border-radius: 2px; overflow: hidden; }
+.prog-fill {
+  height: 100%; background: linear-gradient(90deg, var(--blue), var(--teal));
+  border-radius: 2px; width: 0%; transition: width .4s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── CENTER PANEL ── */
+.panel-c {
+  display: flex; flex-direction: column; background: #000; overflow: hidden;
+}
+.monitor {
+  flex: 1; min-height: 0; position: relative; background: #000; overflow: hidden;
+}
+#video-player { width: 100%; height: 100%; object-fit: contain; display: none; }
+.monitor-ph {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+}
+.monitor-ph-ico {
+  width: 52px; height: 52px; background: rgba(255,255,255,.04); border: 1px solid var(--border-1);
+  border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center;
+}
+.monitor-ph-ico svg { width: 22px; height: 22px; color: var(--text-3); }
+.monitor-ph p { font-size: 11px; color: var(--text-3); }
+.monitor-hud {
+  position: absolute; top: 10px; left: 10px; right: 10px;
+  display: flex; align-items: flex-start; justify-content: space-between; pointer-events: none;
+}
+.hud-chip {
+  background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.1); border-radius: var(--r-sm);
+  padding: 3px 8px; font-size: 9px; font-family: var(--font-mono);
+  color: var(--text-2); font-weight: 500; pointer-events: all;
+}
+#subtitle-overlay {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.8); backdrop-filter: blur(6px);
+  color: #fff; padding: 5px 16px; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; text-align: center;
+  max-width: 80%; display: none; pointer-events: none;
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* Transport */
+.transport {
+  height: 46px; flex-shrink: 0;
+  background: var(--bg-1); border-top: 1px solid var(--border-1);
+  display: flex; align-items: center; gap: 10px; padding: 0 12px;
+}
+.t-btn {
+  width: 28px; height: 28px; border-radius: var(--r-sm); flex-shrink: 0;
+  background: var(--bg-2); border: 1px solid var(--border-1); color: var(--text-1);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--t);
+}
+.t-btn:hover { border-color: var(--blue-border); background: var(--blue-dim); }
+.t-btn svg { width: 11px; height: 11px; }
+#seek-bar {
+  flex: 1; height: 3px; -webkit-appearance: none; appearance: none;
+  background: rgba(255,255,255,.08); border-radius: 2px; outline: none; cursor: pointer;
+}
+#seek-bar::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--blue); cursor: pointer; box-shadow: 0 0 0 3px rgba(59,130,246,.25);
+}
+#time-display {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+  white-space: nowrap; flex-shrink: 0; min-width: 86px; text-align: right;
+}
+
+/* Waveform */
+.waveform-bar {
+  height: 52px; flex-shrink: 0; background: var(--bg-1); border-top: 1px solid var(--border-1); overflow: hidden;
+}
+#waveform-canvas { width: 100%; height: 100%; display: block; }
+
+/* Console */
+.console-bar {
+  height: 108px; flex-shrink: 0; background: var(--bg-1); border-top: 1px solid var(--border-1);
+  display: flex; flex-direction: column;
+}
+.console-head {
+  height: 26px; flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+  padding: 0 12px; border-bottom: 1px solid var(--border-1);
+}
+.console-title { font-size: 9px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--text-3); }
+.console-clear {
+  margin-left: auto; font-size: 9px; color: var(--text-3); cursor: pointer;
+  background: none; border: none; font-family: var(--font-ui); transition: var(--t);
+}
+.console-clear:hover { color: var(--text-2); }
+#log-monitor {
+  flex: 1; overflow-y: auto; padding: 7px 12px;
+  font-family: var(--font-mono); font-size: 10px; line-height: 1.7;
+  color: #6EE7B7; white-space: pre-wrap; word-break: break-all;
+}
+.ll-err  { color: var(--red); }
+.ll-warn { color: var(--amber); }
+.ll-info { color: var(--text-2); }
+
+/* ── RIGHT PANEL ── */
+.panel-r {
+  background: var(--bg-1); border-left: 1px solid var(--border-1);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.script-head {
+  height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+  padding: 0 14px; border-bottom: 1px solid var(--border-1);
+}
+.script-ttl { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.script-ttl svg { width: 13px; height: 13px; color: var(--text-3); }
+.seg-count { font-size: 10px; color: var(--text-3); font-weight: 400; }
+.save-btn {
+  margin-left: auto; display: flex; align-items: center; gap: 5px; padding: 5px 11px;
+  border-radius: var(--r-sm); background: var(--blue-dim); border: 1px solid var(--blue-border);
+  color: #93C5FD; font-size: 11px; font-weight: 600; font-family: var(--font-ui);
+  cursor: pointer; transition: var(--t);
+}
+.save-btn:hover { background: rgba(59,130,246,.18); color: #BFDBFE; }
+.save-btn svg { width: 11px; height: 11px; }
+
+#script-editor {
+  flex: 1; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 1px;
+}
+.script-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; color: var(--text-3);
+}
+.script-empty svg { width: 28px; height: 28px; opacity: .25; }
+.script-empty p { font-size: 11px; }
+
+.seg-row {
+  display: flex; gap: 8px; padding: 7px 9px;
+  border-radius: var(--r-sm); border: 1px solid transparent;
+  cursor: pointer; transition: var(--t);
+}
+.seg-row:hover { background: var(--bg-2); border-color: var(--border-1); }
+.seg-row.active { background: rgba(59,130,246,.06); border-color: var(--blue-border); box-shadow: inset 2px 0 0 var(--blue); }
+.seg-tc {
+  font-family: var(--font-mono); font-size: 9px; color: var(--text-3);
+  min-width: 34px; flex-shrink: 0; padding-top: 2px; letter-spacing: .2px;
+}
+.seg-row.active .seg-tc { color: var(--blue); }
+.seg-txt {
+  font-size: 12px; color: var(--text-2); flex: 1; outline: none; line-height: 1.55; cursor: text;
+}
+.seg-row.active .seg-txt { color: var(--text-1); }
+{% endblock %}
+
+{% block content %}
+<style>
+  .navbar, .main-content > .messages { display: none !important; }
+  .main-content { padding: 0 !important; overflow: hidden; }
+  .app-shell { overflow: hidden; }
+</style>
+
+<header class="studio-topbar">
+  <div class="topbar-brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
+    </div>
+    <span class="brand-name">TutorBuilder <span>Vision</span></span>
+  </div>
+
+  <nav class="topbar-nav">
+    <a href="{% url 'studio:dashboard' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="{% url 'studio:cockpit' %}" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Cockpit
+    </a>
+    <a href="{% url 'studio:project_list' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Projets
+    </a>
+    <a href="{% url 'api:swagger-ui' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      API
+    </a>
+  </nav>
+
+  <div class="topbar-end">
+    <div class="user-pill">
+      <div class="user-av">{{ user.username|slice:":1"|upper }}</div>
+      <span class="user-name">{{ user.username }}</span>
+    </div>
+    <a href="{% url 'admin:index' %}" class="mini-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Admin
+    </a>
+    <a href="{% url 'logout' %}" class="mini-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </a>
+  </div>
+</header>
+
+<div class="cockpit">
+
+  <!-- ── LEFT ── -->
+  <aside class="panel-l">
+
+    <div class="psec">
+      <div class="plabel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Source vidéo
+      </div>
+
+      <div class="drop-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="video/*">
+        <div class="drop-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        </div>
+        <div class="drop-text">Glisser ou cliquer</div>
+        <div class="drop-sub">MP4 · MKV · AVI · MOV</div>
+        <div id="upload-filename"></div>
+      </div>
+
+      <div class="fgroup">
+        <div class="flabel">Projet</div>
+        <select class="fselect" id="select-project">
+          <option value="">— Sélectionner un projet —</option>
+          {% for p in user_projects %}
+            <option value="{{ p.pk }}" {% if job and job.project.pk == p.pk %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Pipeline
+      </div>
+      <button class="act-btn primary" id="btn-analyse" disabled>
+        <div class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        Analyser &amp; Transcrire
+      </button>
+      <button class="act-btn success" id="btn-tts" disabled>
+        <div class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+        Synthèse vocale
+      </button>
+      <button class="act-btn" id="btn-export" disabled>
+        <div class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
+        Monter &amp; Prévisualiser
+      </button>
+      <a id="btn-download" style="display:none;" class="act-btn"
+         href="#" download="final.mp4">
+        <div class="act-ico" style="background:rgba(16,185,129,.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+        Télécharger MP4
+      </a>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Providers IA
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Transcription (STT)</div>
+        <select class="fselect" id="select-stt">
+          {% for val, label in stt_engines %}<option value="{{ val }}" {% if job and job.stt_engine == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Synthèse vocale (TTS)</div>
+        <select class="fselect" id="select-tts">
+          {% for val, label in tts_engines %}<option value="{{ val }}" {% if job and job.tts_engine == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Langue</div>
+        <select class="fselect" id="select-lang">
+          {% for val, label in languages %}<option value="{{ val }}" {% if job and job.language == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="ws-pill">
+        <span class="ws-dot" id="ws-dot"></span>
+        <span id="ws-status" style="font-size:10px;">Non connecté</span>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-labels">
+          <span class="prog-lbl" id="progress-label">En attente</span>
+          <span class="prog-pct" id="progress-pct">0%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="progress-bar"></div></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── CENTER ── -->
+  <main class="panel-c">
+
+    <div class="monitor" id="video-monitor">
+      <video id="video-player" controls></video>
+      <div class="monitor-ph" id="video-placeholder">
+        <div class="monitor-ph-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+        </div>
+        <p>Aucune vidéo chargée</p>
+      </div>
+      <div class="monitor-hud">
+        <span class="hud-chip" id="hud-mode">PREVIEW</span>
+        <span class="hud-chip" id="hud-res" style="display:none;"></span>
+      </div>
+      <div id="subtitle-overlay"></div>
+    </div>
+
+    <div class="transport">
+      <button class="t-btn" onclick="togglePlay()">
+        <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21"/></svg>
+      </button>
+      <input type="range" id="seek-bar" min="0" max="100" value="0" step="0.1">
+      <span id="time-display">00:00 / 00:00</span>
+    </div>
+
+    <div class="waveform-bar"><canvas id="waveform-canvas"></canvas></div>
+
+    <div class="console-bar">
+      <div class="console-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px;color:var(--text-3)"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <span class="console-title">Console</span>
+        <button class="console-clear" onclick="clearLog()">Effacer</button>
+      </div>
+      <div id="log-monitor">Système prêt. Importez une vidéo pour démarrer.
+</div>
+    </div>
+
+  </main>
+
+  <!-- ── RIGHT ── -->
+  <aside class="panel-r">
+
+    <div class="script-head">
+      <div class="script-ttl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Script
+        <span class="seg-count" id="seg-count"></span>
+      </div>
+      <button class="save-btn" onclick="saveScript()" id="btn-save-script" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Sauvegarder
+      </button>
+    </div>
+
+    <div id="script-editor">
+      <div class="script-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <p>Script après transcription</p>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<input type="hidden" id="current-job-id" value="{{ job.pk|default:'' }}">
+<input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const STATE = { jobId: document.getElementById('current-job-id').value || null, taskId: null, segments: [], waveform: [], ws: null, uploadedFile: null, pollInterval: null };
+const CSRF = document.getElementById('csrf-token').value;
+const _p = new URLSearchParams(location.search).get('project');
+if (_p) document.getElementById('select-project').value = _p;
+
+function log(msg, t = '') {
+  const el = document.getElementById('log-monitor');
+  const ts = new Date().toLocaleTimeString('fr-FR');
+  const cls = t ? `ll-${t}` : '';
+  el.innerHTML += `<span class="${cls}">[${ts}] ${msg}\n</span>`;
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log-monitor').innerHTML = ''; }
+
+function setProgress(label, pct) {
+  document.getElementById('progress-label').textContent = label;
+  document.getElementById('progress-pct').textContent   = pct + '%';
+  document.getElementById('progress-bar').style.width   = pct + '%';
+}
+
+function msToTC(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+async function apiPost(url, data) {
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body:JSON.stringify(data) });
+  return r.json();
+}
+
+// UPLOAD
+const zone = document.getElementById('upload-zone');
+const fin  = document.getElementById('file-input');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); if (e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]); });
+fin.addEventListener('change', () => { if (fin.files[0]) pick(fin.files[0]); });
+
+function pick(file) {
+  STATE.uploadedFile = file;
+  document.getElementById('upload-filename').textContent = file.name;
+  const v = document.getElementById('video-player');
+  v.src = URL.createObjectURL(file);
+  v.style.display = 'block';
+  document.getElementById('video-placeholder').style.display = 'none';
+  document.getElementById('btn-analyse').disabled = false;
+  log(`Sélectionné : ${file.name} — ${(file.size/1048576).toFixed(1)} Mo`);
+}
+
+// ANALYSE
+document.getElementById('btn-analyse').addEventListener('click', async () => {
+  const pid = document.getElementById('select-project').value;
+  if (!pid)                { log('Sélectionnez un projet.', 'warn'); return; }
+  if (!STATE.uploadedFile) { log('Importez d\'abord une vidéo.', 'warn'); return; }
+
+  document.getElementById('btn-analyse').disabled = true;
+  setProgress('Upload…', 10);
+  log('Upload de la vidéo…');
+
+  const fd = new FormData();
+  fd.append('video_file', STATE.uploadedFile);
+  fd.append('project_id', pid);
+  fd.append('stt_engine', document.getElementById('select-stt').value);
+  fd.append('tts_engine', document.getElementById('select-tts').value);
+  fd.append('language',   document.getElementById('select-lang').value);
+
+  let up;
+  try {
+    const r = await fetch('/api/jobs/', { method:'POST', headers:{'X-CSRFToken':CSRF}, body:fd });
+    up = await r.json();
+  } catch(e) { log('Erreur upload : ' + e.message, 'err'); document.getElementById('btn-analyse').disabled = false; return; }
+
+  if (!up.id) { log('Upload échoué : ' + JSON.stringify(up), 'err'); document.getElementById('btn-analyse').disabled = false; return; }
+
+  STATE.jobId = up.id;
+  log(`Vidéo uploadée — Job ${STATE.jobId.slice(0,8)}…`);
+  setProgress('Vidéo uploadée', 20);
+  connectWS(STATE.jobId);
+
+  log(`Transcription ${document.getElementById('select-stt').value}…`);
+  const tr = await apiPost(`/api/jobs/${STATE.jobId}/transcribe/`, {
+    stt_engine: document.getElementById('select-stt').value,
+    language:   document.getElementById('select-lang').value,
+  });
+
+  if (tr.task_id) {
+    STATE.taskId = tr.task_id;
+    log(`Tâche : ${tr.task_id.slice(0,8)}…`, 'info');
+    if (!STATE.ws || STATE.ws.readyState !== WebSocket.OPEN) {
+      log('Polling HTTP activé.', 'info');
+      poll(STATE.jobId);
+    }
+  } else {
+    log('Erreur tâche : ' + JSON.stringify(tr), 'err');
+  }
+});
+
+// TTS
+document.getElementById('btn-tts').addEventListener('click', async () => {
+  if (!STATE.jobId || !STATE.segments.length) { log('Transcription requise avant synthèse.', 'warn'); return; }
+  document.getElementById('btn-tts').disabled = true;
+  setProgress('Synthèse vocale…', 10);
+  log(`TTS via ${document.getElementById('select-tts').value}…`);
+
+  const r = await apiPost(`/api/jobs/${STATE.jobId}/synthesize/`, {
+    tts_engine: document.getElementById('select-tts').value,
+    language:   document.getElementById('select-lang').value,
+  });
+
+  if (r.task_id) { log(`Tâche TTS : ${r.task_id.slice(0,8)}…`, 'info'); poll(STATE.jobId); }
+  else           { log('Erreur : ' + JSON.stringify(r), 'err'); document.getElementById('btn-tts').disabled = false; }
+});
+
+// WEBSOCKET
+function connectWS(jid) {
+  if (STATE.ws) STATE.ws.close();
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  STATE.ws = new WebSocket(`${proto}://${location.host}/ws/job/${jid}/`);
+  const dot = document.getElementById('ws-dot'), lbl = document.getElementById('ws-status');
+  STATE.ws.onopen  = () => { dot.className='ws-dot connected'; lbl.textContent='Connecté'; log('WebSocket connecté.','info'); };
+  STATE.ws.onclose = () => { dot.className='ws-dot'; lbl.textContent='Déconnecté'; };
+  STATE.ws.onerror = () => { dot.className='ws-dot error'; lbl.textContent='Erreur WS'; };
+  STATE.ws.onmessage = e => onWS(JSON.parse(e.data));
+}
+
+function onWS(msg) {
+  switch(msg.type) {
+    case 'status':   log(msg.message); break;
+    case 'progress': setProgress(msg.label||'…', msg.percent||0); break;
+    case 'waveform': STATE.waveform = msg.data; drawWave(msg.data); break;
+    case 'segments':
+      STATE.segments = msg.data; renderScript(msg.data);
+      document.getElementById('btn-tts').disabled = false;
+      document.getElementById('btn-save-script').style.display = 'flex';
+      setProgress('Transcription terminée', 100); break;
+    case 'tts_progress': setProgress(`TTS ${msg.current}/${msg.total}`, Math.round(msg.current/msg.total*100)); break;
+    case 'tts_done':
+      log(`${msg.nb_ok}/${msg.nb_total} fichiers générés.`);
+      setProgress('Synthèse terminée', 100);
+      document.getElementById('btn-tts').disabled   = false;
+      document.getElementById('btn-export').disabled = false; break;
+    case 'export_done':
+      setProgress('Montage terminé', 100);
+      showDownloadBanner(msg.download_url);
+      log(`Vidéo finale prête — ${msg.file_size_mb} Mo`);
+      document.getElementById('btn-export').disabled = false; break;
+    case 'error':
+      log(msg.message, 'err'); setProgress('Erreur', 0);
+      document.getElementById('btn-analyse').disabled = false;
+      document.getElementById('btn-tts').disabled     = false; break;
+  }
+}
+
+// POLLING
+function poll(jid) {
+  if (STATE.pollInterval) clearInterval(STATE.pollInterval);
+  STATE.pollInterval = setInterval(async () => {
+    try {
+      const job = await (await fetch(`/api/jobs/${jid}/`)).json();
+      const s   = job.status;
+      const map = { extracting:['Extraction audio…',30], transcribing:['Transcription…',60], transcribed:['Transcription terminée',100], synthesizing:['Synthèse vocale…',70], done:['Terminé',100], error:['Erreur',0] };
+      if (map[s]) setProgress(map[s][0], map[s][1]);
+
+      if (s === 'transcribed' && !STATE.segments.length) {
+        const sd = await (await fetch(`/api/jobs/${jid}/segments/`)).json();
+        if (sd.length) {
+          STATE.segments = sd.map(x => ({id:x.id,index:x.index,start:x.start_ms,end:x.end_ms,text:x.text}));
+          renderScript(STATE.segments);
+          document.getElementById('btn-tts').disabled = false;
+          document.getElementById('btn-save-script').style.display = 'flex';
+          document.getElementById('btn-analyse').disabled = false;
+          log(`${sd.length} segments transcrits.`);
+        }
+      }
+      if (s === 'done') {
+        clearInterval(STATE.pollInterval); STATE.pollInterval = null;
+        document.getElementById('btn-tts').disabled    = false;
+        document.getElementById('btn-export').disabled  = false;
+        document.getElementById('btn-analyse').disabled = false;
+        log('Pipeline terminé.'); setProgress('Terminé', 100);
+        if (!STATE.segments.length) {
+          const sd = await (await fetch(`/api/jobs/${jid}/segments/`)).json();
+          if (sd.length) {
+            STATE.segments = sd.map(x => ({id:x.id,index:x.index,start:x.start_ms,end:x.end_ms,text:x.text}));
+            renderScript(STATE.segments);
+            document.getElementById('btn-save-script').style.display = 'flex';
+          }
+        }
+      }
+      if (s === 'error') {
+        clearInterval(STATE.pollInterval); STATE.pollInterval = null;
+        log('Erreur : ' + (job.error_message||'inconnue'), 'err');
+        document.getElementById('btn-analyse').disabled = false;
+        document.getElementById('btn-tts').disabled     = false;
+      }
+    } catch(e) {}
+  }, 2000);
+}
+
+// WAVEFORM
+function drawWave(data) {
+  const c = document.getElementById('waveform-canvas');
+  const ctx = c.getContext('2d');
+  const W = c.offsetWidth, H = c.offsetHeight;
+  c.width = W; c.height = H;
+  ctx.fillStyle = '#07090E'; ctx.fillRect(0,0,W,H);
+  if (!data||!data.length) return;
+  const g = ctx.createLinearGradient(0,0,W,0);
+  g.addColorStop(0,'rgba(59,130,246,.55)'); g.addColorStop(.5,'rgba(6,182,212,.65)'); g.addColorStop(1,'rgba(59,130,246,.55)');
+  ctx.strokeStyle = g; ctx.lineWidth = 1;
+  const step = W / data.length;
+  for (let i=0; i<data.length; i++) {
+    const x=i*step, a=data[i]*(H/2);
+    ctx.beginPath(); ctx.moveTo(x,H/2-a); ctx.lineTo(x,H/2+a); ctx.stroke();
+  }
+  drawHead();
+}
+function drawHead() {
+  if (!STATE.waveform.length) return;
+  const c = document.getElementById('waveform-canvas');
+  const v = document.getElementById('video-player');
+  if (!v.duration) return;
+  drawWave(STATE.waveform);
+  const ctx = c.getContext('2d');
+  const x = (v.currentTime/v.duration)*c.width;
+  ctx.strokeStyle='rgba(239,68,68,.75)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,c.height); ctx.stroke();
+}
+
+// SCRIPT
+function renderScript(segs) {
+  const ed = document.getElementById('script-editor');
+  ed.innerHTML = '';
+  document.getElementById('seg-count').textContent = `${segs.length} segments`;
+  segs.forEach((seg,i) => {
+    const r = document.createElement('div');
+    r.className = 'seg-row'; r.dataset.index = i;
+    r.innerHTML = `<span class="seg-tc">${msToTC(seg.start)}</span><div class="seg-txt" contenteditable="true" data-index="${i}">${seg.text}</div>`;
+    r.addEventListener('click', () => { document.getElementById('video-player').currentTime = seg.start/1000; hl(i); });
+    ed.appendChild(r);
+  });
+}
+function hl(idx) {
+  document.querySelectorAll('.seg-row').forEach(r=>r.classList.remove('active'));
+  const r = document.querySelector(`.seg-row[data-index="${idx}"]`);
+  if (r) { r.classList.add('active'); r.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+}
+async function saveScript() {
+  if (!STATE.jobId) return;
+  let n = 0;
+  for (const r of document.querySelectorAll('.seg-txt')) {
+    const seg = STATE.segments[parseInt(r.dataset.index)];
+    if (!seg) continue;
+    try { await fetch(`/api/segments/${seg.id}/`,{method:'PATCH',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify({text:r.textContent.trim()})}); n++; }
+    catch(e){}
+  }
+  log(`Script sauvegardé — ${n} segments.`);
+}
+
+// EXPORT
+document.getElementById('btn-export').addEventListener('click', async () => {
+  if (!STATE.jobId) { log('Aucun job actif.', 'warn'); return; }
+
+  document.getElementById('btn-export').disabled = true;
+  setProgress('Montage vidéo…', 10);
+  log('Lancement du montage vidéo final…');
+
+  const r = await apiPost(`/api/jobs/${STATE.jobId}/export/`, {});
+
+  if (r.task_id) {
+    log(`Tâche export démarrée : ${r.task_id.slice(0, 8)}…`, 'info');
+    pollExport(STATE.jobId);
+  } else {
+    log('Erreur : ' + JSON.stringify(r), 'err');
+    document.getElementById('btn-export').disabled = false;
+  }
+});
+
+function pollExport(jobId) {
+  let pct = 10;
+  const interval = setInterval(async () => {
+    try {
+      const job = await (await fetch(`/api/jobs/${jobId}/`)).json();
+      pct = Math.min(pct + 8, 90);
+      setProgress('Encodage ffmpeg…', pct);
+
+      if (job.status === 'done') {
+        clearInterval(interval);
+        setProgress('Montage terminé', 100);
+        const downloadUrl = `/outputs/${jobId}/final.mp4`;
+        showPreviewPanel(downloadUrl);
+        log('Vidéo finale prête — prévisualisation disponible.');
+        document.getElementById('btn-export').disabled = false;
+      }
+
+      if (job.status === 'error') {
+        clearInterval(interval);
+        log('Erreur montage : ' + (job.error_message || 'inconnue'), 'err');
+        setProgress('Erreur', 0);
+        document.getElementById('btn-export').disabled = false;
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+function showPreviewPanel(url) {
+  // Charger la vidéo finale dans le lecteur principal
+  const v = document.getElementById('video-player');
+  v.src = url;
+  v.style.display = 'block';
+  document.getElementById('video-placeholder').style.display = 'none';
+  document.getElementById('hud-mode').textContent = 'FINAL';
+  document.getElementById('hud-mode').style.color = '#34D399';
+
+  // Activer le bouton Télécharger dans le panneau gauche
+  const dlBtn = document.getElementById('btn-download');
+  dlBtn.href = url;
+  dlBtn.style.display = 'flex';
+  dlBtn.style.background = 'rgba(16,185,129,.08)';
+  dlBtn.style.borderColor = 'rgba(16,185,129,.3)';
+  dlBtn.style.color = '#6EE7B7';
+
+  // Jouer automatiquement la prévisualisation
+  v.play().catch(() => {});
+
+  log('Vidéo finale chargée dans le moniteur — prévisualisez puis téléchargez.', 'info');
+}
+
+
+const vid = document.getElementById('video-player');
+const sb  = document.getElementById('seek-bar');
+function togglePlay() {
+  const ico = document.getElementById('play-icon');
+  if (vid.paused) { vid.play(); ico.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'; }
+  else            { vid.pause(); ico.innerHTML='<polygon points="5 3 19 12 5 21"/>'; }
+}
+vid.addEventListener('timeupdate', () => {
+  if (!vid.duration) return;
+  sb.value = (vid.currentTime/vid.duration)*100;
+  document.getElementById('time-display').textContent = `${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
+  const ms=vid.currentTime*1000, seg=STATE.segments.find(s=>ms>=s.start&&ms<=s.end);
+  const ov=document.getElementById('subtitle-overlay');
+  if (seg) { ov.textContent=seg.text; ov.style.display='block'; hl(STATE.segments.indexOf(seg)); }
+  else ov.style.display='none';
+  drawHead();
+});
+vid.addEventListener('loadedmetadata', () => {
+  const el = document.getElementById('hud-res');
+  el.textContent = `${vid.videoWidth}×${vid.videoHeight}`; el.style.display='block';
+});
+sb.addEventListener('input', () => { if(vid.duration) vid.currentTime=(sb.value/100)*vid.duration; });
+
+// INIT
+window.addEventListener('load', () => {
+  if (STATE.jobId) {
+    connectWS(STATE.jobId);
+    log(`Job rechargé : ${STATE.jobId.slice(0,8)}…`,'info');
+    fetch(`/api/jobs/${STATE.jobId}/segments/`).then(r=>r.json()).then(data=>{
+      if (data.length) {
+        STATE.segments=data.map(s=>({id:s.id,index:s.index,start:s.start_ms,end:s.end_ms,text:s.text}));
+        renderScript(STATE.segments);
+        document.getElementById('btn-tts').disabled=false;
+        document.getElementById('btn-save-script').style.display='flex';
+        log(`${data.length} segments chargés.`,'info');
+      }
+    }).catch(()=>{});
+  }
+});
+</script>
+{% endblock %}

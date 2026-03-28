@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}Projets{% endblock %}
+
+{% block extra_style %}
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg-base:#07090E; --bg-1:#0C0F17; --bg-2:#111621; --bg-3:#16202E;
+  --blue:#3B82F6; --blue-dim:rgba(59,130,246,.1); --blue-border:rgba(59,130,246,.3);
+  --teal:#06B6D4; --green:#10B981; --red:#EF4444; --amber:#F59E0B;
+  --text-1:#F1F5F9; --text-2:#94A3B8; --text-3:#475569;
+  --border-1:rgba(255,255,255,.055); --border-2:rgba(255,255,255,.09);
+  --font-ui:'Outfit',system-ui,sans-serif; --font-mono:'JetBrains Mono',monospace;
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --t:all .18s cubic-bezier(.4,0,.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg-base);color:var(--text-1);font-family:var(--font-ui);font-size:13px;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+/* TOPBAR */
+.studio-topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:44px;display:flex;align-items:center;background:rgba(7,9,14,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border-1);}
+.topbar-brand{display:flex;align-items:center;gap:10px;padding:0 18px;height:100%;border-right:1px solid var(--border-1);min-width:220px;flex-shrink:0;}
+.brand-mark{width:26px;height:26px;background:var(--blue);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;}
+.brand-mark svg{width:13px;height:13px;color:#fff;}
+.brand-name{font-size:13px;font-weight:600;}
+.brand-name span{color:var(--text-3);font-weight:400;}
+.topbar-nav{display:flex;align-items:center;gap:2px;padding:0 10px;height:100%;}
+.topbar-nav a{display:flex;align-items:center;gap:6px;padding:0 11px;height:28px;border-radius:var(--r-sm);font-size:12px;font-weight:500;color:var(--text-3);text-decoration:none;transition:var(--t);}
+.topbar-nav a:hover{color:var(--text-2);background:rgba(255,255,255,.04);text-decoration:none;}
+.topbar-nav a.active{color:var(--text-1);background:var(--bg-2);}
+.topbar-nav a svg{width:12px;height:12px;}
+.topbar-end{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 14px;}
+.user-pill{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:20px;}
+.user-av{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
+.user-name{font-size:11px;color:var(--text-2);}
+.mini-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-2);color:var(--text-2);font-size:11px;font-weight:500;cursor:pointer;text-decoration:none;transition:var(--t);font-family:var(--font-ui);}
+.mini-btn:hover{border-color:var(--border-2);color:var(--text-1);text-decoration:none;}
+.mini-btn svg{width:11px;height:11px;}
+
+/* PAGE */
+.page{max-width:1080px;margin:0 auto;padding:72px 24px 40px;}
+
+/* PAGE HEADER */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.page-header h1{font-size:20px;font-weight:700;color:var(--text-1);letter-spacing:-.2px;}
+.page-header p{font-size:12px;color:var(--text-3);margin-top:3px;}
+
+/* BUTTONS */
+.btn-solid{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--r-md);font-size:12px;font-weight:600;cursor:pointer;transition:var(--t);text-decoration:none;border:1px solid transparent;font-family:var(--font-ui);}
+.btn-solid:hover{text-decoration:none;}
+.btn-outline{background:transparent;border-color:var(--border-2);color:var(--text-2);}
+.btn-outline:hover{border-color:var(--blue-border);color:var(--text-1);background:var(--blue-dim);}
+.btn-primary-s{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-primary-s:hover{background:#2563EB;box-shadow:0 0 20px rgba(59,130,246,.25);}
+.btn-danger-s{background:transparent;border-color:rgba(239,68,68,.3);color:#F87171;}
+.btn-danger-s:hover{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.5);}
+.btn-sm-s{padding:5px 11px;font-size:11px;}
+.btn-solid svg{width:12px;height:12px;}
+
+/* SEARCH + TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.search-wrap{position:relative;flex:1;max-width:300px;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-3);pointer-events:none;}
+.search-input{width:100%;padding:7px 10px 7px 32px;background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-sm);color:var(--text-1);font-size:12px;font-family:var(--font-ui);outline:none;transition:var(--t);}
+.search-input:focus{border-color:var(--blue-border);}
+.search-input::placeholder{color:var(--text-3);}
+
+/* PROJECTS GRID */
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:28px;}
+
+.proj-card{
+  background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);
+  padding:18px;display:flex;flex-direction:column;gap:10px;transition:var(--t);
+}
+.proj-card:hover{border-color:var(--border-2);}
+
+.proj-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.proj-name{font-size:13px;font-weight:600;color:var(--text-1);line-height:1.3;}
+.proj-menu-btn{
+  width:26px;height:26px;border-radius:var(--r-sm);border:1px solid transparent;
+  background:transparent;color:var(--text-3);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:var(--t);flex-shrink:0;
+}
+.proj-menu-btn:hover{background:var(--bg-2);border-color:var(--border-1);color:var(--text-2);}
+.proj-menu-btn svg{width:13px;height:13px;}
+
+.proj-desc{font-size:11px;color:var(--text-3);line-height:1.55;}
+
+.proj-stats{display:flex;align-items:center;gap:12px;margin-top:2px;}
+.proj-stat{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-3);}
+.proj-stat svg{width:11px;height:11px;opacity:.6;}
+
+.proj-footer{
+  display:flex;align-items:center;gap:6px;
+  padding-top:12px;border-top:1px solid var(--border-1);
+  margin-top:auto;
+}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;letter-spacing:.3px;flex-shrink:0;}
+.badge-pending{background:rgba(71,85,105,.2);color:var(--text-3);}
+.badge-extracting,.badge-uploading{background:rgba(59,130,246,.12);color:#60A5FA;}
+.badge-transcribing{background:rgba(139,92,246,.12);color:#A78BFA;}
+.badge-transcribed{background:rgba(6,182,212,.12);color:#22D3EE;}
+.badge-synthesizing{background:rgba(236,72,153,.12);color:#F472B6;}
+.badge-done{background:rgba(16,185,129,.12);color:#34D399;}
+.badge-error{background:rgba(239,68,68,.12);color:#F87171;}
+
+/* NEW PROJECT CARD */
+.proj-new{
+  background:transparent;border:1.5px dashed rgba(255,255,255,.07);
+  border-radius:var(--r-lg);padding:18px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;min-height:120px;text-decoration:none;transition:var(--t);cursor:pointer;
+}
+.proj-new:hover{border-color:var(--blue-border);background:var(--blue-dim);text-decoration:none;}
+.proj-new-ico{width:32px;height:32px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;}
+.proj-new-ico svg{width:14px;height:14px;color:var(--text-3);}
+.proj-new:hover .proj-new-ico{border-color:var(--blue-border);background:var(--blue-dim);}
+.proj-new:hover .proj-new-ico svg{color:var(--blue);}
+.proj-new-label{font-size:12px;color:var(--text-3);font-weight:500;}
+.proj-new:hover .proj-new-label{color:var(--blue);}
+
+/* EMPTY */
+.empty-block{text-align:center;padding:60px 24px;background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);}
+.empty-ico{width:52px;height:52px;margin:0 auto 16px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;}
+.empty-ico svg{width:22px;height:22px;color:var(--text-3);}
+.empty-block p{font-size:13px;color:var(--text-3);margin-bottom:20px;}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:24px;}
+.page-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-1);color:var(--text-2);font-size:11px;font-weight:500;text-decoration:none;transition:var(--t);}
+.page-btn:hover{border-color:var(--blue-border);color:var(--text-1);background:var(--blue-dim);text-decoration:none;}
+.page-btn svg{width:11px;height:11px;}
+.page-info{font-size:11px;color:var(--text-3);padding:0 8px;font-family:var(--font-mono);}
+
+/* SECTION LABEL */
+.section-title{font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.section-title svg{width:11px;height:11px;}
+.section-count{font-family:var(--font-mono);color:var(--text-3);font-size:9px;font-weight:400;}
+{% endblock %}
+
+{% block content %}
+<style>
+  .navbar{display:none!important;}
+  .main-content{padding:0!important;}
+</style>
+
+<header class="studio-topbar">
+  <div class="topbar-brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
+    </div>
+    <span class="brand-name">TutorBuilder <span>Vision</span></span>
+  </div>
+  <nav class="topbar-nav">
+    <a href="{% url 'studio:dashboard' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="{% url 'studio:cockpit' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Cockpit
+    </a>
+    <a href="{% url 'studio:project_list' %}" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Projets
+    </a>
+    <a href="{% url 'api:swagger-ui' %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      API
+    </a>
+  </nav>
+  <div class="topbar-end">
+    <div class="user-pill">
+      <div class="user-av">{{ user.username|slice:":1"|upper }}</div>
+      <span class="user-name">{{ user.username }}</span>
+    </div>
+    <a href="{% url 'admin:index' %}" class="mini-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Admin
+    </a>
+    <a href="{% url 'logout' %}" class="mini-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Mes projets</h1>
+      <p>{{ projects.paginator.count|default:projects|length }} projet{{ projects|length|pluralize }} au total</p>
+    </div>
+    <a href="{% url 'studio:project_create' %}" class="btn-solid btn-primary-s">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouveau projet
+    </a>
+  </div>
+
+  {% if projects %}
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="search-input" placeholder="Rechercher un projet…"
+               oninput="filterProjects(this.value)">
+      </div>
+    </div>
+
+    <!-- Section label -->
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Tous les projets
+      <span class="section-count">— {{ projects|length }}</span>
+    </div>
+
+    <div class="proj-grid" id="proj-grid">
+      {% for project in projects %}
+        <div class="proj-card" data-name="{{ project.name|lower }}">
+
+          <div class="proj-card-top">
+            <div class="proj-name">{{ project.name }}</div>
+            {% with job=project.latest_job %}
+              {% if job %}<span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span>{% endif %}
+            {% endwith %}
+          </div>
+
+          {% if project.description %}
+            <div class="proj-desc">{{ project.description|truncatechars:90 }}</div>
+          {% endif %}
+
+          <div class="proj-stats">
+            <div class="proj-stat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              {{ project.jobs.count }} job{{ project.jobs.count|pluralize }}
+            </div>
+            <div class="proj-stat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {{ project.updated_at|timesince }}
+            </div>
+          </div>
+
+          <div class="proj-footer">
+            <a href="{% url 'studio:cockpit' %}?project={{ project.pk }}" class="btn-solid btn-primary-s btn-sm-s">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Cockpit
+            </a>
+            <a href="{% url 'studio:project_delete' project.pk %}"
+               class="btn-solid btn-danger-s btn-sm-s" style="margin-left:auto;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+
+      <a href="{% url 'studio:project_create' %}" class="proj-new">
+        <div class="proj-new-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <span class="proj-new-label">Nouveau projet</span>
+      </a>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="page-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Précédent
+          </a>
+        {% endif %}
+        <span class="page-info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="page-btn">
+            Suivant
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="empty-block">
+      <div class="empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <p>Aucun projet pour l'instant.</p>
+      <a href="{% url 'studio:project_create' %}" class="btn-solid btn-primary-s">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Créer mon premier projet
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+function filterProjects(q) {
+  const query = q.toLowerCase().trim();
+  document.querySelectorAll('#proj-grid .proj-card').forEach(card => {
+    const name = card.dataset.name || '';
+    card.style.display = (!query || name.includes(query)) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

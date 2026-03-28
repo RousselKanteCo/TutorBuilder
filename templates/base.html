@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}TutoBuilder Vision{% endblock %} — Graphelya</title>
+
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #000;
+      --bg2:       #0a0a0a;
+      --bg3:       #111;
+      --border:    rgba(0,255,255,.12);
+      --cyan:      #00FFFF;
+      --green:     #00FF7F;
+      --red:       #FF4444;
+      --amber:     #F59E0B;
+      --text:      #E0E0E0;
+      --text-muted:#888;
+      --radius:    12px;
+      --font:      'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'Consolas', 'Courier New', monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,255,255,.2); border-radius: 3px; }
+
+    /* ── Layout principal ── */
+    .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Navbar ── */
+    .navbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      height: 48px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .navbar-brand {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: .5px;
+      white-space: nowrap;
+    }
+
+    .navbar-brand span { color: var(--green); }
+
+    .navbar-links { display: flex; gap: 4px; margin-left: 8px; }
+
+    .navbar-links a {
+      padding: 5px 12px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 12px;
+      transition: background .15s, color .15s;
+    }
+
+    .navbar-links a:hover,
+    .navbar-links a.active {
+      background: rgba(0,255,255,.08);
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    .navbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+    .navbar-user {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .navbar-user strong { color: var(--text); }
+
+    /* ── Contenu principal ── */
+    .main-content {
+      flex: 1;
+      padding: 24px;
+      overflow: auto;
+    }
+
+    /* ── Boutons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      text-decoration: none;
+    }
+
+    .btn:hover { text-decoration: none; filter: brightness(1.15); }
+    .btn:active { transform: scale(.97); }
+
+    .btn-primary {
+      background: rgba(0,40,40,.8);
+      color: var(--cyan);
+      border-color: rgba(0,255,255,.4);
+    }
+
+    .btn-primary:hover { background: rgba(0,255,255,.15); }
+
+    .btn-success {
+      background: rgba(0,30,15,.8);
+      color: var(--green);
+      border-color: rgba(0,255,127,.4);
+    }
+
+    .btn-danger {
+      background: rgba(40,0,0,.8);
+      color: var(--red);
+      border-color: rgba(255,68,68,.4);
+    }
+
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Badges de statut ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .badge-pending      { background: rgba(136,136,136,.2); color: #aaa; }
+    .badge-extracting,
+    .badge-uploading    { background: rgba(59,130,246,.2);  color: #60A5FA; }
+    .badge-transcribing { background: rgba(139,92,246,.2);  color: #A78BFA; }
+    .badge-transcribed  { background: rgba(6,182,212,.2);   color: #22D3EE; }
+    .badge-synthesizing { background: rgba(236,72,153,.2);  color: #F472B6; }
+    .badge-done         { background: rgba(16,185,129,.2);  color: #34D399; }
+    .badge-error        { background: rgba(239,68,68,.2);   color: #F87171; }
+
+    /* ── Formulaires ── */
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cyan);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .form-control:focus { border-color: var(--cyan); }
+
+    select.form-control option { background: var(--bg3); }
+
+    /* ── Messages Django ── */
+    .messages { list-style: none; padding: 0; margin-bottom: 20px; }
+
+    .messages li {
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      border-left: 3px solid;
+    }
+
+    .messages .success { background: rgba(16,185,129,.1); border-color: var(--green); color: var(--green); }
+    .messages .error   { background: rgba(239,68,68,.1);  border-color: var(--red);   color: var(--red); }
+    .messages .warning { background: rgba(245,158,11,.1); border-color: var(--amber); color: var(--amber); }
+    .messages .info    { background: rgba(0,255,255,.08); border-color: var(--cyan);  color: var(--cyan); }
+
+    /* ── Utilitaires ── */
+    .text-muted  { color: var(--text-muted); }
+    .text-cyan   { color: var(--cyan); }
+    .text-green  { color: var(--green); }
+    .text-red    { color: var(--red); }
+    .mt-auto     { margin-top: auto; }
+    .d-flex      { display: flex; }
+    .align-center{ align-items: center; }
+    .gap-8       { gap: 8px; }
+    .gap-16      { gap: 16px; }
+    .w-100       { width: 100%; }
+
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Navbar ── -->
+  <nav class="navbar">
+    <a href="{% url 'studio:dashboard' %}" class="navbar-brand">
+      TUTOR<span>BUILDER</span> VISION
+    </a>
+
+    <div class="navbar-links">
+      <a href="{% url 'studio:dashboard' %}"
+         class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        Tableau de bord
+      </a>
+      <a href="{% url 'studio:cockpit' %}"
+         class="{% if 'cockpit' in request.resolver_match.url_name %}active{% endif %}">
+        Cockpit
+      </a>
+      <a href="{% url 'studio:project_list' %}"
+         class="{% if 'project' in request.resolver_match.url_name %}active{% endif %}">
+        Projets
+      </a>
+      <a href="{% url 'api:swagger-ui' %}">API Docs</a>
+    </div>
+
+    <div class="navbar-right">
+      {% if user.is_authenticated %}
+        <span class="navbar-user">
+          Connecté : <strong>{{ user.username }}</strong>
+        </span>
+        <a href="{% url 'admin:index' %}" class="btn btn-primary btn-sm">Admin</a>
+        <a href="{% url 'logout' %}" class="btn btn-sm" style="color:var(--text-muted);border-color:var(--border)">
+          Déconnexion
+        </a>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-primary btn-sm">Connexion</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- ── Messages Django ── -->
+  {% if messages %}
+    <div style="padding: 0 24px; margin-top: 12px;">
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <!-- ── Contenu de la page ── -->
+  {% block content %}{% endblock %}
+
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

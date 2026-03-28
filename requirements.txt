@@ -1,0 +1,74 @@
+# ══════════════════════════════════════════════════════════════
+#  TutoBuilder Vision — Django Web Stack
+#  Par Graphelya
+# ══════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────
+#  1. DJANGO CORE
+# ─────────────────────────────────────────
+Django>=5.0.0
+django-environ>=0.11.0            # Gestion .env propre
+whitenoise>=6.7.0                 # Servir les fichiers statiques en prod
+
+# ─────────────────────────────────────────
+#  2. REST API
+# ─────────────────────────────────────────
+djangorestframework>=3.15.0
+django-cors-headers>=4.4.0        # CORS pour le frontend JS
+drf-spectacular>=0.27.0           # Documentation OpenAPI / Swagger
+
+# ─────────────────────────────────────────
+#  3. WEBSOCKET (temps réel — remplace les signaux Qt)
+# ─────────────────────────────────────────
+channels>=4.1.0
+channels-redis>=4.2.0             # Couche Redis pour Django Channels
+daphne>=4.1.0                     # Serveur ASGI (remplace uvicorn pour Channels)
+
+# ─────────────────────────────────────────
+#  4. CELERY (workers STT/TTS — porté depuis server.py)
+# ─────────────────────────────────────────
+celery>=5.4.0
+celery[redis]>=5.4.0
+redis>=5.0.0
+flower>=2.0.0                     # Monitoring workers
+
+# ─────────────────────────────────────────
+#  5. BASE DE DONNÉES
+# ─────────────────────────────────────────
+psycopg2-binary>=2.9.9            # Connecteur PostgreSQL
+django-extensions>=3.2.3          # shell_plus, graph_models, etc.
+
+# ─────────────────────────────────────────
+#  6. STOCKAGE FICHIERS (S3 / MinIO)
+# ─────────────────────────────────────────
+django-storages>=1.14.0           # Backend de stockage abstrait
+boto3>=1.34.0                     # SDK AWS/MinIO
+
+# ─────────────────────────────────────────
+#  7. TRAITEMENT VIDÉO / AUDIO (hérité)
+# ─────────────────────────────────────────
+opencv-python-headless>=4.9.0
+numpy>=1.26.0
+scipy>=1.12.0
+soundfile>=0.12.0
+
+# ─────────────────────────────────────────
+#  8. STT — Transcription (hérité, inchangé)
+# ─────────────────────────────────────────
+openai-whisper>=20240930
+faster-whisper>=1.0.0
+vosk>=0.3.45
+
+# ─────────────────────────────────────────
+#  9. TTS — Synthèse vocale (hérité, inchangé)
+# ─────────────────────────────────────────
+TTS>=0.22.0
+requests>=2.31.0
+
+# ─────────────────────────────────────────
+#  10. UTILITAIRES
+# ─────────────────────────────────────────
+python-dotenv>=1.0.0
+Pillow>=10.3.0                    # Gestion images (thumbnails)
+python-magic>=0.4.27              # Détection type MIME pour upload
+gunicorn>=22.0.0                  # Serveur WSGI production
