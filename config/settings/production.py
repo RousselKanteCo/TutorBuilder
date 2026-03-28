@@ -11,7 +11,7 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = False
 
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = False
 SECURE_HSTS_SECONDS = 31536000          # 1 an
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
@@ -28,13 +28,8 @@ CSRF_COOKIE_HTTPONLY = True
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME"),
-        "USER": env("DB_USER"),
-        "PASSWORD": env("DB_PASSWORD"),
-        "HOST": env("DB_HOST", default="db"),
-        "PORT": env("DB_PORT", default="5432"),
-        "CONN_MAX_AGE": 600,            # Connexions persistantes (10 min)
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -43,15 +38,16 @@ DATABASES = {
 #  CACHE REDIS (sessions, rate-limiting)
 # ─────────────────────────────────────────
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://redis:6379/1"),
+_redis_url = env("REDIS_URL", default="")
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+        }
     }
-}
-
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
 
 
 # ─────────────────────────────────────────
@@ -71,12 +67,10 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@tutobuilder.io")
 #  LOGGING (fichier en prod)
 # ─────────────────────────────────────────
 
-LOGGING["handlers"]["file"] = {  # type: ignore[name-defined]
+LOGGING["handlers"]["file"] = {
     "class": "logging.handlers.RotatingFileHandler",
-    "filename": "/var/log/tutobuilder/django.log",
-    "maxBytes": 10 * 1024 * 1024,  # 10 Mo
+    "filename": "/app/logs/django.log",
+    "maxBytes": 10 * 1024 * 1024,
     "backupCount": 5,
     "formatter": "verbose",
 }
-
-LOGGING["root"]["handlers"].append("file")  # type: ignore[name-defined]
