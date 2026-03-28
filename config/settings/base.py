@@ -132,14 +132,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 #  DJANGO CHANNELS (WebSocket)
 # ─────────────────────────────────────────
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [env("REDIS_URL", default="redis://localhost:6379/0")],
+_redis_url = env("REDIS_URL", default="")
+if _redis_url:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [_redis_url],
+            },
         },
-    },
-}
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
 
 
 # ─────────────────────────────────────────
