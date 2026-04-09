@@ -323,3 +323,11 @@ LOGGING = {
         },
     },
 }
+
+# ─────────────────────────────────────────
+#  AUTHENTIFICATION
+# ─────────────────────────────────────────
+
+LOGIN_REDIRECT_URL = '/cockpit/'
+LOGOUT_REDIRECT_URL = '/'
+LOGIN_URL = '/accounts/login/'
