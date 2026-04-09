@@ -1,9 +1,9 @@
 # ── Environnement virtuel ──
 venv/
 env/
-# .env
-# .env.*
-# !.env.example
+.env
+.env.*
+!.env.example
 
 # ── Django ──
 *.pyc
@@ -35,3 +35,4 @@ desktop.ini
 
 # ── Logs ──
 *.log
+
