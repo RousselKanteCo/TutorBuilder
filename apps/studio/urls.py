@@ -6,6 +6,8 @@ Les endpoints REST sont dans apps/api/urls.py.
 """
 
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views
 
 app_name = "studio"
@@ -14,7 +16,7 @@ urlpatterns = [
     # ── Dashboard : liste des projets ──
     path("", views.DashboardView.as_view(), name="dashboard"),
 
-    # ── Cockpit : interface de production (équivalent PyQt6 MonumentV8) ──
+    # ── Cockpit : interface de production ──
     path("cockpit/", views.CockpitView.as_view(), name="cockpit"),
     path("cockpit/<uuid:job_id>/", views.CockpitView.as_view(), name="cockpit_job"),
 
@@ -29,4 +31,5 @@ urlpatterns = [
 
     # ── Health check (utilisé par Docker) ──
     path("health/", views.health_check, name="health"),
-]
+
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

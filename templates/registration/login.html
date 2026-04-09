@@ -3,86 +3,545 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connexion — TutoBuilder Vision</title>
+  <title>Connexion — TutorBuilder Vision</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --bg: #000; --bg2: #0a0a0a; --bg3: #111;
-      --border: rgba(0,255,255,.12); --cyan: #00FFFF; --green: #00FF7F;
-      --text: #E0E0E0; --text-muted: #888; --red: #FF4444;
+      --bg-base: #07090E;
+      --bg-1: #0C0F17;
+      --bg-2: #111621;
+      --bg-3: #16202E;
+      --blue: #3B82F6;
+      --blue-dim: rgba(59,130,246,.1);
+      --blue-border: rgba(59,130,246,.3);
+      --blue-glow: rgba(59,130,246,.15);
+      --teal: #06B6D4;
+      --green: #10B981;
+      --text-1: #F1F5F9;
+      --text-2: #94A3B8;
+      --text-3: #475569;
+      --border-1: rgba(255,255,255,.055);
+      --border-2: rgba(255,255,255,.09);
+      --font-ui: 'Outfit', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 14px;
+      --r-xl: 20px;
+      --t: all .18s cubic-bezier(.4,0,.2,1);
     }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+
+    html, body {
+      height: 100%;
+      background: var(--bg-base);
+      color: var(--text-1);
+      font-family: var(--font-ui);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
     }
-    .login-box {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 16px; padding: 40px; width: 360px;
+
+    /* ── BACKGROUND SCENE ── */
+    .scene {
+      position: fixed; inset: 0; z-index: 0;
+      overflow: hidden;
     }
-    .login-title {
-      font-size: 20px; font-weight: 700; color: var(--cyan);
-      text-align: center; margin-bottom: 6px;
+
+    /* Grid */
+    .scene-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 100%);
     }
-    .login-sub {
-      font-size: 12px; color: var(--text-muted);
-      text-align: center; margin-bottom: 28px;
+
+    /* Ambient orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      animation: orb-drift 12s ease-in-out infinite alternate;
     }
-    .login-sub span { color: var(--green); }
-    .form-group { margin-bottom: 16px; }
+    .orb-1 {
+      width: 520px; height: 520px;
+      top: -180px; left: -120px;
+      background: radial-gradient(circle, rgba(59,130,246,.14) 0%, transparent 70%);
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 400px; height: 400px;
+      bottom: -100px; right: -80px;
+      background: radial-gradient(circle, rgba(6,182,212,.1) 0%, transparent 70%);
+      animation-delay: -4s;
+    }
+    .orb-3 {
+      width: 260px; height: 260px;
+      top: 40%; left: 55%;
+      background: radial-gradient(circle, rgba(16,185,129,.07) 0%, transparent 70%);
+      animation-delay: -8s;
+    }
+
+    @keyframes orb-drift {
+      0%   { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, 20px) scale(1.08); }
+    }
+
+    /* Scan line */
+    .scanline {
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,.04) 3px,
+        rgba(0,0,0,.04) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ── LAYOUT ── */
+    .wrapper {
+      position: relative; z-index: 10;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 440px 1fr;
+      grid-template-rows: 1fr auto 1fr;
+      align-items: center;
+    }
+
+    /* ── LEFT BRAND COLUMN ── */
+    .brand-col {
+      grid-column: 1;
+      grid-row: 1 / 4;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px 0 60px 72px;
+      animation: fade-up .7s ease both;
+    }
+
+    .brand-logo {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 48px;
+    }
+    .brand-mark {
+      width: 40px; height: 40px;
+      background: var(--blue);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 24px rgba(59,130,246,.4);
+    }
+    .brand-mark svg { width: 18px; height: 18px; color: #fff; }
+    .brand-text { font-size: 16px; font-weight: 700; }
+    .brand-text em { color: var(--text-3); font-style: normal; font-weight: 400; }
+
+    .brand-headline {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -.8px;
+      color: var(--text-1);
+      margin-bottom: 16px;
+    }
+    .brand-headline .hl {
+      background: linear-gradient(90deg, var(--blue), var(--teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .brand-sub {
+      font-size: 14px;
+      color: var(--text-3);
+      line-height: 1.7;
+      max-width: 340px;
+      margin-bottom: 40px;
+    }
+
+    .brand-stats {
+      display: flex; gap: 28px;
+    }
+    .bstat {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .bstat-val {
+      font-size: 22px; font-weight: 700; color: var(--text-1);
+    }
+    .bstat-lbl {
+      font-size: 10px; color: var(--text-3); letter-spacing: .5px; text-transform: uppercase;
+    }
+    .bstat-sep {
+      width: 1px; background: var(--border-1); align-self: stretch;
+    }
+
+    /* ── CARD ── */
+    .card-col {
+      grid-column: 2;
+      grid-row: 2;
+      padding: 0 24px;
+      animation: fade-up .7s .15s ease both;
+    }
+
+    .login-card {
+      background: var(--bg-1);
+      border: 1px solid var(--border-2);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(59,130,246,.06),
+        0 32px 64px rgba(0,0,0,.5),
+        0 0 80px rgba(59,130,246,.06);
+    }
+
+    /* Card top accent bar */
+    .card-accent {
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue) 0%, var(--teal) 60%, transparent 100%);
+    }
+
+    .card-inner {
+      padding: 36px 36px 40px;
+    }
+
+    .card-header {
+      margin-bottom: 32px;
+    }
+
+    .card-title {
+      font-size: 18px; font-weight: 700; color: var(--text-1);
+      letter-spacing: -.3px;
+      margin-bottom: 4px;
+    }
+
+    .card-sub {
+      font-size: 12px; color: var(--text-3);
+    }
+
+    /* Divider with status */
+    .status-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 28px;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+    .status-text {
+      font-size: 10px; font-weight: 600; color: var(--text-3);
+      letter-spacing: .5px; text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+    .status-line {
+      flex: 1; height: 1px; background: var(--border-1);
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
     label {
-      display: block; font-size: 11px; font-weight: 600;
-      color: var(--cyan); margin-bottom: 5px;
-      text-transform: uppercase; letter-spacing: .5px;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 600;
+      color: var(--text-3); letter-spacing: .6px; text-transform: uppercase;
+      margin-bottom: 7px;
     }
-    input {
-      width: 100%; padding: 9px 12px; background: var(--bg3);
-      border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text); font-size: 13px; outline: none;
-      transition: border-color .15s;
+    label svg { width: 10px; height: 10px; }
+
+    .input-wrap {
+      position: relative;
     }
-    input:focus { border-color: var(--cyan); }
-    .btn-login {
-      width: 100%; padding: 10px; margin-top: 8px;
-      background: rgba(0,40,40,.8); color: var(--cyan);
-      border: 1px solid rgba(0,255,255,.4); border-radius: 10px;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      transition: all .15s; letter-spacing: .5px;
+
+    .input-wrap input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--border-1);
+      border-radius: var(--r-md);
+      color: var(--text-1);
+      font-size: 13px;
+      font-family: var(--font-ui);
+      outline: none;
+      transition: var(--t);
     }
-    .btn-login:hover { background: rgba(0,255,255,.15); }
-    .error-list { list-style: none; margin-bottom: 16px; }
-    .error-list li {
-      background: rgba(239,68,68,.1); border-left: 3px solid var(--red);
-      color: #F87171; padding: 8px 12px; border-radius: 6px;
-      font-size: 12px; margin-bottom: 6px;
+    .input-wrap input:focus {
+      border-color: var(--blue-border);
+      background: var(--bg-3);
+      box-shadow: 0 0 0 3px var(--blue-dim);
+    }
+    .input-wrap input::placeholder { color: var(--text-3); }
+
+    .input-icon {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-3); pointer-events: none;
+      display: flex; align-items: center;
+    }
+    .input-icon svg { width: 13px; height: 13px; }
+
+    /* Submit btn */
+    .btn-submit {
+      width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 24px;
+      padding: 11px 20px;
+      background: var(--blue);
+      border: 1px solid var(--blue);
+      border-radius: var(--r-md);
+      color: #fff;
+      font-size: 13px; font-weight: 700;
+      font-family: var(--font-ui);
+      letter-spacing: .2px;
+      cursor: pointer;
+      transition: var(--t);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-submit::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.1) 0%, transparent 60%);
+    }
+    .btn-submit:hover {
+      background: #2563EB;
+      box-shadow: 0 0 28px rgba(59,130,246,.4);
+      transform: translateY(-1px);
+    }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit svg { width: 14px; height: 14px; }
+
+    /* Error */
+    .error-box {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(239,68,68,.07);
+      border: 1px solid rgba(239,68,68,.2);
+      border-radius: var(--r-md);
+      padding: 11px 14px;
+      margin-bottom: 20px;
+    }
+    .error-box svg { width: 14px; height: 14px; color: #F87171; flex-shrink: 0; margin-top: 1px; }
+    .error-box span { font-size: 12px; color: #F87171; line-height: 1.5; }
+
+    /* Footer */
+    .card-footer {
+      padding: 16px 36px;
+      border-top: 1px solid var(--border-1);
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px;
+    }
+    .card-footer span {
+      font-size: 10px; color: var(--text-3);
+      font-family: var(--font-mono);
+    }
+    .card-footer strong { color: var(--text-2); font-family: var(--font-mono); }
+
+    /* ── ANIMATION ── */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── BOTTOM CREDIT ── */
+    .bottom-credit {
+      grid-column: 1 / 4;
+      grid-row: 3;
+      align-self: end;
+      padding: 24px 72px;
+      display: flex; align-items: center; justify-content: space-between;
+      animation: fade-up .7s .3s ease both;
+    }
+    .credit-left { font-size: 10px; color: var(--text-3); font-family: var(--font-mono); }
+    .credit-right { font-size: 10px; color: var(--text-3); font-family: var(--font-mono); }
+    .credit-right a { color: var(--blue); text-decoration: none; }
+    .credit-right a:hover { text-decoration: underline; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      html, body { overflow: auto; }
+      .wrapper {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        min-height: 100vh;
+        padding: 40px 20px;
+        gap: 32px;
+        align-content: center;
+      }
+      .brand-col { grid-column: 1; grid-row: 1; padding: 0; text-align: center; }
+      .brand-headline { font-size: 26px; }
+      .brand-stats { justify-content: center; }
+      .brand-sub { margin: 0 auto 32px; }
+      .card-col { grid-column: 1; grid-row: 2; padding: 0; }
+      .bottom-credit { grid-column: 1; grid-row: 3; padding: 0; flex-direction: column; gap: 6px; text-align: center; }
     }
   </style>
 </head>
 <body>
-<div class="login-box">
-  <div class="login-title">TUTOBUILDER VISION</div>
-  <div class="login-sub">Par <span>Graphelya</span></div>
 
-  {% if form.errors %}
-    <ul class="error-list">
-      <li>Identifiant ou mot de passe incorrect.</li>
-    </ul>
-  {% endif %}
-
-  <form method="post">
-    {% csrf_token %}
-    <div class="form-group">
-      <label for="id_username">Nom d'utilisateur</label>
-      <input type="text" id="id_username" name="username"
-             value="{{ form.username.value|default:'' }}" autofocus>
-    </div>
-    <div class="form-group">
-      <label for="id_password">Mot de passe</label>
-      <input type="password" id="id_password" name="password">
-    </div>
-    <input type="hidden" name="next" value="{{ next }}">
-    <button type="submit" class="btn-login">SE CONNECTER</button>
-  </form>
+<!-- Background -->
+<div class="scene">
+  <div class="scene-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="scanline"></div>
 </div>
+
+<div class="wrapper">
+
+  <!-- Brand column -->
+  <div class="brand-col">
+    <div class="brand-logo">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
+      </div>
+      <span class="brand-text">TutorBuilder <em>Vision</em></span>
+    </div>
+
+    <h1 class="brand-headline">
+      Production de<br>
+      tutoriels vidéo<br>
+      <span class="hl">par IA</span>
+    </h1>
+
+    <p class="brand-sub">
+      Transformez vos vidéos en expériences pédagogiques structurées grâce à nos pipelines de traitement intelligents.
+    </p>
+
+    <div class="brand-stats">
+      <div class="bstat">
+        <span class="bstat-val">100%</span>
+        <span class="bstat-lbl">Automatisé</span>
+      </div>
+      <div class="bstat-sep"></div>
+      <div class="bstat">
+        <span class="bstat-val">REST</span>
+        <span class="bstat-lbl">API native</span>
+      </div>
+      <div class="bstat-sep"></div>
+      <div class="bstat">
+        <span class="bstat-val">WS</span>
+        <span class="bstat-lbl">Temps réel</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <div class="card-col">
+    <div class="login-card">
+      <div class="card-accent"></div>
+      <div class="card-inner">
+
+        <div class="card-header">
+          <div class="card-title">Connexion au studio</div>
+          <div class="card-sub">Accès réservé aux membres de l'équipe</div>
+        </div>
+
+        <div class="status-row">
+          <span class="status-dot"></span>
+          <span class="status-text">Système opérationnel</span>
+          <span class="status-line"></span>
+        </div>
+
+        {% if form.errors %}
+        <div class="error-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Identifiant ou mot de passe incorrect. Veuillez réessayer.</span>
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label for="id_username">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Nom d'utilisateur
+            </label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="id_username"
+                name="username"
+                value="{{ form.username.value|default:'' }}"
+                placeholder="Votre identifiant"
+                autofocus
+                autocomplete="username"
+              >
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="id_password">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Mot de passe
+            </label>
+            <div class="input-wrap">
+              <input
+                type="password"
+                id="id_password"
+                name="password"
+                placeholder="••••••••••"
+                autocomplete="current-password"
+              >
+              <span class="input-icon" id="pwd-eye" style="cursor:pointer;pointer-events:all;" onclick="togglePwd()">
+                <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <input type="hidden" name="next" value="{{ next }}">
+
+          <button type="submit" class="btn-submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Se connecter
+          </button>
+        </form>
+
+      </div>
+      <div class="card-footer">
+        <span>Par</span>
+        <strong>Graphelya</strong>
+        <span>·</span>
+        <span>TutorBuilder Vision</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottom-credit">
+    <span class="credit-left">© 2026 Graphelya — Tous droits réservés</span>
+    <span class="credit-right">
+      Propulsé par <a href="#">TutorBuilder Vision Engine</a>
+    </span>
+  </div>
+
+</div>
+
+<script>
+  function togglePwd() {
+    const inp = document.getElementById('id_password');
+    const icon = document.getElementById('eye-icon');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+      inp.type = 'password';
+      icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+  }
+</script>
 </body>
 </html>
