@@ -1047,6 +1047,7 @@ async function waitForFile(url,maxAttempts=60,delayMs=5000){
 }
 
 function showFinalVideo(url){
+  STATE.isFinalVideo = true;
   const v=document.getElementById('video-player');
   v.pause();v.removeAttribute('src');v.load();
   setTimeout(()=>{
@@ -1517,6 +1518,9 @@ function togglePlay(){
   else{vid.pause();ico.innerHTML='<polygon points="5 3 19 12 5 21"/>';}
 }
 vid.addEventListener('timeupdate',()=>{
+  if (STATE.isFinalVideo) {
+      ov.style.display = 'none'; // ← cache l'overlay HTML
+  }
   if(!vid.duration)return;
   sb.value=(vid.currentTime/vid.duration)*100;
   document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;

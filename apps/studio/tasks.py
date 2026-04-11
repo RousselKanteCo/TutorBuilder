@@ -223,7 +223,7 @@ def detect_scene_changes(video_path, threshold=SCENE_THRESHOLD):
         "-f", "null", "-",
     ]
     result      = subprocess.run(cmd, capture_output=True, text=True)
-    scene_times = [0.0]
+    scene_times = [0.5]
     for line in result.stderr.split("\n"):
         if "pts_time:" in line:
             try:
