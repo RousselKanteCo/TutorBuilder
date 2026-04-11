@@ -1,22 +1,23 @@
 """
-patch_cockpit.py — Script pour appliquer automatiquement les améliorations
-au template cockpit.html
+patch_cockpit_v2.py — Patch complet cockpit.html
+=================================================
+
+Corrections :
+1. Responsive — panneau script adaptatif
+2. Éditeur plein écran — grand champ texte unique
+3. Annulation correcte — revenir à la bonne étape + vidéo originale
+4. Reset sans retranscrire — annuler voix = rester sur étape 3 (voix)
 
 Usage :
-    python patch_cockpit.py
-
-Ce script modifie directement votre fichier cockpit.html.
+    python patch_cockpit_v2.py
 """
 
-import re
-import sys
+import re, sys
 from pathlib import Path
 
-# ── Chercher le template ──────────────────────────────────────────────────────
 POSSIBLE_PATHS = [
-    Path("apps/studio/templates/studio/cockpit.html"),
     Path("templates/studio/cockpit.html"),
-    Path("studio/templates/studio/cockpit.html"),
+    Path("apps/studio/templates/studio/cockpit.html"),
 ]
 
 template_path = None
@@ -26,66 +27,60 @@ for p in POSSIBLE_PATHS:
         break
 
 if not template_path:
-    print("❌ cockpit.html introuvable. Cherchez-le manuellement et ajustez POSSIBLE_PATHS.")
+    print("❌ cockpit.html introuvable.")
     sys.exit(1)
 
 print(f"✅ Template trouvé : {template_path}")
 content = template_path.read_text(encoding="utf-8")
 
 # ════════════════════════════════════════════════════════════════════════════
-#  PATCH 1 — CSS : ajouter les styles du script editor v2
+#  PATCH 1 — CSS responsive + éditeur plein écran amélioré
 # ════════════════════════════════════════════════════════════════════════════
 
 NEW_CSS = """
-/* ── SCRIPT EDITOR v2 ── */
-.seg-row{display:flex;gap:0;border-radius:var(--r-sm);border:1px solid transparent;transition:var(--t);position:relative;background:transparent}
-.seg-row:hover{background:var(--bg-2);border-color:var(--border-1)}
-.seg-row.active{background:rgba(59,130,246,.06);border-color:var(--blue-border);box-shadow:inset 2px 0 0 var(--blue)}
-.seg-num{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:20px;padding:8px 2px 8px 8px;flex-shrink:0;user-select:none}
-.seg-row.active .seg-num{color:var(--blue)}
-.seg-tc{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:36px;flex-shrink:0;padding:8px 4px;cursor:pointer;transition:var(--t)}
-.seg-tc:hover{color:var(--blue)}.seg-row.active .seg-tc{color:var(--blue)}
-.seg-body{flex:1;display:flex;flex-direction:column;padding:6px 4px;min-width:0}
-.seg-txt{font-size:12px;color:var(--text-2);outline:none;line-height:1.55;cursor:text;word-break:break-word;min-height:18px}
-.seg-row.active .seg-txt,.seg-txt:focus{color:var(--text-1)}
-.seg-len-bar{height:2px;border-radius:1px;margin-top:4px;transition:width .3s,background .3s;background:var(--green);width:0%}
-.seg-len-bar.warn{background:var(--amber)}.seg-len-bar.over{background:var(--red)}
-.seg-len-label{font-size:8px;font-family:var(--font-mono);color:var(--text-3);margin-top:2px;display:none}
-.seg-row:hover .seg-len-label,.seg-row.active .seg-len-label{display:block}
-.seg-len-label.warn{color:var(--amber)}.seg-len-label.over{color:var(--red)}
-.seg-actions{display:flex;flex-direction:column;gap:2px;padding:4px 4px 4px 2px;opacity:0;transition:opacity .15s;flex-shrink:0}
-.seg-row:hover .seg-actions,.seg-row.active .seg-actions{opacity:1}
-.seg-btn{width:20px;height:20px;border-radius:4px;border:1px solid var(--border-1);background:var(--bg-3);color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:var(--t);flex-shrink:0;font-family:var(--font-ui)}
-.seg-btn:hover{border-color:var(--border-2);color:var(--text-1);background:var(--bg-2)}
-.seg-btn.del:hover{border-color:rgba(239,68,68,.4);color:var(--red);background:rgba(239,68,68,.08)}
-.seg-btn.merge-up:hover{border-color:rgba(59,130,246,.4);color:var(--blue);background:var(--blue-dim)}
-.seg-merge-hint{height:12px;margin:0 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s}
-.seg-merge-hint:hover{opacity:1}
-.seg-merge-line{flex:1;height:1px;background:var(--border-1)}
-.seg-merge-label{font-size:8px;color:var(--text-3);padding:0 6px;white-space:nowrap;transition:color .15s}
-.seg-merge-hint:hover .seg-merge-label{color:var(--blue)}
-.seg-row:hover + .seg-merge-hint,.seg-merge-hint:hover{opacity:1}
-.script-stats{font-size:9px;color:var(--text-3);font-family:var(--font-mono);padding:2px 8px;background:var(--bg-2);border-radius:10px;border:1px solid var(--border-1)}
-.script-action-btn{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-2);color:var(--text-3);font-size:10px;font-weight:500;font-family:var(--font-ui);cursor:pointer;transition:var(--t)}
-.script-action-btn:hover{border-color:var(--border-2);color:var(--text-2)}
-.script-action-btn.primary{background:var(--blue-dim);border-color:var(--blue-border);color:#93C5FD}
-.script-action-btn.primary:hover{background:rgba(59,130,246,.18)}
-.script-action-btn:disabled{opacity:.4;cursor:not-allowed}
-.script-action-btn svg{width:10px;height:10px}
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+  .studio { grid-template-columns: 220px 1fr 260px; }
+}
+@media (max-width: 900px) {
+  .studio { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; height:auto; }
+  .panel-workflow { max-height: 300px; }
+  .panel-script { max-height: 400px; }
+}
+
+/* ── SCRIPT TABS ── */
+.script-tabs { display:flex; border-bottom:1px solid var(--border-1); flex-shrink:0; }
+.script-tab { flex:1; padding:7px 0; font-size:10px; font-weight:600; color:var(--text-3); text-align:center; cursor:pointer; transition:var(--t); border-bottom:2px solid transparent; }
+.script-tab.active { color:var(--text-1); border-bottom-color:var(--blue); }
+.script-tab-panel { display:none; flex:1; overflow:hidden; flex-direction:column; }
+.script-tab-panel.active { display:flex; }
+
+/* ── ÉDITEUR TEXTE LIBRE ── */
+#free-editor { flex:1; width:100%; background:transparent; border:none; color:var(--text-1); font-family:var(--font-ui); font-size:12px; line-height:1.8; padding:10px; outline:none; resize:none; }
+#free-editor::placeholder { color:var(--text-3); }
+
+/* ── MODAL PLEIN ÉCRAN ── */
+#full-editor-modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.92); backdrop-filter:blur(12px); flex-direction:column; padding:28px; }
+#full-editor-modal.open { display:flex; }
+#full-editor-textarea { flex:1; width:100%; background:var(--bg-1); border:1px solid var(--border-1); border-radius:var(--r-lg); color:var(--text-1); font-family:var(--font-ui); font-size:13px; line-height:1.9; padding:20px; outline:none; resize:none; }
+#full-editor-textarea:focus { border-color:var(--blue-border); }
 """
 
-# Insérer avant la fermeture du bloc style
-if "/* ── SCRIPT EDITOR v2 ── */" not in content:
-    content = content.replace("{% endblock %}\n\n{% block content %}", NEW_CSS + "\n{% endblock %}\n\n{% block content %}")
-    print("✅ PATCH 1 CSS appliqué")
+# Insérer le CSS avant {% endblock %} du bloc style
+if "/* ── RESPONSIVE ── */" not in content:
+    content = content.replace(
+        "{% endblock %}\n\n{% block content %}",
+        NEW_CSS + "\n{% endblock %}\n\n{% block content %}"
+    )
+    print("✅ PATCH 1 CSS responsive appliqué")
 else:
     print("⚠️  PATCH 1 déjà appliqué")
 
 # ════════════════════════════════════════════════════════════════════════════
-#  PATCH 2 — HTML : remplacer l'aside panel-script
+#  PATCH 2 — HTML : panneau script avec tabs Segments / Texte libre
 # ════════════════════════════════════════════════════════════════════════════
 
-NEW_ASIDE = """  <!-- DROITE — SCRIPT + CONSOLE -->
+NEW_SCRIPT_PANEL = """  <!-- DROITE — SCRIPT + CONSOLE -->
   <aside class="panel-script">
     <div class="script-topbar">
       <div class="script-title">
@@ -95,6 +90,15 @@ NEW_ASIDE = """  <!-- DROITE — SCRIPT + CONSOLE -->
       <span class="script-stats" id="script-stats" style="display:none"></span>
       <span class="recalc-badge" id="recalc-badge">⏱ Recalculé</span>
       <div style="display:flex;gap:4px;margin-left:auto;align-items:center">
+        <input type="file" id="import-script-input" accept=".txt" style="display:none" onchange="importScript(this)">
+        <button class="script-action-btn" onclick="document.getElementById('import-script-input').click()" id="btn-import-script" style="display:none" title="Importer .txt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Import
+        </button>
+        <button class="script-action-btn" onclick="exportScript()" id="btn-export-script" style="display:none" title="Exporter .txt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Export
+        </button>
         <button class="script-action-btn" onclick="autoSplitLong()" id="btn-auto-split" style="display:none" title="Découper les segments trop longs">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
           Découper
@@ -105,13 +109,34 @@ NEW_ASIDE = """  <!-- DROITE — SCRIPT + CONSOLE -->
         </button>
       </div>
     </div>
-    <div id="script-editor">
-      <div class="script-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <p>Le texte apparaîtra ici après la transcription</p>
-        <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
+
+    <!-- TABS : Segments / Texte libre -->
+    <div class="script-tabs" id="script-tabs" style="display:none">
+      <div class="script-tab active" onclick="switchScriptTab('segments', this)">📋 Segments</div>
+      <div class="script-tab" onclick="switchScriptTab('free', this)">✏️ Texte libre</div>
+    </div>
+
+    <!-- TAB 1 : Éditeur segments -->
+    <div class="script-tab-panel active" id="script-tab-segments">
+      <div id="script-editor" style="flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:1px">
+        <div class="script-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <p>Le texte apparaîtra ici après la transcription</p>
+          <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
+        </div>
       </div>
     </div>
+
+    <!-- TAB 2 : Texte libre -->
+    <div class="script-tab-panel" id="script-tab-free">
+      <textarea id="free-editor" placeholder="Modifiez le texte ici — un segment par paragraphe (ligne vide entre chaque)&#10;&#10;Cliquez sur 'Sauvegarder' quand vous avez terminé."></textarea>
+      <div style="padding:6px 10px;border-top:1px solid var(--border-1);display:flex;justify-content:flex-end;gap:6px;flex-shrink:0">
+        <button class="script-action-btn" onclick="syncFreeToSegments()" style="color:var(--amber);border-color:rgba(245,158,11,.3)">
+          ↕ Synchroniser
+        </button>
+      </div>
+    </div>
+
     <div class="console-wrap">
       <div class="console-head">
         <span class="ws-dot" id="ws-dot"></span>
@@ -122,268 +147,395 @@ NEW_ASIDE = """  <!-- DROITE — SCRIPT + CONSOLE -->
       <div id="log-monitor">Prêt. Importez une vidéo pour commencer.
 </div>
     </div>
-  </aside>"""
+  </aside>
 
-# Remplacer l'aside existant
-pattern = r'  <!-- DROITE — SCRIPT \+ CONSOLE -->.*?</aside>'
-if re.search(pattern, content, re.DOTALL):
-    content = re.sub(pattern, NEW_ASIDE, content, flags=re.DOTALL)
-    print("✅ PATCH 2 HTML appliqué")
-else:
-    print("⚠️  PATCH 2 : aside non trouvé, vérifiez manuellement")
-
-# ════════════════════════════════════════════════════════════════════════════
-#  PATCH 3 — JS : remplacer les fonctions renderScript, hl, saveScript
-# ════════════════════════════════════════════════════════════════════════════
-
-NEW_JS_FUNCTIONS = """
-// ═══════════════════════════════════════════════════════
-//  SCRIPT EDITOR v2 — suppression, fusion, longueur
-// ═══════════════════════════════════════════════════════
-
-const MAX_SEG_CHARS = 120;
-const MAX_SEG_HARD  = 200;
-
-function renderScript(segs) {
-  const ed = document.getElementById('script-editor');
-  ed.innerHTML = '';
-  const totalChars = segs.reduce((a,s) => a + (s.text||'').length, 0);
-  const longSegs   = segs.filter(s => (s.text||'').length > MAX_SEG_CHARS).length;
-  document.getElementById('seg-count').textContent = `— ${segs.length} segments`;
-  const statsEl = document.getElementById('script-stats');
-  if (statsEl) {
-    statsEl.style.display = segs.length ? '' : 'none';
-    statsEl.textContent = `${totalChars} car. · ${longSegs > 0 ? '⚠️ '+longSegs+' longs' : '✅ ok'}`;
-    statsEl.style.color = longSegs > 0 ? 'var(--amber)' : 'var(--text-3)';
-  }
-  const autoBtn = document.getElementById('btn-auto-split');
-  if (autoBtn) autoBtn.style.display = longSegs > 0 ? 'flex' : 'none';
-
-  if (!segs.length) {
-    ed.innerHTML = `<div class="script-empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <p>Le texte apparaîtra ici après la transcription</p>
-      <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
-    </div>`;
-    return;
-  }
-
-  segs.forEach((seg, i) => {
-    const text   = seg.text || '';
-    const chars  = text.length;
-    const pct    = Math.min(100, (chars / MAX_SEG_HARD) * 100);
-    const isWarn = chars > MAX_SEG_CHARS;
-    const isOver = chars > MAX_SEG_HARD;
-    const bc     = isOver ? ' over' : isWarn ? ' warn' : '';
-    const lc     = isOver ? ' over' : isWarn ? ' warn' : '';
-
-    const row = document.createElement('div');
-    row.className   = 'seg-row';
-    row.dataset.index = i;
-    row.innerHTML = `
-      <span class="seg-num">${i+1}</span>
-      <span class="seg-tc" title="Aller à ${msToTC(seg.start||seg.start_ms||0)}">${msToTC(seg.start||seg.start_ms||0)}</span>
-      <div class="seg-body">
-        <div class="seg-txt" contenteditable="true" data-index="${i}" spellcheck="true" oninput="onSegInput(this,${i})">${text}</div>
-        <div class="seg-len-bar${bc}" style="width:${pct}%"></div>
-        <div class="seg-len-label${lc}">${chars} car.${isOver?' — trop long !':isWarn?' — long':''}</div>
+  <!-- MODAL ÉDITEUR PLEIN ÉCRAN -->
+  <div id="full-editor-modal">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0">
+      <h2 style="font-size:16px;font-weight:700;color:var(--text-1)">✏️ Éditeur de script — plein écran</h2>
+      <span style="font-size:11px;color:var(--text-3)">Un segment par paragraphe (ligne vide entre chaque)</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="script-action-btn primary" onclick="applyFullEditor()">✅ Appliquer et fermer</button>
+        <button class="script-action-btn" onclick="closeFullEditor()">✕ Annuler</button>
       </div>
-      <div class="seg-actions">
-        ${i>0?`<button class="seg-btn merge-up" title="Fusionner avec le précédent" onclick="mergeWithPrev(${i})">↑</button>`:'<div style="width:20px"></div>'}
-        <button class="seg-btn del" title="Supprimer ce segment" onclick="deleteSegment(${i})">×</button>
-      </div>`;
+    </div>
+    <textarea id="full-editor-textarea" placeholder="Un segment par paragraphe...&#10;&#10;Exemple segment 1&#10;&#10;Exemple segment 2"></textarea>
+  </div>"""
 
-    row.querySelector('.seg-tc').addEventListener('click', e => {
-      e.stopPropagation();
-      document.getElementById('video-player').currentTime = (seg.start||seg.start_ms||0)/1000;
-      hl(i);
-      document.getElementById('sub-preview-text').value = text;
-      drawSubPreview();
-    });
-    row.addEventListener('click', () => {
-      hl(i);
-      document.getElementById('sub-preview-text').value = seg.text||'';
-      drawSubPreview();
-    });
-    ed.appendChild(row);
+# Remplacer le panneau script existant
+pattern = r'  <!-- DROITE — SCRIPT \+ CONSOLE -->.*?</div>\s*\n\n<input'
+if re.search(pattern, content, re.DOTALL):
+    content = re.sub(
+        pattern,
+        NEW_SCRIPT_PANEL + '\n\n<input',
+        content, flags=re.DOTALL
+    )
+    print("✅ PATCH 2 HTML panneau script appliqué")
+else:
+    print("⚠️  PATCH 2 : panneau script non trouvé, vérifiez manuellement")
 
-    if (i < segs.length - 1) {
-      const sep = document.createElement('div');
-      sep.className = 'seg-merge-hint';
-      sep.title     = 'Fusionner ces deux segments';
-      sep.innerHTML = '<div class="seg-merge-line"></div><span class="seg-merge-label">fusionner</span><div class="seg-merge-line"></div>';
-      sep.addEventListener('click', () => mergeSegments(i, i+1));
-      ed.appendChild(sep);
+# ════════════════════════════════════════════════════════════════════════════
+#  PATCH 3 — JS : nouvelles fonctions
+# ════════════════════════════════════════════════════════════════════════════
+
+NEW_JS = """
+// ═══════════════════════════════════════════════════════
+//  SCRIPT TABS — Segments / Texte libre
+// ═══════════════════════════════════════════════════════
+function switchScriptTab(name, el) {
+  document.querySelectorAll('.script-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.script-tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('script-tab-' + name).classList.add('active');
+
+  if (name === 'free') {
+    // Synchroniser les segments vers le texte libre
+    syncSegmentsToFree();
+  }
+}
+
+function syncSegmentsToFree() {
+  const ta = document.getElementById('free-editor');
+  ta.value = STATE.segments.map(s => s.text || '').join('\n\n');
+}
+
+function syncFreeToSegments() {
+  const ta = document.getElementById('free-editor');
+  const blocks = ta.value.split(/\n\n+/).filter(b => b.trim());
+  if (blocks.length === 0) return;
+
+  blocks.forEach((block, i) => {
+    if (STATE.segments[i]) {
+      STATE.segments[i].text = block.trim();
     }
   });
-}
 
-function hl(idx) {
-  document.querySelectorAll('.seg-row').forEach(r => r.classList.remove('active'));
-  const r = document.querySelector(`.seg-row[data-index="${idx}"]`);
-  if (r) { r.classList.add('active'); r.scrollIntoView({block:'nearest',behavior:'smooth'}); }
-}
-
-function onSegInput(el, idx) {
-  const chars  = el.textContent.length;
-  const pct    = Math.min(100, (chars / MAX_SEG_HARD) * 100);
-  const isWarn = chars > MAX_SEG_CHARS;
-  const isOver = chars > MAX_SEG_HARD;
-  const row    = el.closest('.seg-row');
-  const bar    = row.querySelector('.seg-len-bar');
-  bar.style.width = pct + '%';
-  bar.className   = 'seg-len-bar' + (isOver?' over':isWarn?' warn':'');
-  const lbl = row.querySelector('.seg-len-label');
-  lbl.textContent = `${chars} car.${isOver?' — trop long !':isWarn?' — long':''}`;
-  lbl.className   = 'seg-len-label' + (isOver?' over':isWarn?' warn':'');
-  if (STATE.segments[idx]) STATE.segments[idx].text = el.textContent.trim();
-}
-
-function deleteSegment(idx) {
-  if (STATE.segments.length <= 1) { log('⚠️ Impossible de supprimer le dernier segment.','warn'); return; }
-  if (!confirm(`Supprimer le segment ${idx+1} ?`)) return;
-  STATE.segments.splice(idx, 1);
-  STATE.segments.forEach((s,i) => s.index = i);
+  // Mettre à jour l'onglet segments
+  const segTab = document.querySelector('.script-tab');
   renderScript(STATE.segments);
-  log(`🗑️ Segment ${idx+1} supprimé.`,'info');
+  log(`✅ ${blocks.length} segments synchronisés depuis le texte libre`, 'info');
 }
 
-function mergeWithPrev(idx) { if (idx > 0) mergeSegments(idx-1, idx); }
-
-function mergeSegments(idxA, idxB) {
-  if (idxB >= STATE.segments.length) return;
-  const segA = STATE.segments[idxA];
-  const segB = STATE.segments[idxB];
-  const merged = {
-    ...segA,
-    text:     ((segA.text||'').trim() + ' ' + (segB.text||'').trim()).trim(),
-    end_ms:   segB.end_ms||segB.end||segA.end_ms,
-    end:      segB.end_ms||segB.end||segA.end_ms,
-  };
-  STATE.segments.splice(idxA, 2, merged);
-  STATE.segments.forEach((s,i) => s.index = i);
-  renderScript(STATE.segments);
-  log(`🔗 Segments ${idxA+1} et ${idxB+1} fusionnés.`,'info');
+// ═══════════════════════════════════════════════════════
+//  EXPORT / IMPORT SCRIPT
+// ═══════════════════════════════════════════════════════
+function exportScript() {
+  if (!STATE.segments.length) return;
+  const lines = STATE.segments.map((s, i) =>
+    `[${i+1}] ${msToTC(s.start_ms||s.start||0)}\\n${s.text}`
+  ).join('\\n\\n');
+  const blob = new Blob([lines], {type: 'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `script_${(STATE.jobId||'export').slice(0,8)}.txt`;
+  a.click();
+  log('📥 Script exporté en .txt', 'info');
 }
 
-function autoSplitLong() {
-  let count = 0;
-  const newSegs = [];
-  STATE.segments.forEach(seg => {
-    const text = (seg.text||'').trim();
-    if (text.length <= MAX_SEG_CHARS) { newSegs.push(seg); return; }
-    const parts = smartSplit(text, MAX_SEG_CHARS);
-    if (parts.length <= 1) { newSegs.push(seg); return; }
-    const dur   = ((seg.end_ms||seg.end||0) - (seg.start_ms||seg.start||0));
-    const total = parts.reduce((a,p) => a+p.length, 0) || 1;
-    let cursor  = seg.start_ms||seg.start||0;
-    parts.forEach((part, pi) => {
-      const ratio  = part.length / total;
-      const subDur = Math.max(200, Math.round(dur * ratio));
-      const subEnd = pi===parts.length-1 ? (seg.end_ms||seg.end||0) : cursor+subDur;
-      newSegs.push({...seg, text:part, start_ms:cursor, start:cursor, end_ms:subEnd, end:subEnd});
-      cursor = subEnd; count++;
+function importScript(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const blocks = text.split(/\\n\\n+/);
+    let idx = 0;
+    blocks.forEach(block => {
+      const lines = block.trim().split('\\n');
+      const content = lines.filter(l => !l.match(/^\\[\\d+\\]/)).join(' ').trim();
+      if (content && STATE.segments[idx]) {
+        STATE.segments[idx].text = content;
+        idx++;
+      }
     });
-    count--;
-  });
-  if (count > 0) {
-    STATE.segments = newSegs;
-    STATE.segments.forEach((s,i) => s.index = i);
     renderScript(STATE.segments);
-    log(`✂️ ${count} segments découpés automatiquement.`,'info');
-  } else {
-    log('✅ Aucun segment trop long.','info');
-  }
+    syncSegmentsToFree();
+    log(`📤 Script importé — ${idx} segments mis à jour`, 'info');
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 
-function smartSplit(text, maxChars) {
-  if (text.length <= maxChars) return [text];
-  const sentences = text.split(/(?<=[.!?])\\s+/);
-  const chunks = []; let current = '';
-  for (const sent of sentences) {
-    const test = current ? current+' '+sent : sent;
-    if (test.length <= maxChars) { current = test; }
-    else { if (current) chunks.push(current); current = sent; }
-  }
-  if (current) chunks.push(current);
-  const result = [];
-  for (const chunk of chunks) {
-    if (chunk.length <= maxChars) { result.push(chunk); continue; }
-    const parts2 = chunk.split(/(?<=,)\\s+/);
-    let cur2 = '';
-    for (const p of parts2) {
-      const t = cur2 ? cur2+' '+p : p;
-      if (t.length <= maxChars) { cur2 = t; }
-      else { if (cur2) result.push(cur2); cur2 = p; }
+// ═══════════════════════════════════════════════════════
+//  ÉDITEUR PLEIN ÉCRAN
+// ═══════════════════════════════════════════════════════
+function openFullEditor() {
+  const modal = document.getElementById('full-editor-modal');
+  const ta = document.getElementById('full-editor-textarea');
+  ta.value = STATE.segments.map(s => s.text || '').join('\\n\\n');
+  modal.classList.add('open');
+  ta.focus();
+}
+
+function closeFullEditor() {
+  document.getElementById('full-editor-modal').classList.remove('open');
+}
+
+function applyFullEditor() {
+  const ta = document.getElementById('full-editor-textarea');
+  const blocks = ta.value.split(/\\n\\n+/).filter(b => b.trim());
+  blocks.forEach((block, i) => {
+    if (STATE.segments[i]) {
+      STATE.segments[i].text = block.trim();
     }
-    if (cur2) result.push(cur2);
-  }
-  return result.filter(Boolean);
+  });
+  renderScript(STATE.segments);
+  syncSegmentsToFree();
+  closeFullEditor();
+  log(`✅ ${blocks.length} segments mis à jour depuis l'éditeur plein écran`, 'info');
 }
 
-function showRecalcBadge(){const b=document.getElementById('recalc-badge');b.classList.add('show');setTimeout(()=>b.classList.remove('show'),3000);}
-
-async function saveScript() {
+// ═══════════════════════════════════════════════════════
+//  RETOUR EN ARRIÈRE — version corrigée
+// ═══════════════════════════════════════════════════════
+async function resetToStep(step) {
   if (!STATE.jobId) return;
-  const btn = document.getElementById('btn-save-script');
-  btn.disabled = true;
-  const editedSegments = [];
-  document.querySelectorAll('.seg-txt').forEach(el => {
-    const idx = parseInt(el.dataset.index);
-    const seg = STATE.segments[idx];
-    if (!seg) return;
-    editedSegments.push({
-      id:       seg.id,
-      index:    seg.index!==undefined ? seg.index : idx,
-      start_ms: seg.start_ms||seg.start||0,
-      end_ms:   seg.end_ms||seg.end||0,
-      text:     el.textContent.trim(),
-    });
-  });
-  log(`💾 Sauvegarde de ${editedSegments.length} segments…`,'info');
+
+  const msgs = {
+    2: 'Annuler la voix et revenir à l\\'étape "Générer la voix" ?\\n(La transcription est conservée)',
+    3: 'Annuler l\\'export et revenir à l\\'étape "Assembler" ?\\n(La voix est conservée)',
+    1: 'Recommencer depuis le début ?\\n(Toutes les données seront supprimées)',
+  };
+
+  if (!confirm(msgs[step] || 'Confirmer ?')) return;
+
   try {
-    const res = await apiPost(`/api/jobs/${STATE.jobId}/split_segments/`, {segments: editedSegments});
-    if (res.segments && res.segments.length) {
-      STATE.segments = res.segments.map(s => ({
-        id:s.id, index:s.index, start:s.start_ms, end:s.end_ms,
-        start_ms:s.start_ms, end_ms:s.end_ms, text:s.text,
-      }));
-      renderScript(STATE.segments);
-      document.getElementById('seg-count').textContent = `— ${STATE.segments.length} segments`;
-      const delta = res.new_count - res.original_count;
-      log(delta>0 ? `✅ ${res.original_count} → ${res.new_count} segments.` : `✅ ${res.new_count} segments sauvegardés.`,'info');
-      showRecalcBadge();
-      document.querySelectorAll('.seg-row').forEach(r=>{r.classList.add('tc-updated');setTimeout(()=>r.classList.remove('tc-updated'),2000)});
-    } else { log('⚠️ '+JSON.stringify(res),'warn'); }
-  } catch(e) { log('❌ '+e.message,'err'); }
-  btn.disabled = false;
+    const r = await apiPost(`/api/jobs/${STATE.jobId}/reset/`, {step});
+    if (r.status === 'ok') {
+      log(`↩️ Retour à l'étape ${step}`, 'info');
+
+      // Revenir à la vidéo originale si on annule export ou voix
+      if (step <= 3) {
+        const videoUrl = document.getElementById('video-url').value;
+        if (videoUrl) {
+          STATE.isFinalVideo = false;
+          const v = document.getElementById('video-player');
+          v.src = videoUrl;
+          document.getElementById('hud-mode').textContent = 'APERÇU SOURCE';
+          document.getElementById('hud-mode').style.color = '';
+          document.getElementById('btn-download').style.display = 'none';
+        }
+      }
+
+      if (step === 2) {
+        // Annuler la voix → rester sur étape 3 (générer la voix)
+        // La transcription est déjà faite, pas besoin de retranscrire !
+        goToStep(3);
+        document.getElementById('btn-tts').disabled = false;
+        document.getElementById('btn-reset-to-transcribed').style.display = 'none';
+        setProgress('Transcription disponible — générez la voix', 100, 'done');
+        log('✅ Voix annulée — vous pouvez regénérer la voix off', 'info');
+
+      } else if (step === 3) {
+        // Annuler l'export → rester sur étape 4 (assembler)
+        goToStep(4);
+        document.getElementById('btn-export').disabled = false;
+        document.getElementById('btn-reset-to-tts').style.display = 'none';
+        setProgress('Voix disponible — relancez l\\'assemblage', 100, 'done');
+        log('✅ Export annulé — vous pouvez relancer l\\'assemblage', 'info');
+
+      } else if (step === 1) {
+        // Retour au début
+        goToStep(1);
+        STATE.segments = [];
+        renderScript([]);
+        setProgress('Prêt — importez une nouvelle vidéo', 0, 'active');
+      }
+    } else {
+      log('❌ Erreur reset : ' + JSON.stringify(r), 'err');
+    }
+  } catch(e) {
+    log('❌ Erreur reset : ' + e.message, 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  AFFICHER LES BOUTONS SCRIPT (import/export/tabs)
+// ═══════════════════════════════════════════════════════
+function showScriptButtons() {
+  const ids = ['btn-import-script', 'btn-export-script', 'btn-save-script'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+  });
+  // Afficher les tabs
+  const tabs = document.getElementById('script-tabs');
+  if (tabs) tabs.style.display = 'flex';
 }
 """
 
-# Chercher et remplacer le bloc renderScript...saveScript dans le JS
-pattern_js = r'// ═+\n//  SCRIPT EDITOR.*?function showRecalcBadge\(\)\{.*?\}'
-if re.search(pattern_js, content, re.DOTALL):
-    content = re.sub(pattern_js, NEW_JS_FUNCTIONS.strip(), content, flags=re.DOTALL)
-    print("✅ PATCH 3 JS appliqué (renderScript trouvé et remplacé)")
+# Chercher où insérer — avant TRANSPORT
+if "//  EXPORT / IMPORT SCRIPT" not in content:
+    content = content.replace(
+        "// ═══════════════════════════════════════════════════════\n//  TRANSPORT",
+        NEW_JS + "\n// ═══════════════════════════════════════════════════════\n//  TRANSPORT"
+    )
+    print("✅ PATCH 3 JS nouvelles fonctions appliqué")
 else:
-    # Fallback : chercher juste function renderScript
-    pattern_js2 = r'function renderScript\(segs\)\{.*?function showRecalcBadge\(\)\{.*?\}'
-    if re.search(pattern_js2, content, re.DOTALL):
-        content = re.sub(pattern_js2, NEW_JS_FUNCTIONS.strip(), content, flags=re.DOTALL)
-        print("✅ PATCH 3 JS appliqué (fallback)")
-    else:
-        print("⚠️  PATCH 3 : fonctions JS non trouvées automatiquement")
-        print("   → Ajoutez manuellement le contenu de script_editor_v2.js")
+    print("⚠️  PATCH 3 déjà appliqué")
+
+# ════════════════════════════════════════════════════════════════════════════
+#  PATCH 4 — JS : corriger resumeProject pour afficher les boutons et tabs
+# ════════════════════════════════════════════════════════════════════════════
+
+OLD_RESUME = """      document.getElementById('btn-export-script').style.display = 'flex';
+      document.getElementById('btn-import-script').style.display = 'flex';
+      document.getElementById('btn-full-editor').style.display = 'flex';
+      // Bouton retour selon l'étape
+      if (jobStatus === 'done' || jobStatus === 'synthesizing') {
+        document.getElementById('btn-reset-to-transcribed').style.display = 'flex';
+      }
+      document.getElementById('seg-count').textContent = `— ${STATE.segments.length} segments`;
+      document.getElementById('btn-save-script').style.display = 'flex';"""
+
+NEW_RESUME = """      showScriptButtons();
+      // Bouton retour selon l'étape
+      if (jobStatus === 'done' || jobStatus === 'synthesizing') {
+        const rb = document.getElementById('btn-reset-to-transcribed');
+        if (rb) rb.style.display = 'flex';
+      }
+      document.getElementById('seg-count').textContent = `— ${STATE.segments.length} segments`;
+      syncSegmentsToFree();"""
+
+if OLD_RESUME in content:
+    content = content.replace(OLD_RESUME, NEW_RESUME)
+    print("✅ PATCH 4 resumeProject corrigé")
+else:
+    print("⚠️  PATCH 4 : bloc resumeProject non trouvé")
+
+# ════════════════════════════════════════════════════════════════════════════
+#  PATCH 5 — JS : corriger timeupdate (bug ov non défini)
+# ════════════════════════════════════════════════════════════════════════════
+
+OLD_TIMEUPDATE = """vid.addEventListener('timeupdate',()=>{
+  if (STATE.isFinalVideo) {
+      ov.style.display = 'none'; // ← cache l'overlay HTML
+  }
+  if(!vid.duration)return;"""
+
+NEW_TIMEUPDATE = """vid.addEventListener('timeupdate',()=>{
+  if(!vid.duration)return;
+  const ov=document.getElementById('subtitle-overlay');
+  if (STATE.isFinalVideo) {
+      ov.style.display = 'none';
+      sb.value=(vid.currentTime/vid.duration)*100;
+      document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
+      drawHead();
+      return;
+  }"""
+
+if OLD_TIMEUPDATE in content:
+    # Aussi corriger la ligne ov= dupliquée plus bas
+    content = content.replace(OLD_TIMEUPDATE, NEW_TIMEUPDATE)
+    # Supprimer la ligne const ov= dupliquée
+    content = content.replace(
+        """  document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
+  const ov=document.getElementById('subtitle-overlay');
+  if(STATE.isFinalVideo){ov.style.display='none';}
+  else{""",
+        """  document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
+  {"""
+    )
+    print("✅ PATCH 5 timeupdate corrigé")
+else:
+    print("⚠️  PATCH 5 : timeupdate non trouvé")
+
+# ════════════════════════════════════════════════════════════════════════════
+#  PATCH 6 — JS : afficher tabs après transcription (onWS segments)
+# ════════════════════════════════════════════════════════════════════════════
+
+OLD_WS_SEGS = """      STATE.segments=msg.data; renderScript(msg.data);
+      setProgress('Transcription terminée — corrigez puis sauvegardez',100,'done');
+      goToStep(3);
+      document.getElementById('btn-tts').disabled=false;
+      document.getElementById('btn-save-script').style.display='flex';"""
+
+NEW_WS_SEGS = """      STATE.segments=msg.data; renderScript(msg.data);
+      syncSegmentsToFree();
+      showScriptButtons();
+      setProgress('Transcription terminée — corrigez puis sauvegardez',100,'done');
+      goToStep(3);
+      document.getElementById('btn-tts').disabled=false;"""
+
+if OLD_WS_SEGS in content:
+    content = content.replace(OLD_WS_SEGS, NEW_WS_SEGS)
+    print("✅ PATCH 6 onWS segments corrigé")
+else:
+    print("⚠️  PATCH 6 : bloc onWS segments non trouvé")
+
+# ════════════════════════════════════════════════════════════════════════════
+#  PATCH 7 — JS : afficher tabs après polling (poll transcribed)
+# ════════════════════════════════════════════════════════════════════════════
+
+OLD_POLL = """          renderScript(STATE.segments); goToStep(3);
+          document.getElementById('btn-tts').disabled=false;
+          document.getElementById('btn-transcribe').disabled=false;
+          document.getElementById('btn-save-script').style.display='flex';"""
+
+NEW_POLL = """          renderScript(STATE.segments);
+          syncSegmentsToFree();
+          showScriptButtons();
+          goToStep(3);
+          document.getElementById('btn-tts').disabled=false;
+          document.getElementById('btn-transcribe').disabled=false;"""
+
+if OLD_POLL in content:
+    content = content.replace(OLD_POLL, NEW_POLL)
+    print("✅ PATCH 7 poll corrigé")
+else:
+    print("⚠️  PATCH 7 : bloc poll non trouvé")
 
 # ════════════════════════════════════════════════════════════════════════════
 #  Sauvegarder
 # ════════════════════════════════════════════════════════════════════════════
-
-# Backup
-backup = template_path.with_suffix('.html.bak')
+backup = template_path.with_suffix('.html.bak2')
 backup.write_text(template_path.read_text(encoding='utf-8'), encoding='utf-8')
-print(f"💾 Backup créé : {backup}")
+print(f"💾 Backup : {backup}")
 
 template_path.write_text(content, encoding='utf-8')
-print(f"✅ Template mis à jour : {template_path}")
-print("\nRedémarrez le serveur Django pour voir les changements.")
+print(f"✅ cockpit.html mis à jour !")
+print()
+print("═══════════════════════════════════════════════")
+print("RAPPEL : ajoutez aussi dans apps/api/views.py")
+print("═══════════════════════════════════════════════")
+print("""
+@action(detail=True, methods=["post"], url_path="reset")
+def reset(self, request, pk=None):
+    from pathlib import Path
+    from django.conf import settings
+    import shutil
+
+    job  = self.get_object()
+    step = int(request.data.get("step", 2))
+
+    if step == 2:
+        # Annuler la voix → revenir à TRANSCRIBED
+        job.set_status(Job.Status.TRANSCRIBED)
+        # Supprimer les fichiers audio TTS
+        tts_dir = job.output_dir / "tts"
+        if tts_dir.exists():
+            shutil.rmtree(str(tts_dir))
+        # Supprimer le plan de synthèse
+        plan = job.output_dir / "synthesis_plan.json"
+        if plan.exists():
+            plan.unlink()
+
+    elif step == 3:
+        # Annuler l'export → revenir à DONE (voix ok)
+        job.set_status(Job.Status.DONE)
+        # Supprimer la vidéo finale
+        exports_dir = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk)
+        if exports_dir.exists():
+            shutil.rmtree(str(exports_dir))
+        # Supprimer les fichiers assemblés
+        for f in ["assembled.mp4", "composite.wav", "subtitles.ass"]:
+            fp = job.output_dir / f
+            if fp.exists():
+                fp.unlink()
+
+    elif step == 1:
+        # Retour au début
+        job.set_status(Job.Status.PENDING)
+
+    return Response({"status": "ok", "new_status": job.status})
+""")

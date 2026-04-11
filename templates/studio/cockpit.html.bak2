@@ -238,40 +238,7 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .script-action-btn.primary:hover{background:rgba(59,130,246,.18)}
 .script-action-btn:disabled{opacity:.4;cursor:not-allowed}
 .script-action-btn svg{width:10px;height:10px}
-.script-topbar { height: auto !important; min-height: 44px; flex-wrap: wrap; padding: 6px 14px; gap: 6px; }
-.script-tab-panel { overflow: hidden; }
-#script-tab-segments { overflow-y: auto; }
 #full-editor-modal.open{display:flex}
-
-.script-topbar { height: auto !important; min-height: 44px; flex-wrap: wrap; padding: 6px 14px; }
-
-
-/* ── RESPONSIVE ── */
-@media (max-width: 1100px) {
-  .studio { grid-template-columns: 220px 1fr 260px; }
-}
-@media (max-width: 900px) {
-  .studio { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; height:auto; }
-  .panel-workflow { max-height: 300px; }
-  .panel-script { max-height: 400px; }
-}
-
-/* ── SCRIPT TABS ── */
-.script-tabs { display:flex; border-bottom:1px solid var(--border-1); flex-shrink:0; }
-.script-tab { flex:1; padding:7px 0; font-size:10px; font-weight:600; color:var(--text-3); text-align:center; cursor:pointer; transition:var(--t); border-bottom:2px solid transparent; }
-.script-tab.active { color:var(--text-1); border-bottom-color:var(--blue); }
-.script-tab-panel { display:none; flex:1; overflow:hidden; flex-direction:column; }
-.script-tab-panel.active { display:flex; }
-
-/* ── ÉDITEUR TEXTE LIBRE ── */
-#free-editor { flex:1; width:100%; background:transparent; border:none; color:var(--text-1); font-family:var(--font-ui); font-size:12px; line-height:1.8; padding:10px; outline:none; resize:none; }
-#free-editor::placeholder { color:var(--text-3); }
-
-/* ── MODAL PLEIN ÉCRAN ── */
-#full-editor-modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.92); backdrop-filter:blur(12px); flex-direction:column; padding:28px; }
-#full-editor-modal.open { display:flex; }
-#full-editor-textarea { flex:1; width:100%; background:var(--bg-1); border:1px solid var(--border-1); border-radius:var(--r-lg); color:var(--text-1); font-family:var(--font-ui); font-size:13px; line-height:1.9; padding:20px; outline:none; resize:none; }
-#full-editor-textarea:focus { border-color:var(--blue-border); }
 
 {% endblock %}
 
@@ -538,60 +505,40 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
       </div>
       <span class="script-stats" id="script-stats" style="display:none"></span>
       <span class="recalc-badge" id="recalc-badge">⏱ Recalculé</span>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-left:auto;align-items:flex-end">
-        <!-- Rangée 1 -->
-        <div style="display:flex;gap:4px">
-          <input type="file" id="import-script-input" accept=".txt" style="display:none" onchange="importScript(this)">
-          <button class="script-action-btn" onclick="document.getElementById('import-script-input').click()" id="btn-import-script" style="display:none" title="Importer .txt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Import
-          </button>
-          <button class="script-action-btn" onclick="exportScript()" id="btn-export-script" style="display:none" title="Exporter .txt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Export
-          </button>
-        </div>
-        <!-- Rangée 2 -->
-        <div style="display:flex;gap:4px">
-          <button class="script-action-btn" onclick="autoSplitLong()" id="btn-auto-split" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-            Découper
-          </button>
-          <button class="script-action-btn primary" onclick="saveScript()" id="btn-save-script" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Sauvegarder
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TABS : Segments / Texte libre -->
-    <div class="script-tabs" id="script-tabs" style="display:none">
-      <div class="script-tab active" onclick="switchScriptTab('segments', this)">📋 Segments</div>
-      <div class="script-tab" onclick="switchScriptTab('free', this)">✏️ Texte libre</div>
-    </div>
-
-    <!-- TAB 1 : Éditeur segments -->
-    <div class="script-tab-panel active" id="script-tab-segments">
-      <div id="script-editor" style="flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:1px">
-        <div class="script-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <p>Le texte apparaîtra ici après la transcription</p>
-          <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2 : Texte libre -->
-    <div class="script-tab-panel" id="script-tab-free">
-      <textarea id="free-editor" placeholder="Modifiez le texte ici — un segment par paragraphe (ligne vide entre chaque)&#10;&#10;Cliquez sur 'Sauvegarder' quand vous avez terminé."></textarea>
-      <div style="padding:6px 10px;border-top:1px solid var(--border-1);display:flex;justify-content:flex-end;gap:6px;flex-shrink:0">
-        <button class="script-action-btn" onclick="syncFreeToSegments()" style="color:var(--amber);border-color:rgba(245,158,11,.3)">
-          ↕ Synchroniser
+      <div style="display:flex;gap:4px;margin-left:auto;align-items:center">
+        <!-- Import script -->
+        <input type="file" id="import-script-input" accept=".txt" style="display:none" onchange="importScript(this)">
+        <button class="script-action-btn" onclick="document.getElementById('import-script-input').click()" id="btn-import-script" style="display:none" title="Importer un script .txt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Importer
+        </button>
+        <!-- Export script -->
+        <button class="script-action-btn" onclick="exportScript()" id="btn-export-script" style="display:none" title="Télécharger le script .txt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Exporter
+        </button>
+        <!-- Éditeur plein écran -->
+        <button class="script-action-btn" onclick="openFullEditor()" id="btn-full-editor" style="display:none" title="Éditer en plein écran">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          Plein écran
+        </button>
+        <button class="script-action-btn" onclick="autoSplitLong()" id="btn-auto-split" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+          Découper
+        </button>
+        <button class="script-action-btn primary" onclick="saveScript()" id="btn-save-script" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Sauvegarder
         </button>
       </div>
     </div>
-
+    <div id="script-editor">
+      <div class="script-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p>Le texte apparaîtra ici après la transcription</p>
+        <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
+      </div>
+    </div>
     <div class="console-wrap">
       <div class="console-head">
         <span class="ws-dot" id="ws-dot"></span>
@@ -605,17 +552,18 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
   </aside>
 
   <!-- MODAL ÉDITEUR PLEIN ÉCRAN -->
-  <div id="full-editor-modal">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0">
-      <h2 style="font-size:16px;font-weight:700;color:var(--text-1)">✏️ Éditeur de script — plein écran</h2>
-      <span style="font-size:11px;color:var(--text-3)">Un segment par paragraphe (ligne vide entre chaque)</span>
+  <div id="full-editor-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;padding:24px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <h2 style="font-size:16px;font-weight:700;color:var(--text-1)">✏️ Éditeur de script</h2>
+      <span style="font-size:11px;color:var(--text-3)">Un segment par ligne — ligne vide = nouveau segment</span>
       <div style="margin-left:auto;display:flex;gap:8px">
-        <button class="script-action-btn primary" onclick="applyFullEditor()">✅ Appliquer et fermer</button>
-        <button class="script-action-btn" onclick="closeFullEditor()">✕ Annuler</button>
+        <button class="script-action-btn primary" onclick="applyFullEditor()">✅ Appliquer</button>
+        <button class="script-action-btn" onclick="closeFullEditor()">✕ Fermer</button>
       </div>
     </div>
-    <textarea id="full-editor-textarea" placeholder="Un segment par paragraphe...&#10;&#10;Exemple segment 1&#10;&#10;Exemple segment 2"></textarea>
+    <textarea id="full-editor-textarea" style="flex:1;width:100%;background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);color:var(--text-1);font-family:var(--font-ui);font-size:13px;line-height:1.8;padding:16px;outline:none;resize:none" placeholder="Un segment par ligne..."></textarea>
   </div>
+</div>
 
 <input type="hidden" id="current-job-id"  value="{{ job.pk|default:'' }}">
 <input type="hidden" id="current-job-status" value="{{ job.status|default:'' }}">
@@ -902,8 +850,7 @@ async function resumeProject(jobId, jobStatus) {
 
   // Toujours recharger les segments
   try {
-    const segsRaw = await (await fetch(`/api/jobs/${jobId}/segments/`)).json();
-    const segsData = Array.isArray(segsRaw) ? segsRaw : (segsRaw.results || []);
+    const segsData = await (await fetch(`/api/jobs/${jobId}/segments/`)).json();
     if (segsData.length) {
       STATE.segments = segsData.map(s => ({
         id: s.id, index: s.index,
@@ -913,18 +860,15 @@ async function resumeProject(jobId, jobStatus) {
       }));
       renderScript(STATE.segments);
       // Afficher les boutons import/export/plein écran
-      showScriptButtons();
+      document.getElementById('btn-export-script').style.display = 'flex';
+      document.getElementById('btn-import-script').style.display = 'flex';
+      document.getElementById('btn-full-editor').style.display = 'flex';
       // Bouton retour selon l'étape
-      if (['done', 'synthesizing'].includes(jobStatus)) {
-        const rb = document.getElementById('btn-reset-to-transcribed');
-        if (rb) rb.style.display = 'flex';
-      }
-      if (jobStatus === 'done') {
-        const rb2 = document.getElementById('btn-reset-to-tts');
-        if (rb2) rb2.style.display = 'flex';
+      if (jobStatus === 'done' || jobStatus === 'synthesizing') {
+        document.getElementById('btn-reset-to-transcribed').style.display = 'flex';
       }
       document.getElementById('seg-count').textContent = `— ${STATE.segments.length} segments`;
-      syncSegmentsToFree();
+      document.getElementById('btn-save-script').style.display = 'flex';
       if (segsData[0]) {
         document.getElementById('sub-preview-text').value = segsData[0].text || '';
         drawSubPreview();
@@ -1187,11 +1131,10 @@ function onWS(msg){
     case 'waveform': STATE.waveform=msg.data; drawWave(msg.data); break;
     case 'segments':
       STATE.segments=msg.data; renderScript(msg.data);
-      syncSegmentsToFree();
-      showScriptButtons();
       setProgress('Transcription terminée — corrigez puis sauvegardez',100,'done');
       goToStep(3);
       document.getElementById('btn-tts').disabled=false;
+      document.getElementById('btn-save-script').style.display='flex';
       if(msg.data.length)document.getElementById('sub-preview-text').value=msg.data[0].text||'';
       drawSubPreview();
       log(`✅ ${msg.data.length} segments transcrits.`); break;
@@ -1235,16 +1178,13 @@ function poll(jid){
       const labels={extracting:['Extraction audio…',30],transcribing:['Transcription…',60],transcribed:['Transcription terminée',100],synthesizing:['Synthèse vocale…',70],done:['Terminé',100],error:['Erreur',0]};
       if(labels[s])setProgress(labels[s][0],labels[s][1],s==='error'?'error':s==='done'?'done':'active');
       if(s==='transcribed'&&!STATE.segments.length){
-        const sdRaw=await(await fetch(`/api/jobs/${jid}/segments/`)).json();
-        const sd=Array.isArray(sdRaw)?sdRaw:(sdRaw.results||[]);
+        const sd=await(await fetch(`/api/jobs/${jid}/segments/`)).json();
         if(sd.length){
           STATE.segments=sd.map(x=>({id:x.id,index:x.index,start:x.start_ms,end:x.end_ms,start_ms:x.start_ms,end_ms:x.end_ms,text:x.text}));
-          renderScript(STATE.segments);
-          syncSegmentsToFree();
-          showScriptButtons();
-          goToStep(3);
+          renderScript(STATE.segments); goToStep(3);
           document.getElementById('btn-tts').disabled=false;
           document.getElementById('btn-transcribe').disabled=false;
+          document.getElementById('btn-save-script').style.display='flex';
           document.getElementById('sub-preview-text').value=sd[0].text||'';
           drawSubPreview();
           setProgress('Transcription terminée — corrigez puis sauvegardez',100,'done');
@@ -1615,41 +1555,6 @@ async function saveScript() {
 
   btn.disabled = false;
 }
-// ═══════════════════════════════════════════════════════
-//  SCRIPT TABS — Segments / Texte libre
-// ═══════════════════════════════════════════════════════
-function switchScriptTab(name, el) {
-  document.querySelectorAll('.script-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.script-tab-panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('script-tab-' + name).classList.add('active');
-  if (name === 'free') syncSegmentsToFree();
-}
-
-function syncSegmentsToFree() {
-  const ta = document.getElementById('free-editor');
-  if (ta) ta.value = STATE.segments.map(s => s.text || '').join('\n\n');
-}
-
-function syncFreeToSegments() {
-  const ta = document.getElementById('free-editor');
-  if (!ta) return;
-  const blocks = ta.value.split(/\n\n+/).filter(b => b.trim());
-  blocks.forEach((block, i) => {
-    if (STATE.segments[i]) STATE.segments[i].text = block.trim();
-  });
-  renderScript(STATE.segments);
-  log(`✅ ${blocks.length} segments synchronisés`, 'info');
-}
-
-function showScriptButtons() {
-  ['btn-import-script','btn-export-script','btn-auto-split','btn-save-script'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'flex';
-  });
-  const tabs = document.getElementById('script-tabs');
-  if (tabs) tabs.style.display = 'flex';
-}
 
 // ═══════════════════════════════════════════════════════
 //  EXPORT / IMPORT SCRIPT
@@ -1735,27 +1640,14 @@ async function resetToStep(step) {
       log(`↩️ Retour à l'étape ${step}`, 'info');
       goToStep(step);
       if (step === 2) {
-        // Rester à l'étape 3 — la voix est annulée mais la transcription est là
-        goToStep(3);  // ← 3 et non 2 !
         document.getElementById('btn-tts').disabled = false;
         document.getElementById('btn-reset-to-transcribed').style.display = 'none';
-        setProgress('Voix annulée — regénérez la voix off', 100, 'done');
+        setProgress('Transcription disponible — regénérez la voix', 100, 'done');
       } else if (step === 3) {
         document.getElementById('btn-export').disabled = false;
         document.getElementById('btn-reset-to-tts').style.display = 'none';
         setProgress('Voix disponible — relancez l\'export', 100, 'done');
       }
-    }
-
-    // Revenir à la vidéo originale
-    const videoUrl = document.getElementById('video-url').value;
-    if (videoUrl) {
-      STATE.isFinalVideo = false;
-      const v = document.getElementById('video-player');
-      v.src = videoUrl;
-      document.getElementById('hud-mode').textContent = 'APERÇU SOURCE';
-      document.getElementById('hud-mode').style.color = '';
-      document.getElementById('btn-download').style.display = 'none';
     }
   } catch(e) {
     log('❌ Erreur reset : ' + e.message, 'err');
@@ -1772,18 +1664,15 @@ function togglePlay(){
   else{vid.pause();ico.innerHTML='<polygon points="5 3 19 12 5 21"/>';}
 }
 vid.addEventListener('timeupdate',()=>{
-  if(!vid.duration)return;
-  const ov=document.getElementById('subtitle-overlay');
   if (STATE.isFinalVideo) {
-      ov.style.display = 'none';
-      sb.value=(vid.currentTime/vid.duration)*100;
-      document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
-      drawHead();
-      return;
+      ov.style.display = 'none'; // ← cache l'overlay HTML
   }
+  if(!vid.duration)return;
   sb.value=(vid.currentTime/vid.duration)*100;
   document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
-  {const ms=vid.currentTime*1000;const seg=STATE.segments.find(s=>ms>=(s.start||s.start_ms)&&ms<=(s.end||s.end_ms));if(seg){ov.textContent=seg.text;ov.style.display='block';hl(STATE.segments.indexOf(seg));}else{ov.style.display='none';}}
+  const ov=document.getElementById('subtitle-overlay');
+  if(STATE.isFinalVideo){ov.style.display='none';}
+  else{const ms=vid.currentTime*1000;const seg=STATE.segments.find(s=>ms>=(s.start||s.start_ms)&&ms<=(s.end||s.end_ms));if(seg){ov.textContent=seg.text;ov.style.display='block';hl(STATE.segments.indexOf(seg));}else{ov.style.display='none';}}
   drawHead();
 });
 vid.addEventListener('loadedmetadata',()=>{

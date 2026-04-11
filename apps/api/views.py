@@ -587,6 +587,39 @@ class JobViewSet(viewsets.ModelViewSet):
             "segments": new_timecodes,
             "message":  f"{updated} timecodes recalculés.",
         })
+    
+    @action(detail=True, methods=["post"], url_path="reset")
+    def reset(self, request, pk=None):
+        from pathlib import Path
+        from django.conf import settings
+        import shutil
+
+        job  = self.get_object()
+        step = int(request.data.get("step", 2))
+
+        if step == 2:
+            job.set_status(Job.Status.TRANSCRIBED)
+            tts_dir = job.output_dir / "tts"
+            if tts_dir.exists():
+                shutil.rmtree(str(tts_dir))
+            plan = job.output_dir / "synthesis_plan.json"
+            if plan.exists():
+                plan.unlink()
+
+        elif step == 3:
+            job.set_status(Job.Status.DONE)
+            exports_dir = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk)
+            if exports_dir.exists():
+                shutil.rmtree(str(exports_dir))
+            for f in ["assembled.mp4", "composite.wav", "subtitles.ass"]:
+                fp = job.output_dir / f
+                if fp.exists():
+                    fp.unlink()
+
+        elif step == 1:
+            job.set_status(Job.Status.PENDING)
+
+        return Response({"status": "ok", "new_status": job.status})
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
