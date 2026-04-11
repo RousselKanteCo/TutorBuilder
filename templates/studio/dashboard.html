@@ -1,225 +1,196 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard — TutorBuilder Vision{% endblock %}
 
 {% block extra_style %}
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg-base: #07090E; --bg-1: #0C0F17; --bg-2: #111621; --bg-3: #16202E;
-  --blue: #3B82F6; --blue-dim: rgba(59,130,246,.1); --blue-border: rgba(59,130,246,.3);
-  --teal: #06B6D4; --green: #10B981; --amber: #F59E0B; --red: #EF4444;
-  --text-1: #F1F5F9; --text-2: #94A3B8; --text-3: #475569;
-  --border-1: rgba(255,255,255,.055); --border-2: rgba(255,255,255,.09);
-  --font-ui: 'Outfit', system-ui, sans-serif; --font-mono: 'JetBrains Mono', monospace;
-  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --t: all .18s cubic-bezier(.4,0,.2,1);
+  --bg-base:#07090E;--bg-1:#0C0F17;--bg-2:#111621;--bg-3:#16202E;
+  --blue:#3B82F6;--blue-dim:rgba(59,130,246,.1);--blue-border:rgba(59,130,246,.3);
+  --teal:#06B6D4;--green:#10B981;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;
+  --text-1:#F1F5F9;--text-2:#94A3B8;--text-3:#475569;
+  --border-1:rgba(255,255,255,.055);--border-2:rgba(255,255,255,.09);
+  --font-ui:'Outfit',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --r-sm:6px;--r-md:10px;--r-lg:14px;--t:all .18s cubic-bezier(.4,0,.2,1);
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { background: var(--bg-base); color: var(--text-1); font-family: var(--font-ui); font-size: 13px; -webkit-font-smoothing: antialiased; }
-::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg-base);color:var(--text-1);font-family:var(--font-ui);font-size:13px;-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
 
 /* TOPBAR */
-.studio-topbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200; height: 44px;
-  display: flex; align-items: center; background: rgba(7,9,14,.95);
-  backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-1);
-}
-.topbar-brand {
-  display: flex; align-items: center; gap: 10px; padding: 0 18px; height: 100%;
-  border-right: 1px solid var(--border-1); min-width: 220px; flex-shrink: 0;
-}
-.brand-mark {
-  width: 26px; height: 26px; background: var(--blue); border-radius: var(--r-sm);
-  display: flex; align-items: center; justify-content: center;
-}
-.brand-mark svg { width: 13px; height: 13px; color: #fff; }
-.brand-name { font-size: 13px; font-weight: 600; }
-.brand-name span { color: var(--text-3); font-weight: 400; }
-.topbar-nav { display: flex; align-items: center; gap: 2px; padding: 0 10px; height: 100%; }
-.topbar-nav a {
-  display: flex; align-items: center; gap: 6px; padding: 0 11px; height: 28px;
-  border-radius: var(--r-sm); font-size: 12px; font-weight: 500;
-  color: var(--text-3); text-decoration: none; transition: var(--t);
-}
-.topbar-nav a:hover { color: var(--text-2); background: rgba(255,255,255,.04); text-decoration: none; }
-.topbar-nav a.active { color: var(--text-1); background: var(--bg-2); }
-.topbar-nav a svg { width: 12px; height: 12px; }
-.topbar-end { margin-left: auto; display: flex; align-items: center; gap: 8px; padding: 0 14px; }
-.user-pill { display: flex; align-items: center; gap: 7px; padding: 4px 10px 4px 6px; background: var(--bg-2); border: 1px solid var(--border-1); border-radius: 20px; }
-.user-av { width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--teal)); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
-.user-name { font-size: 11px; color: var(--text-2); }
-.mini-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: var(--r-sm); border: 1px solid var(--border-1); background: var(--bg-2); color: var(--text-2); font-size: 11px; font-weight: 500; cursor: pointer; text-decoration: none; transition: var(--t); font-family: var(--font-ui); }
-.mini-btn:hover { border-color: var(--border-2); color: var(--text-1); text-decoration: none; }
-.mini-btn svg { width: 11px; height: 11px; }
+.studio-topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:44px;display:flex;align-items:center;background:rgba(7,9,14,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-1)}
+.topbar-brand{display:flex;align-items:center;gap:10px;padding:0 18px;height:100%;border-right:1px solid var(--border-1);min-width:220px;flex-shrink:0}
+.brand-mark{width:26px;height:26px;background:var(--blue);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center}
+.brand-mark svg{width:13px;height:13px;color:#fff}
+.brand-name{font-size:13px;font-weight:600}.brand-name span{color:var(--text-3);font-weight:400}
+.topbar-nav{display:flex;align-items:center;gap:2px;padding:0 10px;height:100%}
+.topbar-nav a{display:flex;align-items:center;gap:6px;padding:0 11px;height:28px;border-radius:var(--r-sm);font-size:12px;font-weight:500;color:var(--text-3);text-decoration:none;transition:var(--t)}
+.topbar-nav a:hover{color:var(--text-2);background:rgba(255,255,255,.04)}.topbar-nav a.active{color:var(--text-1);background:var(--bg-2)}
+.topbar-nav a svg{width:12px;height:12px}
+.topbar-end{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 14px}
+.user-pill{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:20px}
+.user-av{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.user-name{font-size:11px;color:var(--text-2)}
+.mini-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-2);color:var(--text-2);font-size:11px;font-weight:500;cursor:pointer;text-decoration:none;transition:var(--t);font-family:var(--font-ui)}
+.mini-btn:hover{border-color:var(--border-2);color:var(--text-1);text-decoration:none}.mini-btn svg{width:11px;height:11px}
 
 /* PAGE */
-.page { max-width: 1080px; margin: 0 auto; padding: 72px 24px 40px; }
+.page{max-width:1100px;margin:0 auto;padding:64px 24px 60px}
 
 /* PAGE HEADER */
-.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
-.page-header-left h1 { font-size: 22px; font-weight: 700; color: var(--text-1); letter-spacing: -.3px; }
-.page-header-left p  { font-size: 12px; color: var(--text-3); margin-top: 4px; }
-.page-header-actions { display: flex; gap: 8px; }
+.page-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:28px;padding-top:12px}
+.page-hero-left h1{font-size:24px;font-weight:700;color:var(--text-1);letter-spacing:-.4px}
+.page-hero-left p{font-size:12px;color:var(--text-3);margin-top:5px}
+.hero-actions{display:flex;gap:8px;flex-shrink:0}
 
-.btn-solid {
-  display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
-  border-radius: var(--r-md); font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: var(--t); text-decoration: none; border: 1px solid transparent;
-  font-family: var(--font-ui);
-}
-.btn-solid:hover { text-decoration: none; }
-.btn-outline { background: transparent; border-color: var(--border-2); color: var(--text-2); }
-.btn-outline:hover { border-color: var(--blue-border); color: var(--text-1); background: var(--blue-dim); }
-.btn-primary-s { background: var(--blue); border-color: var(--blue); color: #fff; }
-.btn-primary-s:hover { background: #2563EB; box-shadow: 0 0 20px rgba(59,130,246,.3); }
-.btn-solid svg { width: 13px; height: 13px; }
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--r-md);font-size:12px;font-weight:600;cursor:pointer;transition:var(--t);text-decoration:none;border:1px solid transparent;font-family:var(--font-ui)}
+.btn:hover{text-decoration:none}
+.btn-ghost{background:transparent;border-color:var(--border-2);color:var(--text-2)}
+.btn-ghost:hover{border-color:var(--blue-border);color:var(--text-1);background:var(--blue-dim)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{background:#2563EB;box-shadow:0 0 24px rgba(59,130,246,.35)}
+.btn svg{width:13px;height:13px}
 
 /* STATS */
-.stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 32px; }
-.stat-card {
-  background: var(--bg-1); border: 1px solid var(--border-1);
-  border-radius: var(--r-lg); padding: 18px 20px;
-  display: flex; align-items: center; gap: 14px;
-  transition: var(--t);
-}
-.stat-card:hover { border-color: var(--border-2); }
-.stat-ico {
-  width: 38px; height: 38px; border-radius: var(--r-md); flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-}
-.stat-ico svg { width: 18px; height: 18px; }
-.stat-ico.blue  { background: var(--blue-dim); border: 1px solid var(--blue-border); }
-.stat-ico.blue svg { color: var(--blue); }
-.stat-ico.green { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25); }
-.stat-ico.green svg { color: var(--green); }
-.stat-ico.teal  { background: rgba(6,182,212,.1); border: 1px solid rgba(6,182,212,.25); }
-.stat-ico.teal svg  { color: var(--teal); }
-.stat-val { font-size: 26px; font-weight: 700; color: var(--text-1); line-height: 1; }
-.stat-lbl { font-size: 11px; color: var(--text-3); margin-top: 3px; }
-.stat-link { font-size: 11px; color: var(--blue); text-decoration: none; font-weight: 500; margin-top: 3px; display: inline-block; }
-.stat-link:hover { text-decoration: underline; }
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:28px}
+.stat-card{background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:center;gap:12px;transition:var(--t)}
+.stat-card:hover{border-color:var(--border-2)}
+.stat-ico{width:36px;height:36px;border-radius:var(--r-md);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.stat-ico svg{width:16px;height:16px}
+.stat-ico.blue{background:var(--blue-dim);border:1px solid var(--blue-border)}.stat-ico.blue svg{color:var(--blue)}
+.stat-ico.green{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)}.stat-ico.green svg{color:var(--green)}
+.stat-ico.amber{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25)}.stat-ico.amber svg{color:var(--amber)}
+.stat-ico.purple{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25)}.stat-ico.purple svg{color:var(--purple)}
+.stat-val{font-size:22px;font-weight:700;color:var(--text-1);line-height:1}
+.stat-lbl{font-size:10px;color:var(--text-3);margin-top:3px}
 
 /* SECTION */
-.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.section-title { font-size: 10px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
-.section-title svg { width: 11px; height: 11px; }
-.section-action { font-size: 11px; color: var(--blue); text-decoration: none; font-weight: 500; transition: var(--t); }
-.section-action:hover { color: #93C5FD; text-decoration: none; }
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.section-title{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);display:flex;align-items:center;gap:6px}
+.section-title svg{width:11px;height:11px}
+.section-link{font-size:11px;color:var(--blue);text-decoration:none;font-weight:500;transition:var(--t)}
+.section-link:hover{color:#93C5FD;text-decoration:none}
+
+/* SEARCH BAR */
+.search-bar{display:flex;gap:8px;margin-bottom:14px}
+.search-input-wrap{flex:1;position:relative}
+.search-input-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-3);pointer-events:none}
+.search-input{width:100%;padding:7px 10px 7px 32px;background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-md);color:var(--text-1);font-size:12px;font-family:var(--font-ui);outline:none;transition:var(--t)}
+.search-input:focus{border-color:var(--blue-border);background:var(--bg-2)}
+.search-input::placeholder{color:var(--text-3)}
+.filter-select{padding:7px 28px 7px 10px;background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-md);color:var(--text-2);font-size:12px;font-family:var(--font-ui);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;transition:var(--t)}
+.filter-select:focus{border-color:var(--blue-border)}
+.filter-select option{background:#111621}
 
 /* PROJECTS GRID */
-.proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 10px; margin-bottom: 32px; }
-.proj-card {
-  background: var(--bg-1); border: 1px solid var(--border-1);
-  border-radius: var(--r-lg); padding: 16px;
-  display: flex; flex-direction: column; gap: 8px;
-  text-decoration: none; color: var(--text-1); transition: var(--t);
-  cursor: pointer;
-}
-.proj-card:hover { border-color: var(--blue-border); background: rgba(59,130,246,.04); text-decoration: none; }
-.proj-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.proj-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
-.proj-desc { font-size: 11px; color: var(--text-3); line-height: 1.5; }
-.proj-footer {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 10px; color: var(--text-3);
-  margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border-1);
-}
-.proj-footer-dot { width: 2px; height: 2px; border-radius: 50%; background: var(--text-3); }
-
-.proj-new {
-  background: transparent; border: 1.5px dashed rgba(255,255,255,.08);
-  border-radius: var(--r-lg); padding: 16px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; min-height: 100px; text-decoration: none; transition: var(--t); cursor: pointer;
-}
-.proj-new:hover { border-color: var(--blue-border); background: var(--blue-dim); text-decoration: none; }
-.proj-new-ico { width: 28px; height: 28px; background: var(--bg-2); border: 1px solid var(--border-1); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; }
-.proj-new-ico svg { width: 13px; height: 13px; color: var(--text-3); }
-.proj-new:hover .proj-new-ico { border-color: var(--blue-border); background: var(--blue-dim); }
-.proj-new:hover .proj-new-ico svg { color: var(--blue); }
-.proj-new span { font-size: 11px; color: var(--text-3); font-weight: 500; }
-.proj-new:hover span { color: var(--blue); }
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:28px}
+.proj-card{background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);padding:16px;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:var(--text-1);transition:var(--t);cursor:pointer;position:relative;overflow:hidden}
+.proj-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--teal));opacity:0;transition:var(--t)}
+.proj-card:hover{border-color:var(--blue-border);background:rgba(59,130,246,.03);text-decoration:none}
+.proj-card:hover::before{opacity:1}
+.proj-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.proj-name{font-size:13px;font-weight:600;color:var(--text-1)}
+.proj-desc{font-size:11px;color:var(--text-3);line-height:1.5}
+.proj-footer{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-3);margin-top:auto;padding-top:10px;border-top:1px solid var(--border-1)}
+.proj-footer-dot{width:2px;height:2px;border-radius:50%;background:var(--text-3)}
+.proj-new{background:transparent;border:1.5px dashed rgba(255,255,255,.07);border-radius:var(--r-lg);padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:110px;text-decoration:none;transition:var(--t);cursor:pointer}
+.proj-new:hover{border-color:var(--blue-border);background:var(--blue-dim);text-decoration:none}
+.proj-new-ico{width:28px;height:28px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center}
+.proj-new-ico svg{width:13px;height:13px;color:var(--text-3)}
+.proj-new:hover .proj-new-ico{border-color:var(--blue-border);background:var(--blue-dim)}
+.proj-new:hover .proj-new-ico svg{color:var(--blue)}
+.proj-new span{font-size:11px;color:var(--text-3);font-weight:500}
+.proj-new:hover span{color:var(--blue)}
 
 /* BADGE */
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 7px; border-radius: 4px;
-  font-size: 9px; font-weight: 600; letter-spacing: .3px; flex-shrink: 0;
-}
-.badge-pending      { background: rgba(71,85,105,.2);  color: var(--text-3); }
-.badge-extracting,
-.badge-uploading    { background: rgba(59,130,246,.12); color: #60A5FA; }
-.badge-transcribing { background: rgba(139,92,246,.12); color: #A78BFA; }
-.badge-transcribed  { background: rgba(6,182,212,.12);  color: #22D3EE; }
-.badge-synthesizing { background: rgba(236,72,153,.12); color: #F472B6; }
-.badge-done         { background: rgba(16,185,129,.12); color: #34D399; }
-.badge-error        { background: rgba(239,68,68,.12);  color: #F87171; }
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;letter-spacing:.3px;flex-shrink:0}
+.badge-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.badge-pending{background:rgba(71,85,105,.2);color:var(--text-3)}
+.badge-extracting,.badge-uploading{background:rgba(59,130,246,.12);color:#60A5FA}
+.badge-transcribing{background:rgba(139,92,246,.12);color:#A78BFA}
+.badge-transcribed{background:rgba(6,182,212,.12);color:#22D3EE}
+.badge-synthesizing{background:rgba(236,72,153,.12);color:#F472B6}
+.badge-done{background:rgba(16,185,129,.12);color:#34D399}
+.badge-error{background:rgba(239,68,68,.12);color:#F87171}
+
+/* PROGRESS BAR INLINE */
+.job-progress{height:2px;border-radius:1px;background:var(--bg-3);overflow:hidden;margin-top:4px}
+.job-progress-fill{height:100%;border-radius:1px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .5s ease}
 
 /* JOBS TABLE */
-.table-wrap { background: var(--bg-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); overflow: hidden; }
-.jobs-table { width: 100%; border-collapse: collapse; }
-.jobs-table th {
-  text-align: left; font-size: 9px; font-weight: 600; letter-spacing: .7px;
-  text-transform: uppercase; color: var(--text-3);
-  padding: 10px 14px; border-bottom: 1px solid var(--border-1);
-  background: rgba(255,255,255,.015);
-}
-.jobs-table td { padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--border-1); color: var(--text-2); }
-.jobs-table tr:last-child td { border-bottom: none; }
-.jobs-table tr:hover td { background: rgba(255,255,255,.02); }
-.td-mono { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); }
-.td-main { color: var(--text-1); font-weight: 500; }
+.table-wrap{background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);overflow:hidden;margin-bottom:16px}
+.jobs-table{width:100%;border-collapse:collapse}
+.jobs-table th{text-align:left;font-size:9px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:var(--text-3);padding:10px 14px;border-bottom:1px solid var(--border-1);background:rgba(255,255,255,.015)}
+.jobs-table td{padding:11px 14px;font-size:12px;border-bottom:1px solid var(--border-1);color:var(--text-2);vertical-align:middle}
+.jobs-table tr:last-child td{border-bottom:none}
+.jobs-table tr:hover td{background:rgba(255,255,255,.018);cursor:pointer}
+.td-mono{font-family:var(--font-mono);font-size:10px;color:var(--text-3)}
+.td-main{color:var(--text-1);font-weight:500}
+.td-status{min-width:120px}
 
-.open-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: var(--r-sm);
-  background: var(--blue-dim); border: 1px solid var(--blue-border);
-  color: #93C5FD; font-size: 10px; font-weight: 600; font-family: var(--font-ui);
-  text-decoration: none; transition: var(--t); cursor: pointer;
-}
-.open-btn:hover { background: rgba(59,130,246,.18); color: #BFDBFE; text-decoration: none; }
-.open-btn svg { width: 10px; height: 10px; }
+/* STEP INDICATOR */
+.step-indicator{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--text-3);margin-top:3px}
+.step-pip{width:16px;height:3px;border-radius:2px;background:var(--bg-3)}
+.step-pip.done{background:var(--green)}
+.step-pip.active{background:var(--blue);animation:pipPulse 1.5s infinite}
+@keyframes pipPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* OPEN BTN */
+.open-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--r-sm);background:var(--blue-dim);border:1px solid var(--blue-border);color:#93C5FD;font-size:10px;font-weight:600;font-family:var(--font-ui);text-decoration:none;transition:var(--t);cursor:pointer;white-space:nowrap}
+.open-btn:hover{background:rgba(59,130,246,.18);color:#BFDBFE;text-decoration:none}
+.open-btn svg{width:10px;height:10px}
+.open-btn.resume{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.25);color:#34D399}
+.open-btn.resume:hover{background:rgba(16,185,129,.14)}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0}
+.pagination-info{font-size:11px;color:var(--text-3)}
+.pagination-btns{display:flex;gap:4px}
+.page-btn{width:28px;height:28px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-1);color:var(--text-3);font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--t);text-decoration:none;font-family:var(--font-ui)}
+.page-btn:hover{border-color:var(--border-2);color:var(--text-1);text-decoration:none}
+.page-btn.active{background:var(--blue-dim);border-color:var(--blue-border);color:var(--blue)}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-btn svg{width:11px;height:11px}
 
 /* EMPTY */
-.empty-block {
-  text-align: center; padding: 48px 24px;
-  background: var(--bg-1); border: 1px solid var(--border-1);
-  border-radius: var(--r-lg); color: var(--text-3);
-}
-.empty-block-ico { width: 48px; height: 48px; margin: 0 auto 14px; background: var(--bg-2); border: 1px solid var(--border-1); border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center; }
-.empty-block-ico svg { width: 22px; height: 22px; color: var(--text-3); }
-.empty-block p { font-size: 13px; margin-bottom: 16px; }
+.empty-block{text-align:center;padding:48px 24px;background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);color:var(--text-3)}
+.empty-block-ico{width:48px;height:48px;margin:0 auto 14px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center}
+.empty-block-ico svg{width:22px;height:22px;color:var(--text-3)}
+.empty-block p{font-size:13px;margin-bottom:16px}
+
+/* NOTIFICATION BANNER */
+.notif-banner{display:none;align-items:center;gap:10px;padding:10px 14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:var(--r-md);margin-bottom:16px;font-size:12px;color:#34D399}
+.notif-banner.show{display:flex}
+.notif-banner svg{width:14px;height:14px;flex-shrink:0}
+
+/* ACTIVE JOBS BANNER */
+.active-jobs-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:rgba(59,130,246,.06);border:1px solid var(--blue-border);border-radius:var(--r-md);margin-bottom:16px}
+.active-jobs-bar.show{display:flex}
+.active-pulse{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:pulse 1.5s infinite;flex-shrink:0}
+.active-jobs-text{font-size:12px;color:#93C5FD;flex:1}
+.active-jobs-count{font-family:var(--font-mono);font-size:11px;color:var(--blue);font-weight:700}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.4)}50%{box-shadow:0 0 0 5px rgba(59,130,246,0)}}
+
 {% endblock %}
 
 {% block content %}
-<style>
-  .navbar { display: none !important; }
-  .main-content { padding: 0 !important; }
-</style>
+<style>.navbar,.main-content>.messages{display:none!important}.main-content{padding:0!important}</style>
 
 <header class="studio-topbar">
   <div class="topbar-brand">
-    <div class="brand-mark">
-      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
-    </div>
+    <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg></div>
     <span class="brand-name">TutorBuilder <span>Vision</span></span>
   </div>
   <nav class="topbar-nav">
     <a href="{% url 'studio:dashboard' %}" class="active">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Dashboard
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
     </a>
     <a href="{% url 'studio:cockpit' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      Cockpit
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Studio
     </a>
     <a href="{% url 'studio:project_list' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-      Projets
-    </a>
-    <a href="{% url 'api:swagger-ui' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      API
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projets
     </a>
   </nav>
   <div class="topbar-end">
@@ -227,64 +198,66 @@ html, body { background: var(--bg-base); color: var(--text-1); font-family: var(
       <div class="user-av">{{ user.username|slice:":1"|upper }}</div>
       <span class="user-name">{{ user.username }}</span>
     </div>
-    <a href="{% url 'admin:index' %}" class="mini-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      Admin
-    </a>
     <a href="{% url 'logout' %}" class="mini-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Déconnexion
     </a>
   </div>
 </header>
 
 <div class="page">
 
-  <!-- Header -->
-  <div class="page-header">
-    <div class="page-header-left">
-      <h1>Tableau de bord</h1>
-      <p>Bienvenue, {{ user.username }} — Production de tutoriels vidéo par IA</p>
+  <!-- Hero -->
+  <div class="page-hero">
+    <div class="page-hero-left">
+      <h1>Bonjour, {{ user.username }} 👋</h1>
+      <p>Production de tutoriels vidéo par IA — TutorBuilder Vision</p>
     </div>
-    <div class="page-header-actions">
-      <a href="{% url 'studio:project_create' %}" class="btn-solid btn-outline">
+    <div class="hero-actions">
+      <a href="{% url 'studio:project_create' %}" class="btn btn-ghost">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Nouveau projet
       </a>
-      <a href="{% url 'studio:cockpit' %}" class="btn-solid btn-primary-s">
+      <a href="{% url 'studio:cockpit' %}" class="btn btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        Ouvrir le Cockpit
+        Ouvrir le Studio
       </a>
     </div>
   </div>
 
+  <!-- Bannière jobs actifs -->
+  <div class="active-jobs-bar" id="active-jobs-bar">
+    <div class="active-pulse"></div>
+    <span class="active-jobs-text">
+      <strong id="active-jobs-count" class="active-jobs-count">0</strong> job(s) en cours de traitement en arrière-plan
+    </span>
+    <span style="font-size:10px;color:var(--text-3)">Vous recevrez un email à la fin</span>
+  </div>
+
   <!-- Stats -->
-  <div class="stats-grid">
+  <div class="stats-row">
     <div class="stat-card">
       <div class="stat-ico blue">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       </div>
-      <div>
-        <div class="stat-val">{{ total_projects }}</div>
-        <div class="stat-lbl">Projets</div>
-      </div>
+      <div><div class="stat-val">{{ total_projects }}</div><div class="stat-lbl">Projets</div></div>
     </div>
     <div class="stat-card">
       <div class="stat-ico green">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
       </div>
-      <div>
-        <div class="stat-val">{{ total_jobs }}</div>
-        <div class="stat-lbl">Jobs exécutés</div>
-      </div>
+      <div><div class="stat-val">{{ total_done }}</div><div class="stat-lbl">Vidéos exportées</div></div>
     </div>
     <div class="stat-card">
-      <div class="stat-ico teal">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <div class="stat-ico amber">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       </div>
-      <div>
-        <a href="{% url 'api:swagger-ui' %}" class="stat-link">API Docs →</a>
-        <div class="stat-lbl">REST + WebSocket</div>
+      <div><div class="stat-val">{{ total_jobs }}</div><div class="stat-lbl">Jobs total</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-ico purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </div>
+      <div><div class="stat-val" id="active-count">{{ active_jobs }}</div><div class="stat-lbl">En cours</div></div>
     </div>
   </div>
 
@@ -294,88 +267,322 @@ html, body { background: var(--bg-base); color: var(--text-1); font-family: var(
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       Projets récents
     </div>
-    <a href="{% url 'studio:project_list' %}" class="section-action">Voir tout</a>
+    <a href="{% url 'studio:project_list' %}" class="section-link">Voir tous les projets →</a>
   </div>
 
   {% if projects %}
-    <div class="proj-grid">
-      {% for project in projects %}
-        <a href="{% url 'studio:cockpit' %}?project={{ project.pk }}" class="proj-card">
-          <div class="proj-card-top">
-            <div class="proj-name">{{ project.name }}</div>
-            {% with job=project.latest_job %}
-              {% if job %}<span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span>{% endif %}
-            {% endwith %}
-          </div>
-          {% if project.description %}
-            <div class="proj-desc">{{ project.description|truncatechars:80 }}</div>
-          {% endif %}
-          <div class="proj-footer">
-            <span>{{ project.jobs_count }} job{{ project.jobs_count|pluralize }}</span>
-            <span class="proj-footer-dot"></span>
-            <span>{{ project.updated_at|timesince }}</span>
-          </div>
-        </a>
-      {% endfor %}
-      <a href="{% url 'studio:project_create' %}" class="proj-new">
-        <div class="proj-new-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </div>
-        <span>Nouveau projet</span>
-      </a>
-    </div>
-  {% else %}
-    <div class="empty-block" style="margin-bottom:32px;">
-      <div class="empty-block-ico">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+  <div class="proj-grid" id="proj-grid">
+    {% for project in projects %}
+    <a href="{% url 'studio:cockpit' %}?project={{ project.pk }}" class="proj-card" data-name="{{ project.name|lower }}">
+      <div class="proj-card-top">
+        <div class="proj-name">{{ project.name }}</div>
+        {% with job=project.latest_job %}
+          {% if job %}<span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span>{% endif %}
+        {% endwith %}
       </div>
-      <p>Aucun projet pour l'instant.</p>
-      <a href="{% url 'studio:project_create' %}" class="btn-solid btn-primary-s">Créer mon premier projet</a>
-    </div>
+      {% if project.description %}
+        <div class="proj-desc">{{ project.description|truncatechars:70 }}</div>
+      {% endif %}
+      <div class="proj-footer">
+        <span>{{ project.jobs_count }} job{{ project.jobs_count|pluralize }}</span>
+        <span class="proj-footer-dot"></span>
+        <span>{{ project.updated_at|timesince }}</span>
+      </div>
+    </a>
+    {% endfor %}
+    <a href="{% url 'studio:project_create' %}" class="proj-new">
+      <div class="proj-new-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      <span>Nouveau projet</span>
+    </a>
+  </div>
+  {% else %}
+  <div class="empty-block" style="margin-bottom:28px">
+    <div class="empty-block-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+    <p>Aucun projet pour l'instant.</p>
+    <a href="{% url 'studio:project_create' %}" class="btn btn-primary">Créer mon premier projet</a>
+  </div>
   {% endif %}
 
   <!-- Jobs récents -->
+  <div class="section-head">
+    <div class="section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Historique des jobs
+    </div>
+    <span style="font-size:10px;color:var(--text-3)" id="jobs-count-label"></span>
+  </div>
+
+  <!-- Recherche + filtre -->
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="search-input" id="job-search" placeholder="Rechercher un job, projet, fichier…" oninput="filterJobs()">
+    </div>
+    <select class="filter-select" id="job-status-filter" onchange="filterJobs()">
+      <option value="">Tous les statuts</option>
+      <option value="done">✅ Terminé</option>
+      <option value="transcribed">🔵 Transcrit</option>
+      <option value="synthesizing">🟣 Synthèse</option>
+      <option value="transcribing">🟣 Transcription</option>
+      <option value="error">❌ Erreur</option>
+    </select>
+  </div>
+
   {% if recent_jobs %}
-    <div class="section-head">
-      <div class="section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Jobs récents
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table class="jobs-table">
-        <thead>
-          <tr>
-            <th>Job ID</th>
-            <th>Projet</th>
-            <th>Fichier</th>
-            <th>Engine</th>
-            <th>Statut</th>
-            <th>Date</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for job in recent_jobs %}
-            <tr>
-              <td class="td-mono">{{ job.pk|stringformat:"s"|slice:":8" }}…</td>
-              <td class="td-main">{{ job.project.name }}</td>
-              <td>{{ job.video_filename|truncatechars:28 }}</td>
-              <td class="td-mono">{{ job.stt_engine }}</td>
-              <td><span class="badge badge-{{ job.status }}">{{ job.get_status_display }}</span></td>
-              <td>{{ job.created_at|timesince }}</td>
-              <td>
-                <a href="{% url 'studio:cockpit_job' job.pk %}" class="open-btn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                  Ouvrir
-                </a>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="table-wrap">
+    <table class="jobs-table" id="jobs-table">
+      <thead>
+        <tr>
+          <th>Projet</th>
+          <th>Fichier</th>
+          <th>Statut</th>
+          <th>Étape</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="jobs-tbody">
+        {% for job in recent_jobs %}
+        <tr class="job-row"
+            data-id="{{ job.pk }}"
+            data-status="{{ job.status }}"
+            data-project="{{ job.project.name|lower }}"
+            data-file="{{ job.video_filename|lower }}"
+            onclick="openJob('{{ job.pk }}', '{{ job.status }}')"
+            style="cursor:pointer">
+          <td class="td-main">{{ job.project.name }}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ job.video_filename }}">{{ job.video_filename|truncatechars:30 }}</td>
+          <td class="td-status">
+            <span class="badge badge-{{ job.status }}" id="badge-{{ job.pk }}">{{ job.get_status_display }}</span>
+            {% if job.status not in 'done,error,pending' %}
+            <div class="job-progress"><div class="job-progress-fill" id="progress-{{ job.pk }}" style="width:{{ job.status|yesno:'50,0' }}%"></div></div>
+            {% endif %}
+          </td>
+          <td>
+            <!-- Indicateur 4 étapes -->
+            <div class="step-indicator">
+              <div class="step-pip {% if job.status in 'transcribed,synthesizing,done' %}done{% elif job.status in 'extracting,transcribing' %}active{% endif %}"></div>
+              <div class="step-pip {% if job.status in 'synthesizing,done' %}done{% elif job.status == 'transcribed' %}active{% endif %}"></div>
+              <div class="step-pip {% if job.status == 'done' %}done{% elif job.status == 'synthesizing' %}active{% endif %}"></div>
+              <div class="step-pip {% if job.status == 'done' %}done{% endif %}"></div>
+            </div>
+          </td>
+          <td class="td-mono">{{ job.created_at|timesince }}</td>
+          <td>
+            {% if job.status == 'done' %}
+            <a href="{% url 'studio:cockpit_job' job.pk %}" class="open-btn resume" onclick="event.stopPropagation()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              Voir résultat
+            </a>
+            {% elif job.status == 'error' %}
+            <a href="{% url 'studio:cockpit_job' job.pk %}" class="open-btn" style="border-color:rgba(239,68,68,.3);color:#F87171;background:rgba(239,68,68,.06)" onclick="event.stopPropagation()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Reprendre
+            </a>
+            {% else %}
+            <a href="{% url 'studio:cockpit_job' job.pk %}" class="open-btn" onclick="event.stopPropagation()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              Continuer
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <span class="pagination-info" id="pagination-info"></span>
+    <div class="pagination-btns" id="pagination-btns"></div>
+  </div>
+
+  {% else %}
+  <div class="empty-block">
+    <div class="empty-block-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+    <p>Aucun job pour l'instant. Importez une vidéo dans le Studio !</p>
+    <a href="{% url 'studio:cockpit' %}" class="btn btn-primary">Ouvrir le Studio</a>
+  </div>
   {% endif %}
 
 </div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION VERS JOB
+// ═══════════════════════════════════════════════════════
+function openJob(jobId, status) {
+  window.location.href = `/cockpit/${jobId}/`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RECHERCHE + FILTRE
+// ═══════════════════════════════════════════════════════
+let currentPage = 1;
+const ROWS_PER_PAGE = 10;
+let filteredRows = [];
+
+function filterJobs() {
+  const q      = document.getElementById('job-search').value.toLowerCase().trim();
+  const status = document.getElementById('job-status-filter').value;
+  const rows   = Array.from(document.querySelectorAll('.job-row'));
+
+  filteredRows = rows.filter(row => {
+    const matchQ = !q ||
+      row.dataset.project.includes(q) ||
+      row.dataset.file.includes(q) ||
+      row.dataset.id.toLowerCase().includes(q);
+    const matchS = !status || row.dataset.status === status;
+    return matchQ && matchS;
+  });
+
+  currentPage = 1;
+  renderPage();
+}
+
+function renderPage() {
+  const rows  = Array.from(document.querySelectorAll('.job-row'));
+  const total = filteredRows.length;
+  const pages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+  const start = (currentPage - 1) * ROWS_PER_PAGE;
+  const end   = start + ROWS_PER_PAGE;
+
+  // Masquer toutes les lignes
+  rows.forEach(r => r.style.display = 'none');
+
+  // Afficher seulement la page courante des lignes filtrées
+  filteredRows.slice(start, end).forEach(r => r.style.display = '');
+
+  // Info
+  const infoEl = document.getElementById('pagination-info');
+  if (infoEl) {
+    infoEl.textContent = total === 0
+      ? 'Aucun résultat'
+      : `${start + 1}–${Math.min(end, total)} sur ${total} job${total > 1 ? 's' : ''}`;
+  }
+
+  // Boutons de pagination
+  const btnsEl = document.getElementById('pagination-btns');
+  if (btnsEl && pages > 1) {
+    btnsEl.innerHTML = '';
+
+    // Précédent
+    const prev = document.createElement('button');
+    prev.className = 'page-btn';
+    prev.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>';
+    prev.disabled = currentPage === 1;
+    prev.onclick = () => { currentPage--; renderPage(); };
+    btnsEl.appendChild(prev);
+
+    // Pages
+    for (let i = 1; i <= pages; i++) {
+      if (pages > 7 && Math.abs(i - currentPage) > 2 && i !== 1 && i !== pages) {
+        if (i === 2 || i === pages - 1) {
+          const dots = document.createElement('span');
+          dots.className = 'page-btn';
+          dots.style.cursor = 'default';
+          dots.textContent = '…';
+          btnsEl.appendChild(dots);
+        }
+        continue;
+      }
+      const btn = document.createElement('button');
+      btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+      btn.textContent = i;
+      btn.onclick = () => { currentPage = i; renderPage(); };
+      btnsEl.appendChild(btn);
+    }
+
+    // Suivant
+    const next = document.createElement('button');
+    next.className = 'page-btn';
+    next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+    next.disabled = currentPage === pages;
+    next.onclick = () => { currentPage++; renderPage(); };
+    btnsEl.appendChild(next);
+
+    btnsEl.style.display = 'flex';
+  } else if (btnsEl) {
+    btnsEl.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  POLLING TEMPS RÉEL — statuts des jobs actifs
+// ═══════════════════════════════════════════════════════
+const STATUS_LABELS = {
+  pending:      'En attente',
+  uploading:    'Upload…',
+  extracting:   'Extraction…',
+  transcribing: 'Transcription…',
+  transcribed:  'Transcrit',
+  synthesizing: 'Synthèse vocale…',
+  done:         'Terminé',
+  error:        'Erreur',
+};
+
+const STATUS_PROGRESS = {
+  pending: 0, uploading: 10, extracting: 25,
+  transcribing: 50, transcribed: 60,
+  synthesizing: 80, done: 100, error: 0,
+};
+
+async function pollActiveJobs() {
+  try {
+    const r    = await fetch('/api/jobs/?page_size=50');
+    const data = await r.json();
+    const jobs = data.results || data;
+
+    const active = jobs.filter(j => 
+      ['extracting','transcribing','synthesizing','uploading'].includes(j.status)
+    );
+
+    // Bannière jobs actifs
+    const bar = document.getElementById('active-jobs-bar');
+    if (active.length > 0) {
+      bar.classList.add('show');
+      document.getElementById('active-jobs-count').textContent = active.length;
+    } else {
+      bar.classList.remove('show');
+    }
+
+    // Compteur stats
+    const countEl = document.getElementById('active-count');
+    if (countEl) countEl.textContent = active.length;
+
+    // Mettre à jour chaque ligne
+    jobs.forEach(job => {
+      const badge    = document.getElementById(`badge-${job.id}`);
+      const progress = document.getElementById(`progress-${job.id}`);
+      const row      = document.querySelector(`tr[data-id="${job.id}"]`);
+
+      if (badge) {
+        badge.className = `badge badge-${job.status}`;
+        badge.textContent = STATUS_LABELS[job.status] || job.status;
+      }
+      if (progress) {
+        progress.style.width = (STATUS_PROGRESS[job.status] || 0) + '%';
+      }
+      if (row) {
+        row.dataset.status = job.status;
+      }
+    });
+
+  } catch(e) { /* silencieux */ }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  // Init filtre + pagination
+  filteredRows = Array.from(document.querySelectorAll('.job-row'));
+  renderPage();
+
+  // Polling toutes les 5 secondes
+  pollActiveJobs();
+  setInterval(pollActiveJobs, 5000);
+});
+</script>
 {% endblock %}

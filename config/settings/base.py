@@ -331,3 +331,50 @@ LOGGING = {
 LOGIN_REDIRECT_URL = '/cockpit/'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = '/accounts/login/'
+
+"""
+AJOUTS À FAIRE DANS config/settings/base.py (ou development.py)
+================================================================
+
+1. Configuration email OVH
+2. Configuration Celery correcte
+3. BASE_URL pour les liens dans les emails
+"""
+
+# ─────────────────────────────────────────
+#  EMAIL — OVH SMTP
+# ─────────────────────────────────────────
+EMAIL_BACKEND      = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST         = "ssl0.ovh.net"
+EMAIL_PORT         = 465
+EMAIL_USE_SSL      = True
+EMAIL_USE_TLS      = False
+EMAIL_HOST_USER    = "noreply@univers-ia.pro"
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = "noreply@univers-ia.pro"
+SERVER_EMAIL       = "noreply@univers-ia.pro"
+
+# URL de base pour les liens dans les emails
+# En local : http://localhost:8000
+# En prod  : https://votre-domaine.com
+BASE_URL = env("BASE_URL", default="http://localhost:8000")
+
+
+# ─────────────────────────────────────────
+#  CELERY — Configuration complète
+# ─────────────────────────────────────────
+CELERY_BROKER_URL         = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND     = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_TASK_ALWAYS_EAGER  = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)  # ← False en prod !
+CELERY_TASK_SERIALIZER    = "json"
+CELERY_RESULT_SERIALIZER  = "json"
+CELERY_ACCEPT_CONTENT     = ["json"]
+CELERY_TIMEZONE           = "Europe/Paris"
+CELERY_ENABLE_UTC         = True
+
+# Retry automatique si Redis indisponible
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Timeout des tâches (2h max pour les longues vidéos)
+CELERY_TASK_SOFT_TIME_LIMIT = 7200
+CELERY_TASK_TIME_LIMIT      = 7500

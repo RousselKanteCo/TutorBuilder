@@ -202,43 +202,6 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .seg-row.active .seg-tc{color:var(--blue)}
 .seg-txt{font-size:12px;color:var(--text-2);flex:1;outline:none;line-height:1.55;cursor:text}
 .seg-row.active .seg-txt{color:var(--text-1)}
-
-/* ── SCRIPT EDITOR v2 ── */
-.seg-row{display:flex;gap:0;border-radius:var(--r-sm);border:1px solid transparent;transition:var(--t);position:relative;background:transparent}
-.seg-row:hover{background:var(--bg-2);border-color:var(--border-1)}
-.seg-row.active{background:rgba(59,130,246,.06);border-color:var(--blue-border);box-shadow:inset 2px 0 0 var(--blue)}
-.seg-num{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:20px;padding:8px 2px 8px 8px;flex-shrink:0;user-select:none}
-.seg-row.active .seg-num{color:var(--blue)}
-.seg-tc{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:36px;flex-shrink:0;padding:8px 4px;cursor:pointer;transition:var(--t)}
-.seg-tc:hover{color:var(--blue)}.seg-row.active .seg-tc{color:var(--blue)}
-.seg-body{flex:1;display:flex;flex-direction:column;padding:6px 4px;min-width:0}
-.seg-txt{font-size:12px;color:var(--text-2);outline:none;line-height:1.55;cursor:text;word-break:break-word;min-height:18px}
-.seg-row.active .seg-txt,.seg-txt:focus{color:var(--text-1)}
-.seg-len-bar{height:2px;border-radius:1px;margin-top:4px;transition:width .3s,background .3s;background:var(--green);width:0%}
-.seg-len-bar.warn{background:var(--amber)}.seg-len-bar.over{background:var(--red)}
-.seg-len-label{font-size:8px;font-family:var(--font-mono);color:var(--text-3);margin-top:2px;display:none}
-.seg-row:hover .seg-len-label,.seg-row.active .seg-len-label{display:block}
-.seg-len-label.warn{color:var(--amber)}.seg-len-label.over{color:var(--red)}
-.seg-actions{display:flex;flex-direction:column;gap:2px;padding:4px 4px 4px 2px;opacity:0;transition:opacity .15s;flex-shrink:0}
-.seg-row:hover .seg-actions,.seg-row.active .seg-actions{opacity:1}
-.seg-btn{width:20px;height:20px;border-radius:4px;border:1px solid var(--border-1);background:var(--bg-3);color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:var(--t);flex-shrink:0;font-family:var(--font-ui)}
-.seg-btn:hover{border-color:var(--border-2);color:var(--text-1);background:var(--bg-2)}
-.seg-btn.del:hover{border-color:rgba(239,68,68,.4);color:var(--red);background:rgba(239,68,68,.08)}
-.seg-btn.merge-up:hover{border-color:rgba(59,130,246,.4);color:var(--blue);background:var(--blue-dim)}
-.seg-merge-hint{height:12px;margin:0 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s}
-.seg-merge-hint:hover{opacity:1}
-.seg-merge-line{flex:1;height:1px;background:var(--border-1)}
-.seg-merge-label{font-size:8px;color:var(--text-3);padding:0 6px;white-space:nowrap;transition:color .15s}
-.seg-merge-hint:hover .seg-merge-label{color:var(--blue)}
-.seg-row:hover + .seg-merge-hint,.seg-merge-hint:hover{opacity:1}
-.script-stats{font-size:9px;color:var(--text-3);font-family:var(--font-mono);padding:2px 8px;background:var(--bg-2);border-radius:10px;border:1px solid var(--border-1)}
-.script-action-btn{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-2);color:var(--text-3);font-size:10px;font-weight:500;font-family:var(--font-ui);cursor:pointer;transition:var(--t)}
-.script-action-btn:hover{border-color:var(--border-2);color:var(--text-2)}
-.script-action-btn.primary{background:var(--blue-dim);border-color:var(--blue-border);color:#93C5FD}
-.script-action-btn.primary:hover{background:rgba(59,130,246,.18)}
-.script-action-btn:disabled{opacity:.4;cursor:not-allowed}
-.script-action-btn svg{width:10px;height:10px}
-
 {% endblock %}
 
 {% block content %}
@@ -484,20 +447,12 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
     <div class="script-topbar">
       <div class="script-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Script<span class="seg-count" id="seg-count"></span>
+        Texte transcrit<span class="seg-count" id="seg-count"></span>
       </div>
-      <span class="script-stats" id="script-stats" style="display:none"></span>
-      <span class="recalc-badge" id="recalc-badge">⏱ Recalculé</span>
-      <div style="display:flex;gap:4px;margin-left:auto;align-items:center">
-        <button class="script-action-btn" onclick="autoSplitLong()" id="btn-auto-split" style="display:none" title="Découper les segments trop longs">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-          Découper
-        </button>
-        <button class="script-action-btn primary" onclick="saveScript()" id="btn-save-script" style="display:none">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Sauvegarder
-        </button>
-      </div>
+      <span class="recalc-badge" id="recalc-badge">⏱ Timecodes recalculés</span>
+      <button class="save-btn" onclick="saveScript()" id="btn-save-script" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Sauvegarder
+      </button>
     </div>
     <div id="script-editor">
       <div class="script-empty">
@@ -1182,323 +1137,27 @@ function drawHead(){
 // ═══════════════════════════════════════════════════════
 //  SCRIPT EDITOR
 // ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════
-//  SCRIPT EDITOR v2 — avec suppression, fusion, longueur
-// ═══════════════════════════════════════════════════════
-
-const MAX_SEG_CHARS = 120;  // seuil orange
-const MAX_SEG_HARD  = 200;  // seuil rouge (trop long)
-
-function renderScript(segs) {
-  const ed = document.getElementById('script-editor');
-  ed.innerHTML = '';
-
-  // Stats
-  const totalChars = segs.reduce((a, s) => a + (s.text || '').length, 0);
-  const longSegs    = segs.filter(s => (s.text || '').length > MAX_SEG_CHARS).length;
-  document.getElementById('seg-count').textContent = `— ${segs.length} segments`;
-
-  const statsEl = document.getElementById('script-stats');
-  if (statsEl) {
-    statsEl.textContent = `${totalChars} car. · ${longSegs > 0 ? `⚠️ ${longSegs} longs` : '✅ ok'}`;
-    statsEl.style.color = longSegs > 0 ? 'var(--amber)' : 'var(--text-3)';
-  }
-
-  if (!segs.length) {
-    ed.innerHTML = `<div class="script-empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <p>Le texte apparaîtra ici après la transcription</p>
-      <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
-    </div>`;
-    return;
-  }
-
-  segs.forEach((seg, i) => {
-    const text    = seg.text || '';
-    const chars   = text.length;
-    const pct     = Math.min(100, (chars / MAX_SEG_HARD) * 100);
-    const isWarn  = chars > MAX_SEG_CHARS;
-    const isOver  = chars > MAX_SEG_HARD;
-    const barClass = isOver ? 'over' : isWarn ? 'warn' : '';
-    const lblClass = isOver ? 'over' : isWarn ? 'warn' : '';
-
-    const row = document.createElement('div');
-    row.className = 'seg-row';
-    row.dataset.index = i;
-
-    row.innerHTML = `
-      <span class="seg-num">${i + 1}</span>
-      <span class="seg-tc" title="Aller à ce moment">${msToTC(seg.start || seg.start_ms || 0)}</span>
-      <div class="seg-body">
-        <div class="seg-txt" contenteditable="true" data-index="${i}"
-             spellcheck="true"
-             oninput="onSegInput(this, ${i})">${text}</div>
-        <div class="seg-len-bar ${barClass}" style="width:${pct}%"></div>
-        <div class="seg-len-label ${lblClass}">${chars} car.${isOver ? ' — trop long !' : isWarn ? ' — long' : ''}</div>
-      </div>
-      <div class="seg-actions">
-        ${i > 0 ? `<button class="seg-btn merge" title="Fusionner avec le segment précédent" onclick="mergeWithPrev(${i})">↑</button>` : '<div style="width:20px"></div>'}
-        <button class="seg-btn del" title="Supprimer ce segment" onclick="deleteSegment(${i})">×</button>
-      </div>
-    `;
-
-    // Clic sur le timecode → aller à ce moment dans la vidéo
-    row.querySelector('.seg-tc').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.getElementById('video-player').currentTime = (seg.start || seg.start_ms || 0) / 1000;
+function renderScript(segs){
+  const ed=document.getElementById('script-editor');
+  ed.innerHTML='';
+  document.getElementById('seg-count').textContent=`— ${segs.length} segments`;
+  segs.forEach((seg,i)=>{
+    const r=document.createElement('div');
+    r.className='seg-row'; r.dataset.index=i;
+    r.innerHTML=`<span class="seg-tc">${msToTC(seg.start||seg.start_ms)}</span><div class="seg-txt" contenteditable="true" data-index="${i}">${seg.text}</div>`;
+    r.addEventListener('click',()=>{
+      document.getElementById('video-player').currentTime=(seg.start||seg.start_ms)/1000;
       hl(i);
-      document.getElementById('sub-preview-text').value = text;
+      document.getElementById('sub-preview-text').value=seg.text;
       drawSubPreview();
     });
-
-    // Clic sur la ligne → highlight
-    row.addEventListener('click', () => {
-      hl(i);
-      document.getElementById('sub-preview-text').value = text;
-      drawSubPreview();
-    });
-
-    ed.appendChild(row);
-
-    // Séparateur de fusion entre segments
-    if (i < segs.length - 1) {
-      const sep = document.createElement('div');
-      sep.className = 'seg-merge-hint';
-      sep.title = 'Fusionner ces deux segments';
-      sep.addEventListener('click', () => mergeSegments(i, i + 1));
-      ed.appendChild(sep);
-    }
+    ed.appendChild(r);
   });
 }
-
-function hl(idx) {
-  document.querySelectorAll('.seg-row').forEach(r => r.classList.remove('active'));
-  const r = document.querySelector(`.seg-row[data-index="${idx}"]`);
-  if (r) {
-    r.classList.add('active');
-    r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
-}
-
-// Mise à jour en temps réel de la barre de longueur
-function onSegInput(el, idx) {
-  const chars   = el.textContent.length;
-  const pct     = Math.min(100, (chars / MAX_SEG_HARD) * 100);
-  const isWarn  = chars > MAX_SEG_CHARS;
-  const isOver  = chars > MAX_SEG_HARD;
-  const row     = el.closest('.seg-row');
-
-  const bar = row.querySelector('.seg-len-bar');
-  bar.style.width = pct + '%';
-  bar.className = 'seg-len-bar' + (isOver ? ' over' : isWarn ? ' warn' : '');
-
-  const lbl = row.querySelector('.seg-len-label');
-  lbl.textContent = `${chars} car.${isOver ? ' — trop long !' : isWarn ? ' — long' : ''}`;
-  lbl.className = 'seg-len-label' + (isOver ? ' over' : isWarn ? ' warn' : '');
-
-  // Mettre à jour le texte dans STATE.segments
-  if (STATE.segments[idx]) {
-    STATE.segments[idx].text = el.textContent.trim();
-  }
-}
-
-// Supprimer un segment
-function deleteSegment(idx) {
-  if (STATE.segments.length <= 1) {
-    log('⚠️ Impossible de supprimer le dernier segment.', 'warn');
-    return;
-  }
-  if (!confirm(`Supprimer le segment ${idx + 1} ?`)) return;
-
-  STATE.segments.splice(idx, 1);
-  // Réindexer
-  STATE.segments.forEach((s, i) => s.index = i);
-  renderScript(STATE.segments);
-  log(`🗑️ Segment ${idx + 1} supprimé.`, 'info');
-}
-
-// Fusionner un segment avec le précédent
-function mergeWithPrev(idx) {
-  if (idx <= 0) return;
-  mergeSegments(idx - 1, idx);
-}
-
-// Fusionner deux segments consécutifs
-function mergeSegments(idxA, idxB) {
-  if (idxB >= STATE.segments.length) return;
-
-  const segA = STATE.segments[idxA];
-  const segB = STATE.segments[idxB];
-
-  const newText = (segA.text || '').trim() + ' ' + (segB.text || '').trim();
-  const merged  = {
-    ...segA,
-    text:     newText,
-    end_ms:   segB.end_ms || segB.end || segA.end_ms,
-    end:      segB.end_ms || segB.end || segA.end_ms,
-  };
-
-  STATE.segments.splice(idxA, 2, merged);
-  STATE.segments.forEach((s, i) => s.index = i);
-  renderScript(STATE.segments);
-  log(`🔗 Segments ${idxA + 1} et ${idxB + 1} fusionnés.`, 'info');
-}
-
-// Découper automatiquement tous les segments trop longs
-function autoSplitLong() {
-  let splitCount = 0;
-  const newSegs = [];
-
-  STATE.segments.forEach(seg => {
-    const text = (seg.text || '').trim();
-    if (text.length <= MAX_SEG_CHARS) {
-      newSegs.push(seg);
-      return;
-    }
-
-    // Découper aux fins de phrase d'abord
-    const parts = smartSplit(text, MAX_SEG_CHARS);
-    if (parts.length <= 1) {
-      newSegs.push(seg);
-      return;
-    }
-
-    const dur   = ((seg.end_ms || seg.end || 0) - (seg.start_ms || seg.start || 0));
-    const total = parts.reduce((a, p) => a + p.length, 0) || 1;
-    let cursor  = seg.start_ms || seg.start || 0;
-
-    parts.forEach((part, pi) => {
-      const ratio  = part.length / total;
-      const subDur = Math.max(200, Math.round(dur * ratio));
-      const subEnd = pi === parts.length - 1
-        ? (seg.end_ms || seg.end || 0)
-        : cursor + subDur;
-
-      newSegs.push({
-        ...seg,
-        text:     part,
-        start_ms: cursor,
-        start:    cursor,
-        end_ms:   subEnd,
-        end:      subEnd,
-      });
-      cursor = subEnd;
-      splitCount++;
-    });
-    splitCount--; // on compte les nouveaux, pas l'original
-  });
-
-  if (splitCount > 0) {
-    STATE.segments = newSegs;
-    STATE.segments.forEach((s, i) => s.index = i);
-    renderScript(STATE.segments);
-    log(`✂️ ${splitCount} segments découpés automatiquement.`, 'info');
-  } else {
-    log('✅ Aucun segment trop long trouvé.', 'info');
-  }
-}
-
-// Découpage intelligent par phrases/virgules
-function smartSplit(text, maxChars) {
-  if (text.length <= maxChars) return [text];
-
-  // 1. Couper aux fins de phrase
-  const sentences = text.split(/(?<=[.!?])\s+/);
-  const chunks = [];
-  let current = '';
-
-  for (const sent of sentences) {
-    const test = current ? current + ' ' + sent : sent;
-    if (test.length <= maxChars) {
-      current = test;
-    } else {
-      if (current) chunks.push(current);
-      current = sent;
-    }
-  }
-  if (current) chunks.push(current);
-
-  // 2. Si encore trop long, couper aux virgules
-  const result = [];
-  for (const chunk of chunks) {
-    if (chunk.length <= maxChars) {
-      result.push(chunk);
-      continue;
-    }
-    const parts2 = chunk.split(/(?<=,)\s+/);
-    let cur2 = '';
-    for (const p of parts2) {
-      const t = cur2 ? cur2 + ' ' + p : p;
-      if (t.length <= maxChars) { cur2 = t; }
-      else { if (cur2) result.push(cur2); cur2 = p; }
-    }
-    if (cur2) result.push(cur2);
-  }
-
-  return result.filter(Boolean);
-}
-
-// ── Sauvegarder le script (version améliorée) ────────────────────────────
-async function saveScript() {
-  if (!STATE.jobId) return;
-  const btn = document.getElementById('btn-save-script');
-  btn.disabled = true;
-
-  // Collecter les textes édités depuis le DOM
-  const editedSegments = [];
-  document.querySelectorAll('.seg-txt').forEach(el => {
-    const idx = parseInt(el.dataset.index);
-    const seg = STATE.segments[idx];
-    if (!seg) return;
-    editedSegments.push({
-      id:       seg.id,
-      index:    seg.index !== undefined ? seg.index : idx,
-      start_ms: seg.start_ms || seg.start || 0,
-      end_ms:   seg.end_ms   || seg.end   || 0,
-      text:     el.textContent.trim(),
-    });
-  });
-
-  log(`💾 Sauvegarde de ${editedSegments.length} segments…`, 'info');
-
-  try {
-    const res = await apiPost(`/api/jobs/${STATE.jobId}/split_segments/`, {
-      segments: editedSegments
-    });
-
-    if (res.segments && res.segments.length) {
-      STATE.segments = res.segments.map(s => ({
-        id:       s.id,
-        index:    s.index,
-        start:    s.start_ms,
-        end:      s.end_ms,
-        start_ms: s.start_ms,
-        end_ms:   s.end_ms,
-        text:     s.text,
-      }));
-      renderScript(STATE.segments);
-      document.getElementById('seg-count').textContent = `— ${STATE.segments.length} segments`;
-
-      const delta = res.new_count - res.original_count;
-      if (delta > 0) {
-        log(`✅ ${res.original_count} → ${res.new_count} segments après découpage intelligent.`, 'info');
-      } else {
-        log(`✅ ${res.new_count} segments sauvegardés.`, 'info');
-      }
-      showRecalcBadge();
-
-      document.querySelectorAll('.seg-row').forEach(r => {
-        r.classList.add('tc-updated');
-        setTimeout(() => r.classList.remove('tc-updated'), 2000);
-      });
-    } else {
-      log('⚠️ Réponse inattendue : ' + JSON.stringify(res), 'warn');
-    }
-  } catch(e) {
-    log('❌ Erreur sauvegarde : ' + e.message, 'err');
-  }
-
-  btn.disabled = false;
+function hl(idx){
+  document.querySelectorAll('.seg-row').forEach(r=>r.classList.remove('active'));
+  const r=document.querySelector(`.seg-row[data-index="${idx}"]`);
+  if(r){r.classList.add('active');r.scrollIntoView({block:'nearest',behavior:'smooth'});}
 }
 
 // ═══════════════════════════════════════════════════════

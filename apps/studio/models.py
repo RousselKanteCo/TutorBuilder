@@ -70,15 +70,11 @@ class Job(models.Model):
         ERROR        = "error",        _("Erreur")
 
     class STTEngine(models.TextChoices):
-        WHISPER        = "whisper",        _("Whisper (OpenAI)")
         FASTER_WHISPER = "faster_whisper", _("Faster-Whisper (recommandé)")
-        VOSK           = "vosk",           _("Vosk (hors-ligne léger)")
 
     class TTSEngine(models.TextChoices):
-        ELEVENLABS = "elevenlabs", _("ElevenLabs (meilleure qualité)")
-        COQUI      = "coqui",     _("Coqui TTS (local gratuit)")
-        BARK       = "bark",      _("Bark / Suno (local expressif)")
-        PYTTSX3    = "pyttsx3",   _("Windows TTS (hors-ligne)")
+        ELEVENLABS = "elevenlabs", _("ElevenLabs (premium)")
+        CARTESIA   = "cartesia",   _("Cartesia Sonic (ultra-rapide)")
 
     class Language(models.TextChoices):
         FR = "fr", _("Français")
@@ -207,8 +203,8 @@ class Segment(models.Model):
             cls(
                 job=job,
                 index=i,
-                start_ms=seg["start"],
-                end_ms=seg["end"],
+                start_ms=seg.get("start_ms", seg.get("start", 0)),
+                end_ms=seg.get("end_ms", seg.get("end", 0)),
                 text=seg["text"].strip(),
             )
             for i, seg in enumerate(stt_segments)

@@ -50,9 +50,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "projects":       user_projects.order_by("-updated_at")[:6],
             "total_projects": user_projects.count(),
             "total_jobs":     Job.objects.filter(project__owner=self.request.user).count(),
+            "total_done":     Job.objects.filter(project__owner=self.request.user, status="done").count(),
+            "active_jobs":    Job.objects.filter(
+                project__owner=self.request.user,
+                status__in=["extracting", "transcribing", "synthesizing", "uploading"]
+            ).count(),
             "recent_jobs":    Job.objects.filter(
                 project__owner=self.request.user
-            ).order_by("-created_at").select_related("project")[:5],
+            ).order_by("-created_at").select_related("project")[:50],
         })
         return ctx
 
