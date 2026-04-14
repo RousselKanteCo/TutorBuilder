@@ -1,9 +1,18 @@
 """
-apps/studio/tasks.py — TutoBuilder Vision v8 Final
-───────────────────────────────────────────────────
-PRINCIPE : La voix TTS est sacrée. La vidéo s'adapte à elle.
-  video_speed = scene_dur / tts_dur
-  Correction bug Cartesia : WAV header INT32_MAX → calcul depuis taille fichier
+apps/studio/tasks.py — TutoBuilder Vision v9
+─────────────────────────────────────────────
+PRINCIPE :
+  1. Chaque segment Whisper a un timecode fixe (parole)
+  2. Le silence qui suit appartient au segment (rattaché)
+  3. Au montage :
+     - Partie PAROLE  → adaptée à la durée TTS (ralentir/accélérer)
+     - Partie SILENCE → accélérée dynamiquement selon sa durée
+       < 2s  → x1 (naturel)
+       2-5s  → x2
+       5-15s → x4
+       > 15s → x8
+  4. Pause 0.5s freeze entre chaque segment
+  5. L'user ne change QUE le texte — timecodes intouchables
 """
 
 import os
@@ -23,18 +32,15 @@ from django.conf import settings
 
 from apps.studio.notifications import send_job_notification
 
-
 logger = logging.getLogger(__name__)
 
-OUTPUT_FPS            = 25
-MAX_SPEED             = 2.0
-MIN_SPEED             = 0.4
-PAUSE_MS              = 600
-SCENE_CHANGE_PAUSE_MS = 900
-MAX_FREEZE_MS         = 6000
-SCENE_THRESHOLD       = 0.18
-SUBTITLE_MAX_CHARS    = 44
-SUBTITLE_MAX_LINES    = 3
+OUTPUT_FPS   = 25
+MAX_SPEED    = 2.0   # vitesse max partie parole
+MIN_SPEED    = 0.5   # vitesse min partie parole
+# Pause dynamique selon longueur texte — voir _pause_ms()
+
+SUBTITLE_MAX_CHARS = 44
+SUBTITLE_MAX_LINES = 3
 
 _SPEECH_RATE = {
     "fr": 13.5, "en": 15.5, "es": 15.0, "de": 12.0,
@@ -47,11 +53,6 @@ _SPEECH_RATE = {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_wav_duration_ms(wav_path: str) -> float:
-    """
-    Lit la vraie durée d'un WAV même si le header est corrompu.
-    Cartesia retourne getnframes() = 2147483647 (INT32_MAX).
-    Dans ce cas on calcule depuis la taille réelle du fichier.
-    """
     try:
         file_size = os.path.getsize(wav_path)
         with wave.open(wav_path, "rb") as wf:
@@ -59,20 +60,13 @@ def get_wav_duration_ms(wav_path: str) -> float:
             channels  = wf.getnchannels()
             sampwidth = wf.getsampwidth()
             nframes   = wf.getnframes()
-
-        # Header corrompu détecté
         if nframes >= 2_000_000_000:
             data_bytes  = max(0, file_size - 44)
             real_frames = data_bytes // max(1, sampwidth * channels)
-            dur = (real_frames / sr) * 1000.0
-            logger.debug(f"WAV header corrompu corrigé : {file_size} bytes → {dur:.0f}ms")
-            return max(400.0, dur)
-
+            return max(400.0, (real_frames / sr) * 1000.0)
         return max(400.0, (nframes / sr) * 1000.0)
-
     except Exception:
         try:
-            # Dernier recours : taille fichier / (22050 * 2)
             file_size = os.path.getsize(wav_path)
             return max(400.0, (file_size - 44) / (22050 * 2) * 1000.0)
         except Exception:
@@ -80,7 +74,6 @@ def get_wav_duration_ms(wav_path: str) -> float:
 
 
 def fix_wav_header(wav_path: str) -> str:
-    """Corrige un WAV avec header corrompu via ffmpeg."""
     fixed = wav_path + "_fixed.wav"
     r = subprocess.run(
         ["ffmpeg", "-y", "-i", wav_path,
@@ -89,7 +82,6 @@ def fix_wav_header(wav_path: str) -> str:
     )
     if r.returncode == 0 and os.path.exists(fixed):
         os.replace(fixed, wav_path)
-        logger.info(f"WAV header corrigé : {wav_path}")
     return wav_path
 
 
@@ -117,7 +109,7 @@ def ws_progress(job_id, step, total, label):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  UTILITAIRES TEXTE
+#  UTILITAIRES
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _speech_rate(lang):
@@ -150,6 +142,28 @@ def _chunk_for_subtitle(text):
         lines.append(current)
     return "\n".join(lines)
 
+def _silence_speed(silence_dur_s: float) -> float:
+    """Vitesse d'accélération dynamique selon la durée du silence."""
+    if silence_dur_s < 2.0:
+        return 1.0   # naturel
+    elif silence_dur_s < 5.0:
+        return 2.0   # léger
+    elif silence_dur_s < 15.0:
+        return 4.0   # modéré
+    else:
+        return 8.0   # rapide
+
+def _pause_ms(tts_ms: float) -> float:
+    """Pause dynamique selon la durée du TTS — plus c est court, moins on attend."""
+    if tts_ms < 1500:
+        return 300.0   # phrase très courte → 300ms
+    elif tts_ms < 3000:
+        return 500.0   # phrase courte → 500ms
+    elif tts_ms < 6000:
+        return 700.0   # phrase moyenne → 700ms
+    else:
+        return 900.0   # phrase longue → 900ms
+
 def _redistribute_timecodes(segments_data, lang="fr"):
     if not segments_data:
         return []
@@ -167,12 +181,12 @@ def _redistribute_timecodes(segments_data, lang="fr"):
 
     for i, (seg, est_ms) in enumerate(zip(segs, estimates)):
         results.append({
-            "index":         seg["index"],
-            "new_start_ms":  int(round(cursor)),
-            "new_end_ms":    int(round(cursor + est_ms)),
-            "est_tts_ms":    round(est_ms, 1),
-            "text":          seg["text"],
-            "subtitle_text": _chunk_for_subtitle(seg["text"]),
+            "index":        seg["index"],
+            "new_start_ms": int(round(cursor)),
+            "new_end_ms":   int(round(cursor + est_ms)),
+            "est_tts_ms":   round(est_ms, 1),
+            "text":         seg["text"],
+            "subtitle_text":_chunk_for_subtitle(seg["text"]),
         })
         cursor += est_ms + (gaps[i] if i < len(gaps) else 0)
     return results
@@ -216,114 +230,99 @@ def get_clip_duration_ms(path):
     except Exception:
         return 0
 
-def detect_scene_changes(video_path, threshold=SCENE_THRESHOLD):
-    cmd = [
-        "ffmpeg", "-i", video_path,
-        "-filter:v", f"select='gt(scene,{threshold})',showinfo",
-        "-f", "null", "-",
-    ]
-    result      = subprocess.run(cmd, capture_output=True, text=True)
-    scene_times = [0.5]
-    for line in result.stderr.split("\n"):
-        if "pts_time:" in line:
-            try:
-                t = float(line.split("pts_time:")[1].split()[0])
-                scene_times.append(t)
-            except (ValueError, IndexError):
-                pass
-    scene_times = sorted(set(scene_times))
-    merged = [scene_times[0]]
-    for t in scene_times[1:]:
-        if t - merged[-1] >= 0.5:
-            merged.append(t)
-    return merged
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  RENDU D'UN CLIP
+#  RENDU D'UN SEGMENT — LOGIQUE v9
+#
+#  Un segment = 3 parties :
+#    1. PAROLE   [seg_start → seg_end]        → adaptée à la durée TTS
+#    2. SILENCE  [seg_end   → silence_end]    → accélérée dynamiquement
+#    3. PAUSE    0.5s freeze (sauf dernier)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def render_clip(video_path, start_s, scene_dur_s, tts_ms,
-                pause_ms, output_path, video_w, video_h):
-    parts_dir   = Path(output_path).parent
-    stem        = Path(output_path).stem
-    tts_s       = tts_ms / 1000.0
-    # Limiter la scène à max 2x la durée TTS → supprime les blancs résiduels
-    scene_dur_s = min(scene_dur_s, tts_s * 2.0)
-    scene_dur_s = max(scene_dur_s, 0.3)
-    ideal_speed = scene_dur_s / tts_s
-    clips       = []
+def render_segment_v9(video_path, seg_start_s, seg_end_s, silence_end_s,
+                      tts_ms, output_path, video_w, video_h, add_pause=True):
+    parts_dir    = Path(output_path).parent
+    stem         = Path(output_path).stem
+    clips        = []
+    speech_dur_s = max(0.1, seg_end_s - seg_start_s)
+    silence_dur_s= max(0.0, silence_end_s - seg_end_s)
+    tts_s        = tts_ms / 1000.0
 
-    if MIN_SPEED <= ideal_speed <= MAX_SPEED:
-        vf = (f"fps={OUTPUT_FPS},scale={video_w}:{video_h}"
-              if abs(ideal_speed - 1.0) < 0.05
-              else f"setpts={1.0/ideal_speed:.4f}*PTS,fps={OUTPUT_FPS},scale={video_w}:{video_h}")
+    # ── 1. PARTIE PAROLE adaptée au TTS ──────────────────────────────────
+    speech_speed = speech_dur_s / tts_s
+    speech_speed = max(MIN_SPEED, min(MAX_SPEED, speech_speed))
+    speech_path  = str(parts_dir / f"{stem}_speech.mp4")
 
-        clip_path = str(parts_dir / f"{stem}_main.mp4")
-        r = subprocess.run([
-            "ffmpeg", "-y",
-            "-ss", f"{start_s:.3f}", "-t", f"{scene_dur_s:.3f}",
-            "-i", video_path, "-vf", vf,
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
-            "-an", clip_path,
-        ], capture_output=True, text=True)
-        if r.returncode == 0 and os.path.exists(clip_path):
-            clips.append(clip_path)
-
+    if abs(speech_speed - 1.0) < 0.05:
+        vf_speech = f"fps={OUTPUT_FPS},scale={video_w}:{video_h}"
     else:
-        actual_speed = MAX_SPEED if ideal_speed > MAX_SPEED else MIN_SPEED
-        vf           = f"setpts={1.0/actual_speed:.4f}*PTS,fps={OUTPUT_FPS},scale={video_w}:{video_h}"
-        clip_path    = str(parts_dir / f"{stem}_main.mp4")
+        vf_speech = f"setpts={1.0/speech_speed:.4f}*PTS,fps={OUTPUT_FPS},scale={video_w}:{video_h}"
 
-        r = subprocess.run([
+    r = subprocess.run([
+        "ffmpeg", "-y",
+        "-ss", f"{seg_start_s:.3f}",
+        "-t",  f"{speech_dur_s:.3f}",
+        "-i", video_path,
+        "-vf", vf_speech,
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+        "-an", speech_path,
+    ], capture_output=True, text=True)
+
+    if r.returncode == 0 and os.path.exists(speech_path):
+        clips.append(speech_path)
+        logger.debug(
+            f"Parole : {speech_dur_s:.1f}s vidéo → {tts_s:.1f}s TTS "
+            f"(vitesse x{speech_speed:.2f})"
+        )
+
+    # ── 2. PARTIE SILENCE accélérée dynamiquement ────────────────────────
+    if silence_dur_s > 0.2:
+        silence_speed = _silence_speed(silence_dur_s)
+        silence_path  = str(parts_dir / f"{stem}_silence.mp4")
+
+        if abs(silence_speed - 1.0) < 0.05:
+            vf_silence = f"fps={OUTPUT_FPS},scale={video_w}:{video_h}"
+        else:
+            vf_silence = f"setpts={1.0/silence_speed:.4f}*PTS,fps={OUTPUT_FPS},scale={video_w}:{video_h}"
+
+        r2 = subprocess.run([
             "ffmpeg", "-y",
-            "-ss", f"{start_s:.3f}", "-t", f"{scene_dur_s:.3f}",
-            "-i", video_path, "-vf", vf,
+            "-ss", f"{seg_end_s:.3f}",
+            "-t",  f"{silence_dur_s:.3f}",
+            "-i", video_path,
+            "-vf", vf_silence,
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
-            "-an", clip_path,
+            "-an", silence_path,
         ], capture_output=True, text=True)
 
-        if r.returncode == 0 and os.path.exists(clip_path):
-            clips.append(clip_path)
-            clip_dur_s = get_clip_duration_ms(clip_path) / 1000.0
-            missing_s  = min(max(0, tts_s - clip_dur_s), MAX_FREEZE_MS / 1000.0)
+        if r2.returncode == 0 and os.path.exists(silence_path):
+            clips.append(silence_path)
+            logger.debug(
+                f"Silence : {silence_dur_s:.1f}s → {silence_dur_s/silence_speed:.1f}s "
+                f"(x{silence_speed:.0f})"
+            )
 
-            if missing_s > 0.2:
-                last_frame  = str(parts_dir / f"{stem}_last.jpg")
-                freeze_path = str(parts_dir / f"{stem}_freeze.mp4")
-                subprocess.run([
-                    "ffmpeg", "-y", "-sseof", "-0.1", "-i", clip_path,
-                    "-vframes", "1", "-q:v", "2", last_frame,
-                ], capture_output=True)
-                if os.path.exists(last_frame):
-                    r2 = subprocess.run([
-                        "ffmpeg", "-y", "-loop", "1", "-i", last_frame,
-                        "-t", f"{missing_s:.3f}",
-                        "-vf", f"fps={OUTPUT_FPS},scale={video_w}:{video_h}",
-                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
-                        "-an", freeze_path,
-                    ], capture_output=True, text=True)
-                    if r2.returncode == 0 and os.path.exists(freeze_path):
-                        clips.append(freeze_path)
-                    try: os.remove(last_frame)
-                    except Exception: pass
-
-    # Pause pédagogique
-    if pause_ms > 100 and clips:
+    # ── 3. PAUSE dynamique freeze ────────────────────────────────────────
+    pause_duration_ms = _pause_ms(tts_ms)
+    if add_pause and clips:
         last_frame = str(parts_dir / f"{stem}_pf.jpg")
         pause_path = str(parts_dir / f"{stem}_pause.mp4")
+
         subprocess.run([
             "ffmpeg", "-y", "-sseof", "-0.1", "-i", clips[-1],
             "-vframes", "1", "-q:v", "2", last_frame,
         ], capture_output=True)
+
         if os.path.exists(last_frame):
             r3 = subprocess.run([
                 "ffmpeg", "-y", "-loop", "1", "-i", last_frame,
-                "-t", f"{pause_ms/1000.0:.3f}",
-                "-vf", f"fps={OUTPUT_FPS},scale={video_w}:{video_h},hue=s=0.5",
+                "-t", f"{pause_duration_ms/1000.0:.3f}",
+                "-vf", f"fps={OUTPUT_FPS},scale={video_w}:{video_h}",
                 "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
                 "-an", pause_path,
             ], capture_output=True, text=True)
+
             if r3.returncode == 0 and os.path.exists(pause_path):
                 clips.append(pause_path)
             try: os.remove(last_frame)
@@ -332,22 +331,27 @@ def render_clip(video_path, start_s, scene_dur_s, tts_ms,
     if not clips:
         return 0
 
+    # ── Concat des parties ────────────────────────────────────────────────
     if len(clips) == 1:
         os.rename(clips[0], output_path)
     else:
         concat_f = str(parts_dir / f"{stem}_c.txt")
         with open(concat_f, "w") as f:
-            for p in clips: f.write(f"file '{p}'\n")
+            for p in clips:
+                f.write(f"file '{p}'\n")
+
         r4 = subprocess.run([
             "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_f,
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
             "-an", output_path,
         ], capture_output=True, text=True)
+
         for p in clips:
             try: os.remove(p)
             except Exception: pass
         try: os.remove(concat_f)
         except Exception: pass
+
         if r4.returncode != 0:
             return 0
 
@@ -371,8 +375,8 @@ def _ms_to_ass(ms):
 
 def _generate_ass(events, video_w, video_h, style, output_path):
     try:
-        font_map  = {"calibri": "Calibri", "arial": "Arial", "segoe": "Segoe UI",
-                     "georgia": "Georgia", "impact": "Impact"}
+        font_map     = {"calibri": "Calibri", "arial": "Arial", "segoe": "Segoe UI",
+                        "georgia": "Georgia", "impact": "Impact"}
         font_name    = font_map.get(style.get("font_family", "calibri"), "Arial")
         font_size    = int(style.get("font_size", 48))
         primary_clr  = _hex_to_ass(style.get("text_color", "FFFFFF"))
@@ -501,6 +505,7 @@ def task_transcribe(self, job_id, video_path,
         logger.error(f"Erreur transcription {job_id}: {error_msg}", exc_info=True)
         job.set_status(Job.Status.ERROR, error=error_msg)
         ws_status(job_id, f"❌ {error_msg}")
+        send_job_notification(job, 'error')
         return {"status": "error", "message": error_msg}
 
 
@@ -536,6 +541,7 @@ def task_synthesize(self, job_id, segments_data,
         output_dir = str(job.output_dir / "tts")
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+        # Toujours utiliser les segments de la base (timecodes originaux)
         db_segments = list(
             Segment.objects.filter(job=job).order_by("index")
             .values("index", "start_ms", "end_ms", "text")
@@ -562,15 +568,12 @@ def task_synthesize(self, job_id, segments_data,
                     filename=filename, langue=langue,
                 )
                 if chemin and os.path.exists(chemin):
-                    # ← CORRECTION : utiliser get_wav_duration_ms au lieu de wave
                     actual_ms = get_wav_duration_ms(chemin)
-                    logger.info(f"Segment {i}: {actual_ms:.0f}ms — {texte[:40]}")
-
                     Segment.objects.filter(job=job, index=seg["index"]).update(audio_file=chemin)
                     plan_items.append({
                         "index":         seg["index"],
-                        "start_ms":      seg["start_ms"],
-                        "end_ms":        seg["end_ms"],
+                        "start_ms":      seg["start_ms"],  # timecode original Whisper
+                        "end_ms":        seg["end_ms"],    # timecode original Whisper
                         "actual_tts_ms": round(actual_ms, 1),
                         "tts_path":      chemin,
                         "text":          texte,
@@ -596,11 +599,12 @@ def task_synthesize(self, job_id, segments_data,
         logger.error(f"Erreur synthèse {job_id}: {error_msg}", exc_info=True)
         job.set_status(Job.Status.ERROR, error=error_msg)
         ws_status(job_id, f"❌ {error_msg}")
+        send_job_notification(job, 'error')
         return {"status": "error", "message": error_msg}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  TÂCHE 3 : EXPORT FINAL
+#  TÂCHE 3 : EXPORT FINAL v9
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @shared_task(bind=True, name="studio.export")
@@ -616,7 +620,7 @@ def task_export(self, job_id, subtitle_style=None):
         return {"status": "error", "message": "Job introuvable"}
 
     job.set_status(Job.Status.EXTRACTING)
-    ws_status(job_id, "🎬 Export — la vidéo s'adapte à la voix...")
+    ws_status(job_id, "🎬 Export v9 — parole adaptée + silences dynamiques...")
 
     try:
         video_path  = str(job.video_file.path)
@@ -632,7 +636,7 @@ def task_export(self, job_id, subtitle_style=None):
         video_dur        = get_video_duration(video_path)
         ws_status(job_id, f"📹 {video_w}×{video_h} — {video_dur:.1f}s")
 
-        # Charger le plan
+        # ── Charger le plan ───────────────────────────────────────────────
         ws_progress(job_id, 1, 5, "Chargement plan")
         plan_path = str(work_dir / "synthesis_plan.json")
         if not os.path.exists(plan_path):
@@ -646,7 +650,6 @@ def task_export(self, job_id, subtitle_style=None):
         for item in plan_data.get("plan", []):
             tts_path = item.get("tts_path", "")
             if tts_path and os.path.exists(tts_path):
-                # ← CORRECTION : utiliser get_wav_duration_ms
                 ms = get_wav_duration_ms(tts_path)
                 if ms > 100:
                     plan_items.append({**item, "actual_tts_ms": ms})
@@ -654,69 +657,75 @@ def task_export(self, job_id, subtitle_style=None):
         if not plan_items:
             raise RuntimeError("Aucun fichier audio TTS valide.")
 
-        ws_status(job_id, f"✅ {len(plan_items)} segments — durées corrigées.")
+        ws_status(job_id, f"✅ {len(plan_items)} segments chargés.")
 
-        # Détecter les scènes
-        ws_progress(job_id, 2, 5, "Scènes")
-        scene_times = detect_scene_changes(video_path)
-        scene_intervals = []
-        for i, t in enumerate(scene_times):
-            end = scene_times[i+1] if i+1 < len(scene_times) else video_dur
-            dur = end - t
-            # Ignorer les scènes trop courtes (blancs/transitions)
-            if dur > 0.5:
-                scene_intervals.append({"start": t, "end": end, "dur": dur, "idx": i})
-        if not scene_intervals:
-            scene_intervals = [{"start": 0, "end": video_dur, "dur": video_dur, "idx": 0}]
-        ws_status(job_id, f"✅ {len(scene_intervals)} scènes (blancs ignorés).")
+        # ── Calculer les silences rattachés ───────────────────────────────
+        #
+        # Pour chaque segment i :
+        #   silence_end = début du segment i+1 (ou fin de la vidéo)
+        #   Le silence [end_i → start_{i+1}] appartient au segment i
+        #
+        ws_progress(job_id, 2, 5, "Calcul silences")
+        for i, item in enumerate(plan_items):
+            seg_start_s = item["start_ms"] / 1000.0
+            seg_end_s   = item["end_ms"]   / 1000.0
 
-        # Aligner segments
-        ws_progress(job_id, 3, 5, "Alignement")
-        prev_scene_idx = -1
-        aligned_items  = []
-        for item in plan_items:
-            seg_start_s  = item["start_ms"] / 1000.0
-            best_scene   = min(scene_intervals, key=lambda sc: abs(sc["start"] - seg_start_s))
-            is_new_scene = (best_scene["idx"] != prev_scene_idx)
-            aligned_items.append({
-                **item,
-                "scene_start": best_scene["start"],
-                "scene_dur":   best_scene["dur"],
-                "scene_idx":   best_scene["idx"],
-                "pause_ms":    SCENE_CHANGE_PAUSE_MS if is_new_scene else PAUSE_MS,
-            })
-            prev_scene_idx = best_scene["idx"]
+            if i + 1 < len(plan_items):
+                next_start_s = plan_items[i+1]["start_ms"] / 1000.0
+            else:
+                next_start_s = video_dur
 
-        # Rendu clips
-        ws_progress(job_id, 4, 5, "Rendu clips")
-        part_files      = []
-        timeline_ms     = 0.0
-        subtitle_events = []
-        total           = len(aligned_items)
+            silence_dur_s = max(0.0, next_start_s - seg_end_s)
 
-        for i, item in enumerate(aligned_items):
-            ws_progress(job_id, i+1, total, f"Clip {i+1}/{total}")
-            tts_ms    = item["actual_tts_ms"]
-            scene_dur = item["scene_dur"]
-            speed     = scene_dur / (tts_ms / 1000.0)
+            item["seg_start_s"]    = seg_start_s
+            item["seg_end_s"]      = seg_end_s
+            item["silence_end_s"]  = seg_end_s + silence_dur_s
+            item["silence_dur_s"]  = silence_dur_s
 
+            spd = _silence_speed(silence_dur_s)
             ws_status(job_id,
-                f"  [{i+1}/{total}] TTS={tts_ms:.0f}ms "
-                f"scène={scene_dur*1000:.0f}ms → vitesse={speed:.2f}x"
+                f"  Seg {i+1}/{len(plan_items)} : "
+                f"parole {seg_end_s-seg_start_s:.1f}s + "
+                f"silence {silence_dur_s:.1f}s (x{spd:.0f}) → "
+                f"TTS {item['actual_tts_ms']/1000:.1f}s"
             )
 
-            part_path   = str(parts_dir / f"part_{i:04d}.mp4")
-            clip_dur_ms = render_clip(
-                video_path=video_path, start_s=item["scene_start"],
-                scene_dur_s=scene_dur, tts_ms=tts_ms,
-                pause_ms=item["pause_ms"], output_path=part_path,
-                video_w=video_w, video_h=video_h,
+        # ── Rendu clips ───────────────────────────────────────────────────
+        ws_progress(job_id, 3, 5, "Rendu clips")
+        part_files      = []
+        timeline_ms     = 0.0   # position vidéo (clips bout à bout)
+        audio_cursor_ms = 0.0   # position audio TTS (jamais chevauchement)
+        subtitle_events = []
+        total           = len(plan_items)
+
+        for i, item in enumerate(plan_items):
+            ws_progress(job_id, i+1, total, f"Clip {i+1}/{total}")
+
+            part_path = str(parts_dir / f"part_{i:04d}.mp4")
+            is_last   = (i == total - 1)
+
+            clip_dur_ms = render_segment_v9(
+                video_path    = video_path,
+                seg_start_s   = item["seg_start_s"],
+                seg_end_s     = item["seg_end_s"],
+                silence_end_s = item["silence_end_s"],
+                tts_ms        = item["actual_tts_ms"],
+                output_path   = part_path,
+                video_w       = video_w,
+                video_h       = video_h,
+                add_pause     = not is_last,
             )
 
             if clip_dur_ms > 0 and os.path.exists(part_path):
+                tts_ms = item["actual_tts_ms"]
+
+                # TTS commence au début du clip mais JAMAIS avant la fin du précédent
+                tts_start_ms = max(timeline_ms, audio_cursor_ms)
+                audio_end_ms = tts_start_ms + tts_ms
+
                 subtitle_events.append({
-                    "start_ms": int(timeline_ms),
-                    "end_ms":   int(timeline_ms + tts_ms),
+                    "start_ms": int(tts_start_ms),
+                    "end_ms":   int(audio_end_ms),
                     "text":     item["text"],
                     "sub_text": item.get("subtitle_text", _chunk_for_subtitle(item["text"])),
                 })
@@ -724,24 +733,26 @@ def task_export(self, job_id, subtitle_style=None):
                     "path":              part_path,
                     "clip_dur_ms":       clip_dur_ms,
                     "tts_path":          item["tts_path"],
-                    "timeline_start_ms": timeline_ms,
+                    "timeline_start_ms": tts_start_ms,
                     "tts_ms":            tts_ms,
                 })
-                timeline_ms += clip_dur_ms
+                timeline_ms     += clip_dur_ms
+                audio_cursor_ms  = audio_end_ms
 
         if not part_files:
             raise RuntimeError("Aucun clip rendu.")
 
-        ws_status(job_id, f"✅ {len(part_files)} clips — {timeline_ms/1000:.1f}s")
+        ws_status(job_id, f"✅ {len(part_files)} clips — {timeline_ms/1000:.1f}s total")
 
-        # Assemblage
-        ws_progress(job_id, 5, 5, "Assemblage")
+        # ── Assemblage vidéo ──────────────────────────────────────────────
+        ws_progress(job_id, 4, 5, "Assemblage")
         concat_list = str(parts_dir / "concat.txt")
         with open(concat_list, "w") as f:
-            for p in part_files: f.write(f"file '{p['path']}'\n")
+            for p in part_files:
+                f.write(f"file '{p['path']}'\n")
 
         assembled = str(work_dir / "assembled.mp4")
-        ws_status(job_id, "🔗 Assemblage...")
+        ws_status(job_id, "🔗 Assemblage vidéo...")
         r = subprocess.run([
             "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
             "-c:v", "libx264", "-preset", "fast", "-crf", "18", assembled,
@@ -749,7 +760,7 @@ def task_export(self, job_id, subtitle_style=None):
         if r.returncode != 0:
             raise RuntimeError(f"Assemblage échoué : {r.stderr[-200:]}")
 
-        # Audio composite
+        # ── Audio composite TTS ───────────────────────────────────────────
         ws_status(job_id, "🎵 Mixage audio...")
         sample_rate   = 22050
         total_samples = int((timeline_ms / 1000 + 2) * sample_rate)
@@ -757,20 +768,19 @@ def task_export(self, job_id, subtitle_style=None):
 
         for p in part_files:
             try:
-                # Lire l'audio avec ffmpeg pour éviter le bug du header WAV
-                cmd_read = [
+                r_audio = subprocess.run([
                     "ffmpeg", "-y", "-i", p["tts_path"],
                     "-ar", str(sample_rate), "-ac", "1",
                     "-f", "s16le", "pipe:1",
-                ]
-                r_audio = subprocess.run(cmd_read, capture_output=True)
+                ], capture_output=True)
                 if r_audio.returncode == 0 and r_audio.stdout:
                     tts_arr = np.frombuffer(r_audio.stdout, dtype=np.int16).copy()
                     ss = int(p["timeline_start_ms"] * sample_rate / 1000)
                     es = ss + len(tts_arr)
                     if es > len(buffer):
                         buffer = np.concatenate([
-                            buffer, np.zeros(es - len(buffer) + sample_rate, dtype=np.int16)
+                            buffer,
+                            np.zeros(es - len(buffer) + sample_rate, dtype=np.int16)
                         ])
                     buffer[ss:es] = np.clip(
                         buffer[ss:es].astype(np.int32) + tts_arr.astype(np.int32),
@@ -785,15 +795,17 @@ def task_export(self, job_id, subtitle_style=None):
             wf.setframerate(sample_rate)
             wf.writeframes(buffer.tobytes())
 
-        # Sous-titres
+        # ── Sous-titres ASS ───────────────────────────────────────────────
         ass_path = None
         if subtitles_enabled and subtitle_events:
             ass_path = str(work_dir / "subtitles.ass")
             if not _generate_ass(subtitle_events, video_w, video_h, style, ass_path):
                 ass_path = None
 
-        # Encodage final
+        # ── Encodage final ────────────────────────────────────────────────
+        ws_progress(job_id, 5, 5, "Encodage final")
         ws_status(job_id, "⚙️ Encodage final...")
+
         if ass_path and os.path.exists(ass_path):
             ass_esc = ass_path.replace("\\", "/").replace(":", "\\:")
             cmd = [
@@ -848,6 +860,7 @@ def task_export(self, job_id, subtitle_style=None):
         logger.error(f"Erreur export {job_id}: {error_msg}", exc_info=True)
         job.set_status(Job.Status.ERROR, error=error_msg)
         ws_status(job_id, f"❌ {error_msg}")
+        send_job_notification(job, 'error')
         return {"status": "error", "message": error_msg}
 
 

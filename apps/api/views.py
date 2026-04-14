@@ -35,140 +35,6 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  HELPERS — DÉTECTION DE SILENCES DANS L'AUDIO SOURCE
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def detect_silences(wav_path: str, noise_db: float = -35, min_duration: float = 0.25) -> list[dict]:
-    """
-    Détecte les silences dans le fichier WAV source via ffmpeg.
-    Retourne une liste de {start_s, end_s, mid_s} pour chaque silence trouvé.
-    Ces points de silence sont les meilleurs endroits pour couper entre les segments.
-    """
-    cmd = [
-        "ffmpeg", "-i", wav_path,
-        "-af", f"silencedetect=noise={noise_db}dB:d={min_duration}",
-        "-f", "null", "-",
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    output = result.stderr
-
-    silences = []
-    starts = []
-    for line in output.split("\n"):
-        if "silence_start:" in line:
-            try:
-                t = float(line.split("silence_start:")[1].strip())
-                starts.append(t)
-            except ValueError:
-                pass
-        elif "silence_end:" in line and starts:
-            try:
-                parts = line.split("silence_end:")[1].strip().split("|")
-                end_t = float(parts[0].strip())
-                silences.append({
-                    "start_s": starts[-1],
-                    "end_s":   end_t,
-                    "mid_s":   (starts[-1] + end_t) / 2,
-                })
-            except (ValueError, IndexError):
-                pass
-
-    return silences
-
-
-def find_best_cut_point(silences: list[dict], target_s: float,
-                        search_window_s: float = 3.0) -> float | None:
-    """
-    Trouve le silence le plus proche d'un timecode cible dans une fenêtre donnée.
-    C'est ici qu'on coupe proprement entre deux segments.
-    """
-    candidates = [
-        s for s in silences
-        if abs(s["mid_s"] - target_s) <= search_window_s
-    ]
-    if not candidates:
-        return None
-    best = min(candidates, key=lambda s: abs(s["mid_s"] - target_s))
-    return best["end_s"]  # on coupe à la FIN du silence (début de la parole suivante)
-
-
-def estimate_speech_duration_ms(text: str, lang: str = "fr") -> float:
-    """Estime la durée de parole d'un texte en ms."""
-    SPEECH_RATE = {
-        "fr": 13.5, "en": 15.5, "es": 15.0, "de": 12.0,
-        "it": 14.5, "pt": 14.5, "default": 14.0,
-    }
-    clean     = re.sub(r"\s+", " ", (text or "").strip())
-    effective = len(re.sub(r"[^\w\s]", "", clean))
-    rate      = SPEECH_RATE.get((lang or "fr").lower()[:2], SPEECH_RATE["default"])
-    base_ms   = (effective / rate) * 1000.0
-    pauses    = (
-        clean.count(".") * 260 + clean.count("?") * 260 +
-        clean.count("!") * 260 + clean.count(",") * 110 +
-        clean.count(";") * 180 + clean.count(":") * 140
-    )
-    return max(400.0, base_ms + pauses)
-
-
-def smart_split_text(text: str, max_chars: int = 120) -> list[str]:
-    """
-    Découpe un texte long en segments cohérents.
-    Respecte les fins de phrase, puis les virgules, puis les espaces.
-    Ne découpe PAS si le texte est court (< max_chars).
-    """
-    text = text.strip()
-    if len(text) <= max_chars:
-        return [text]
-
-    # 1. Essayer de couper aux fins de phrase
-    sentences = re.split(r'(?<=[.!?])\s+', text)
-    chunks, current = [], ""
-    for sent in sentences:
-        test = (current + " " + sent).strip() if current else sent
-        if len(test) <= max_chars:
-            current = test
-        else:
-            if current:
-                chunks.append(current)
-            current = sent
-    if current:
-        chunks.append(current)
-
-    # 2. Pour les chunks encore trop longs, couper aux virgules
-    result = []
-    for chunk in chunks:
-        if len(chunk) <= max_chars:
-            result.append(chunk)
-            continue
-        parts = re.split(r'(?<=,)\s+', chunk)
-        cur2 = ""
-        for p in parts:
-            test2 = (cur2 + " " + p).strip() if cur2 else p
-            if len(test2) <= max_chars:
-                cur2 = test2
-            else:
-                if cur2:
-                    result.append(cur2)
-                cur2 = p
-        if cur2:
-            result.append(cur2)
-
-    # 3. Dernier recours : couper aux espaces
-    final = []
-    for chunk in result:
-        while len(chunk) > max_chars:
-            cut = chunk.rfind(" ", 0, max_chars)
-            if cut == -1:
-                cut = max_chars
-            final.append(chunk[:cut].strip())
-            chunk = chunk[cut:].strip()
-        if chunk:
-            final.append(chunk)
-
-    return final if final else [text]
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
 #  HEALTH & PROVIDERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -242,13 +108,11 @@ class JobViewSet(viewsets.ModelViewSet):
             return JobListSerializer
         return JobDetailSerializer
 
-    # ── POST /api/jobs/ — Upload vidéo ──
-    @extend_schema(request=UploadVideoSerializer, tags=["jobs"],
-                   summary="Upload une vidéo et crée un job")
+    # ── POST /api/jobs/ ──
+    @extend_schema(request=UploadVideoSerializer, tags=["jobs"])
     def create(self, request):
         ser = UploadVideoSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-
         project = get_object_or_404(
             Project, pk=ser.validated_data["project_id"], owner=request.user,
         )
@@ -262,25 +126,20 @@ class JobViewSet(viewsets.ModelViewSet):
             status=Job.Status.PENDING,
         )
         job.output_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Job créé : {job.pk} — {job.video_filename}")
         return Response(JobDetailSerializer(job).data, status=status.HTTP_201_CREATED)
 
     # ── POST /api/jobs/<id>/transcribe/ ──
-    @extend_schema(request=TranscribeRequestSerializer, tags=["jobs"],
-                   summary="Lance la transcription STT")
+    @extend_schema(request=TranscribeRequestSerializer, tags=["jobs"])
     @action(detail=True, methods=["post"], url_path="transcribe")
     def transcribe(self, request, pk=None):
         job = self.get_object()
-
         if job.status not in (Job.Status.PENDING, Job.Status.TRANSCRIBED, Job.Status.ERROR):
             return Response(
                 {"detail": f"Job en cours ({job.get_status_display()})."},
                 status=status.HTTP_409_CONFLICT,
             )
-
         ser = TranscribeRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-
         job.stt_engine = ser.validated_data.get("stt_engine", job.stt_engine)
         job.language   = ser.validated_data.get("language", job.language)
         job.save(update_fields=["stt_engine", "language"])
@@ -305,17 +164,13 @@ class JobViewSet(viewsets.ModelViewSet):
 
         job.celery_task_id = task_id
         job.save(update_fields=["celery_task_id"])
-
-        return Response({"job_id": str(job.pk), "task_id": task_id, "status": "queued",
-                         "message": f"Transcription lancée ({job.language})"})
+        return Response({"job_id": str(job.pk), "task_id": task_id, "status": "queued"})
 
     # ── POST /api/jobs/<id>/synthesize/ ──
-    @extend_schema(request=SynthesizeRequestSerializer, tags=["jobs"],
-                   summary="Lance la synthèse TTS")
+    @extend_schema(request=SynthesizeRequestSerializer, tags=["jobs"])
     @action(detail=True, methods=["post"], url_path="synthesize")
     def synthesize(self, request, pk=None):
         job = self.get_object()
-
         if job.status not in (Job.Status.TRANSCRIBED, Job.Status.DONE, Job.Status.ERROR):
             return Response(
                 {"detail": "Transcription requise avant la synthèse."},
@@ -326,7 +181,6 @@ class JobViewSet(viewsets.ModelViewSet):
 
         ser = SynthesizeRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-
         job.tts_engine = ser.validated_data.get("tts_engine", job.tts_engine)
         job.tts_voice  = ser.validated_data.get("voice", job.tts_voice)
         job.language   = ser.validated_data.get("language", job.language)
@@ -354,16 +208,14 @@ class JobViewSet(viewsets.ModelViewSet):
 
         job.celery_task_id = task_id
         job.save(update_fields=["celery_task_id"])
-
         return Response({"job_id": str(job.pk), "task_id": task_id, "status": "queued",
                          "message": f"Synthèse lancée ({len(segments_data)} segments)"})
 
     # ── POST /api/jobs/<id>/export/ ──
-    @extend_schema(tags=["jobs"], summary="Lance le montage vidéo final")
+    @extend_schema(tags=["jobs"])
     @action(detail=True, methods=["post"], url_path="export")
     def export(self, request, pk=None):
         job = self.get_object()
-
         if not job.segments.exists():
             return Response({"detail": "Transcription requise."}, status=400)
         if not job.segments.filter(audio_file__gt="").exists():
@@ -389,30 +241,35 @@ class JobViewSet(viewsets.ModelViewSet):
 
         job.celery_task_id = task_id
         job.save(update_fields=["celery_task_id"])
-
         return Response({"job_id": str(job.pk), "task_id": task_id, "status": "queued",
                          "message": "Montage vidéo lancé."})
 
     # ── GET /api/jobs/<id>/segments/ ──
-    @extend_schema(tags=["jobs"], summary="Liste les segments du job")
+    @extend_schema(tags=["jobs"])
     @action(detail=True, methods=["get"], url_path="segments")
     def segments(self, request, pk=None):
         job = self.get_object()
         return Response(SegmentSerializer(job.segments.order_by("index"), many=True).data)
 
-    # ── POST /api/jobs/<id>/split_segments/ ──────────────────────────────────
+    # ── POST /api/jobs/<id>/split_segments/ ──────────────────────────────
     #
-    #  LOGIQUE INTELLIGENTE v2 :
+    #  LOGIQUE v9 :
+    #   - L'user ne change QUE le texte — timecodes originaux intouchables
+    #   - Si un segment a < 3 mots → fusionner avec le précédent en base
+    #     et redécouper les timecodes proportionnellement aux longueurs de texte
     #
-    #  Quand l'utilisateur édite/fusionne/découpe des segments :
-    #  1. On détecte les vrais silences dans l'audio source
-    #  2. Pour chaque segment (éventuellement découpé), on cherche
-    #     le silence naturel le plus proche dans la vidéo pour
-    #     aligner le timecode de fin
-    #  3. Résultat : les coupures vidéo tombent aux vraies pauses,
-    #     pas au milieu d'une phrase
+    #  Exemple :
+    #   Seg N   : [00:10 → 00:15] "...cette adresse"   (17 chars)
+    #   Seg N+1 : [00:15 → 00:16] "demandée."          (10 chars, 1 mot)
     #
-    @extend_schema(tags=["jobs"], summary="Sauvegarde les segments édités avec alignement intelligent")
+    #   Durée totale = 6s
+    #   Cut = 00:10 + 6s * 17/27 = 00:13.8
+    #   Résultat :
+    #     Seg N   : [00:10 → 00:13.8] "...cette adresse"
+    #     Seg N+1 : [00:13.8 → 00:16] "demandée."
+    #   → TTS génère 2 fichiers séparés, naturels, sans répétition !
+    #
+    @extend_schema(tags=["jobs"])
     @action(detail=True, methods=["post"], url_path="split_segments")
     def split_segments(self, request, pk=None):
         job      = self.get_object()
@@ -420,174 +277,92 @@ class JobViewSet(viewsets.ModelViewSet):
         if not incoming:
             return Response({"detail": "Aucun segment fourni."}, status=400)
 
-        lang = job.language or "fr"
+        MIN_WORDS = 3
 
-        # ── 1. Charger les silences de l'audio source ─────────────────────
-        wav_path = str(job.wav_path) if hasattr(job, "wav_path") else None
-        silences = []
-        if wav_path and os.path.exists(wav_path):
-            try:
-                silences = detect_silences(wav_path, noise_db=-35, min_duration=0.2)
-                logger.info(f"split_segments — {len(silences)} silences détectés dans l'audio")
-            except Exception as e:
-                logger.warning(f"Détection silences échouée : {e}")
+        # ── 1. Récupérer les timecodes originaux depuis la base ───────────
+        original_tc = {
+            s.index: {"start_ms": s.start_ms, "end_ms": s.end_ms}
+            for s in job.segments.all()
+        }
 
-        # ── 2. Traiter chaque segment entrant ─────────────────────────────
-        job.segments.all().delete()
-        raw_segments = []
-        global_index = 0
-
+        # ── 2. Construire la liste avec timecodes originaux ───────────────
+        segments_work = []
         for seg_data in incoming:
-            orig_start_ms = int(seg_data.get("start_ms", seg_data.get("start", 0)))
-            orig_end_ms   = int(seg_data.get("end_ms",   seg_data.get("end", orig_start_ms + 3000)))
-            text          = (seg_data.get("text") or "").strip()
-            orig_dur_ms   = max(orig_end_ms - orig_start_ms, 200)
+            idx  = seg_data.get("index", 0)
+            text = (seg_data.get("text") or "").strip()
+            orig = original_tc.get(idx, {
+                "start_ms": seg_data.get("start_ms", 0),
+                "end_ms":   seg_data.get("end_ms", 3000),
+            })
+            segments_work.append({
+                "index":    idx,
+                "start_ms": orig["start_ms"],
+                "end_ms":   orig["end_ms"],
+                "text":     text,
+            })
 
-            # Découper le texte si trop long (> 120 chars)
-            parts = smart_split_text(text, max_chars=120)
+        # ── 3. Redécouper les segments courts ────────────────────────────
+        #
+        # Si seg[i] a < MIN_WORDS mots ET qu'il y a un précédent :
+        #   - Durée totale = start[i-1] → end[i]
+        #   - Coupure proportionnelle aux longueurs de texte
+        #
+        for i in range(1, len(segments_work)):
+            texte = segments_work[i]["text"]
+            mots  = [m for m in texte.split() if m]
 
-            if len(parts) == 1:
-                # ── Segment non découpé ──
-                # Aligner la FIN sur le silence naturel le plus proche
-                aligned_end_ms = orig_end_ms
-                if silences:
-                    cut = find_best_cut_point(
-                        silences,
-                        target_s=orig_end_ms / 1000.0,
-                        search_window_s=2.0,
-                    )
-                    if cut is not None:
-                        aligned_end_ms = int(cut * 1000)
+            if len(mots) < MIN_WORDS and segments_work[i-1]["text"].strip():
+                start_total  = segments_work[i-1]["start_ms"]
+                end_total    = segments_work[i]["end_ms"]
+                duree_totale = max(end_total - start_total, 200)
 
-                raw_segments.append({
-                    "index":    global_index,
-                    "start_ms": orig_start_ms,
-                    "end_ms":   aligned_end_ms,
-                    "text":     parts[0],
-                })
-                global_index += 1
+                len_prev  = max(len(segments_work[i-1]["text"]), 1)
+                len_cur   = max(len(texte), 1)
+                len_total = len_prev + len_cur
 
-            else:
-                # ── Segment découpé en plusieurs parties ──
-                # Répartir proportionnellement à la durée TTS estimée,
-                # puis aligner chaque coupure sur un silence naturel
-                est_durations = [estimate_speech_duration_ms(p, lang) for p in parts]
-                total_est_ms  = sum(est_durations) or 1
-                cursor_ms     = orig_start_ms
+                cut_ms = start_total + int(duree_totale * len_prev / len_total)
+                cut_ms = max(start_total + 100, min(cut_ms, end_total - 100))
 
-                for i, (part, est_ms) in enumerate(zip(parts, est_durations)):
-                    is_last = (i == len(parts) - 1)
+                segments_work[i-1]["end_ms"] = cut_ms
+                segments_work[i]["start_ms"] = cut_ms
 
-                    if is_last:
-                        sub_end_ms = orig_end_ms
-                    else:
-                        # Timecode de fin idéal basé sur la proportion de durée TTS
-                        ideal_end_ms = orig_start_ms + int(
-                            orig_dur_ms * sum(est_durations[:i+1]) / total_est_ms
-                        )
-                        # Chercher un silence naturel autour de ce point
-                        if silences:
-                            cut = find_best_cut_point(
-                                silences,
-                                target_s=ideal_end_ms / 1000.0,
-                                search_window_s=1.5,
-                            )
-                            sub_end_ms = int(cut * 1000) if cut else ideal_end_ms
-                        else:
-                            sub_end_ms = ideal_end_ms
+                logger.info(
+                    f"split_segments: seg {segments_work[i]['index']} court "
+                    f"({len(mots)} mots) → redécoupage "
+                    f"[{start_total}→{cut_ms}ms | {cut_ms}→{end_total}ms]"
+                )
 
-                        # S'assurer qu'on ne dépasse pas la fin du segment parent
-                        sub_end_ms = min(sub_end_ms, orig_end_ms - 100)
-                        sub_end_ms = max(sub_end_ms, cursor_ms + 200)
-
-                    raw_segments.append({
-                        "index":    global_index,
-                        "start_ms": cursor_ms,
-                        "end_ms":   sub_end_ms,
-                        "text":     part,
-                    })
-                    cursor_ms = sub_end_ms
-                    global_index += 1
-
-        # ── 3. Vérifier la cohérence : pas de chevauchements ──────────────
-        for i in range(len(raw_segments) - 1):
-            cur  = raw_segments[i]
-            nxt  = raw_segments[i + 1]
-            # S'assurer que le suivant commence bien après la fin du précédent
-            if nxt["start_ms"] < cur["end_ms"]:
-                nxt["start_ms"] = cur["end_ms"]
-            # Gap minimum de 50ms entre deux segments
-            if nxt["start_ms"] - cur["end_ms"] < 50:
-                nxt["start_ms"] = cur["end_ms"] + 50
-
-        # ── 4. Persister en base ───────────────────────────────────────────
+        # ── 4. Persister en base ──────────────────────────────────────────
+        job.segments.all().delete()
         new_segments = []
-        for raw in raw_segments:
+        for i, seg in enumerate(segments_work):
+            if not seg["text"]:
+                continue
             s = Segment.objects.create(
                 job=job,
-                index=raw["index"],
-                start_ms=raw["start_ms"],
-                end_ms=raw["end_ms"],
-                text=raw["text"],
+                index=i,
+                start_ms=seg["start_ms"],
+                end_ms=seg["end_ms"],
+                text=seg["text"],
             )
             new_segments.append({
                 "id":       str(s.pk),
-                "index":    raw["index"],
-                "start_ms": raw["start_ms"],
-                "end_ms":   raw["end_ms"],
-                "text":     raw["text"],
+                "index":    i,
+                "start_ms": seg["start_ms"],
+                "end_ms":   seg["end_ms"],
+                "text":     seg["text"],
             })
 
-        logger.info(
-            f"split_segments v2 — job {job.pk}: "
-            f"{len(incoming)} → {len(new_segments)} segments, "
-            f"{len(silences)} silences utilisés"
-        )
+        logger.info(f"split_segments v9 — job {job.pk}: {len(new_segments)} segments")
 
         return Response({
             "original_count": len(incoming),
             "new_count":      len(new_segments),
             "segments":       new_segments,
-            "silences_used":  len(silences),
+            "silences_used":  0,
         })
 
-    # ── POST /api/jobs/<id>/recalculate/ ──
-    @extend_schema(tags=["jobs"], summary="Redistribue les timecodes selon les durées TTS estimées")
-    @action(detail=True, methods=["post"], url_path="recalculate")
-    def recalculate(self, request, pk=None):
-        from apps.studio.tasks import _redistribute_timecodes
-
-        job = self.get_object()
-        segments = list(
-            job.segments.order_by("index").values("index", "start_ms", "end_ms", "text")
-        )
-        if not segments:
-            return Response({"detail": "Aucun segment à recalculer."}, status=400)
-
-        lang = job.language or "fr"
-        new_timecodes = _redistribute_timecodes(segments, lang=lang)
-
-        updated = 0
-        for tc in new_timecodes:
-            n = Segment.objects.filter(job=job, index=tc["index"]).update(
-                start_ms=tc["new_start_ms"],
-                end_ms=tc["new_end_ms"],
-            )
-            updated += n
-
-        plan_path = str(job.output_dir / "synthesis_plan.json")
-        if os.path.exists(plan_path):
-            try:
-                os.remove(plan_path)
-            except Exception:
-                pass
-
-        return Response({
-            "updated":  updated,
-            "segments": new_timecodes,
-            "message":  f"{updated} timecodes recalculés.",
-        })
-    
+    # ── POST /api/jobs/<id>/reset/ ──
     @action(detail=True, methods=["post"], url_path="reset")
     def reset(self, request, pk=None):
         from pathlib import Path
@@ -605,6 +380,10 @@ class JobViewSet(viewsets.ModelViewSet):
             plan = job.output_dir / "synthesis_plan.json"
             if plan.exists():
                 plan.unlink()
+            # Supprimer aussi la vidéo finale
+            exports_dir = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk)
+            if exports_dir.exists():
+                shutil.rmtree(str(exports_dir))
 
         elif step == 3:
             job.set_status(Job.Status.DONE)

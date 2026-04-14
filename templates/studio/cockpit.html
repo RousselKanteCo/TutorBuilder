@@ -3,22 +3,10 @@
 
 {% block extra_style %}
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-:root {
-  --bg-base:#07090E;--bg-1:#0C0F17;--bg-2:#111621;--bg-3:#16202E;
-  --blue:#3B82F6;--blue-dim:rgba(59,130,246,.1);--blue-border:rgba(59,130,246,.3);
-  --teal:#06B6D4;--green:#10B981;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;
-  --text-1:#F1F5F9;--text-2:#94A3B8;--text-3:#475569;
-  --border-1:rgba(255,255,255,.055);--border-2:rgba(255,255,255,.09);
-  --font-ui:'Outfit',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;
-  --r-sm:6px;--r-md:10px;--r-lg:14px;
-  --t:all .18s cubic-bezier(.4,0,.2,1);
-}
+:root{--bg-base:#07090E;--bg-1:#0C0F17;--bg-2:#111621;--bg-3:#16202E;--blue:#3B82F6;--blue-dim:rgba(59,130,246,.1);--blue-border:rgba(59,130,246,.3);--teal:#06B6D4;--green:#10B981;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;--text-1:#F1F5F9;--text-2:#94A3B8;--text-3:#475569;--border-1:rgba(255,255,255,.055);--border-2:rgba(255,255,255,.09);--font-ui:'Outfit',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--t:all .18s cubic-bezier(.4,0,.2,1)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:var(--font-ui);font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
-
-/* TOPBAR */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:300;height:44px;display:flex;align-items:center;background:rgba(7,9,14,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-1)}
 .topbar-brand{display:flex;align-items:center;gap:10px;padding:0 18px;height:100%;border-right:1px solid var(--border-1);min-width:200px}
 .brand-mark{width:26px;height:26px;background:var(--blue);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center}
@@ -34,11 +22,9 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .user-name{font-size:11px;color:var(--text-2)}
 .mini-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-2);color:var(--text-2);font-size:11px;font-weight:500;cursor:pointer;text-decoration:none;transition:var(--t);font-family:var(--font-ui)}
 .mini-btn:hover{border-color:var(--border-2);color:var(--text-1)}.mini-btn svg{width:11px;height:11px}
-
-/* LAYOUT */
 .studio{display:grid;grid-template-columns:260px 1fr 300px;height:100vh;padding-top:44px;overflow:hidden}
-
-/* PANNEAU GAUCHE */
+@media(max-width:1100px){.studio{grid-template-columns:220px 1fr 260px}}
+@media(max-width:900px){.studio{grid-template-columns:1fr;height:auto}.panel-workflow,.panel-script{max-height:400px}}
 .panel-workflow{background:var(--bg-1);border-right:1px solid var(--border-1);display:flex;flex-direction:column;overflow:hidden}
 .steps-header{padding:16px 16px 12px;border-bottom:1px solid var(--border-1);flex-shrink:0}
 .steps-title{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);margin-bottom:14px}
@@ -59,15 +45,11 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .wsec.done .wsec-num{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green)}
 .wsec-title{font-size:12px;font-weight:600;color:var(--text-2)}.wsec.active .wsec-title{color:var(--text-1)}
 .wsec-sub{font-size:10px;color:var(--text-3);margin-top:1px}
-
-/* RESUME BANNER */
 .resume-banner{display:none;margin-bottom:12px;padding:10px 12px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:var(--r-md)}
 .resume-banner.show{display:flex;align-items:center;gap:8px}
 .resume-banner svg{width:14px;height:14px;color:var(--purple);flex-shrink:0}
 .resume-banner-text{flex:1;font-size:11px;color:#C4B5FD;font-weight:500}
 .resume-banner-step{font-size:10px;color:rgba(196,181,253,.6);margin-top:2px}
-
-/* DROP ZONE */
 .drop-zone{position:relative;border:1.5px dashed rgba(255,255,255,.1);border-radius:var(--r-md);padding:16px 12px;text-align:center;cursor:pointer;transition:var(--t);background:rgba(255,255,255,.02)}
 .drop-zone:hover,.drop-zone.dragover{border-color:var(--blue);background:var(--blue-dim)}
 #file-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -80,13 +62,9 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .flabel-hint{font-size:9px;color:var(--text-3);font-weight:400;margin-left:auto}
 .fselect{width:100%;padding:7px 28px 7px 9px;background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-sm);color:var(--text-1);font-size:12px;font-family:var(--font-ui);outline:none;cursor:pointer;appearance:none;transition:var(--t);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
 .fselect:focus{border-color:var(--blue-border)}.fselect option{background:#111621}
-
-/* ENGINE BADGE */
 .engine-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;margin-left:6px;vertical-align:middle}
 .engine-badge.elevenlabs{background:rgba(251,191,36,.1);color:#FDE68A;border:1px solid rgba(251,191,36,.2)}
 .engine-badge.cartesia{background:rgba(6,182,212,.1);color:#67E8F9;border:1px solid rgba(6,182,212,.2)}
-
-/* BOUTONS */
 .run-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;margin-top:12px;background:var(--blue-dim);border:1px solid var(--blue-border);border-radius:var(--r-md);color:#93C5FD;font-size:13px;font-weight:600;font-family:var(--font-ui);cursor:pointer;transition:var(--t);text-align:left}
 .run-btn:hover:not(:disabled){background:rgba(59,130,246,.18);color:#BFDBFE}.run-btn:disabled{opacity:.3;cursor:not-allowed}
 .run-btn.green{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.25);color:#6EE7B7}
@@ -99,22 +77,15 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .run-desc{font-size:10px;color:var(--text-3);margin-top:3px;font-weight:400}.run-btn.green .run-desc{color:rgba(110,231,183,.6)}
 .dl-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;margin-top:8px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:var(--r-md);color:#34D399;font-size:13px;font-weight:600;font-family:var(--font-ui);cursor:pointer;transition:var(--t);text-decoration:none}
 .dl-btn:hover{background:rgba(16,185,129,.12);color:#6EE7B7}.dl-btn svg{width:14px;height:14px;flex-shrink:0}
-
-/* VOICE SELECTOR */
 .voice-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px}
 .voice-card{padding:7px 9px;border-radius:var(--r-sm);border:1.5px solid var(--border-1);background:var(--bg-2);cursor:pointer;transition:var(--t)}
 .voice-card:hover{border-color:var(--border-2)}.voice-card.sel{border-color:var(--green);background:rgba(16,185,129,.06)}
 .voice-card-name{font-size:10px;font-weight:600;color:var(--text-1)}.voice-card-desc{font-size:9px;color:var(--text-3);margin-top:2px}
-
-/* TOGGLE SOUS-TITRES */
 .sub-toggle-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border-1);border-radius:var(--r-md);margin-bottom:12px}
 .sub-toggle-label{flex:1;font-size:12px;font-weight:600;color:var(--text-1);display:flex;align-items:center;gap:7px}
 .sub-toggle-label svg{width:13px;height:13px;color:var(--teal);flex-shrink:0}
 .sub-toggle-hint{font-size:9px;color:var(--text-3);font-weight:400;margin-top:2px}
-
-/* ÉDITEUR SOUS-TITRES */
-.sub-editor-wrap{transition:opacity .2s,filter .2s}
-.sub-editor-wrap.disabled{opacity:.35;pointer-events:none;filter:grayscale(.5)}
+.sub-editor-wrap{transition:opacity .2s,filter .2s}.sub-editor-wrap.disabled{opacity:.35;pointer-events:none;filter:grayscale(.5)}
 .sub-editor{border:1px solid var(--border-1);border-radius:var(--r-md);overflow:hidden}
 .sub-editor-tabs{display:flex;border-bottom:1px solid var(--border-1);background:var(--bg-3)}
 .sub-tab{flex:1;padding:7px 0;font-size:10px;font-weight:600;color:var(--text-3);text-align:center;cursor:pointer;transition:var(--t);border-bottom:2px solid transparent}
@@ -143,8 +114,6 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .toggle-row label{font-size:10px;color:var(--text-2);flex:1}
 .sw{width:30px;height:16px;background:var(--bg-3);border-radius:8px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:1px solid var(--border-1)}
 .sw.on{background:var(--blue)}.sw::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:transform .2s}.sw.on::after{transform:translateX(14px)}
-
-/* CENTRE */
 .panel-monitor{display:flex;flex-direction:column;background:#000;overflow:hidden}
 .monitor{flex:1;min-height:0;position:relative;background:#000;overflow:hidden}
 #video-player{width:100%;height:100%;object-fit:contain;display:none}
@@ -173,17 +142,37 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .progress-track{height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:2px;width:0%;transition:width .5s cubic-bezier(.4,0,.2,1)}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(59,130,246,.4)}50%{opacity:.8;box-shadow:0 0 0 4px rgba(59,130,246,0)}}
-
-/* DROITE */
 .panel-script{background:var(--bg-1);border-left:1px solid var(--border-1);display:flex;flex-direction:column;overflow:hidden}
-.script-topbar{height:44px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--border-1)}
-.script-title{font-size:12px;font-weight:600;display:flex;align-items:center;gap:7px}.script-title svg{width:13px;height:13px;color:var(--text-3)}
+.script-topbar{height:auto;min-height:44px;flex-shrink:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 14px;border-bottom:1px solid var(--border-1)}
+.script-title{font-size:12px;font-weight:600;display:flex;align-items:center;gap:7px}
+.script-title svg{width:13px;height:13px;color:var(--text-3)}
 .seg-count{font-size:10px;color:var(--text-3);font-weight:400}
-.save-btn{margin-left:auto;display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--r-sm);background:var(--blue-dim);border:1px solid var(--blue-border);color:#93C5FD;font-size:11px;font-weight:600;font-family:var(--font-ui);cursor:pointer;transition:var(--t)}
-.save-btn:hover{background:rgba(59,130,246,.18)}.save-btn:disabled{opacity:.4;cursor:not-allowed}.save-btn svg{width:11px;height:11px}
-.recalc-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25);margin-left:6px;opacity:0;transition:opacity .3s}
-.recalc-badge.show{opacity:1}
-.console-wrap{height:130px;flex-shrink:0;background:var(--bg-base);border-top:1px solid var(--border-1);display:flex;flex-direction:column}
+.saved-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25);opacity:0;transition:opacity .3s}
+.saved-badge.show{opacity:1}
+.script-action-btn{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-2);color:var(--text-3);font-size:10px;font-weight:500;font-family:var(--font-ui);cursor:pointer;transition:var(--t)}
+.script-action-btn:hover{border-color:var(--border-2);color:var(--text-2)}
+.script-action-btn.primary{background:var(--blue-dim);border-color:var(--blue-border);color:#93C5FD}
+.script-action-btn.primary:hover{background:rgba(59,130,246,.18)}
+.script-action-btn:disabled{opacity:.4;cursor:not-allowed}
+.script-action-btn svg{width:10px;height:10px}
+.script-tabs{display:flex;border-bottom:1px solid var(--border-1);flex-shrink:0}
+.script-tab{flex:1;padding:7px 0;font-size:10px;font-weight:600;color:var(--text-3);text-align:center;cursor:pointer;transition:var(--t);border-bottom:2px solid transparent}
+.script-tab.active{color:var(--text-1);border-bottom-color:var(--blue)}
+.script-tab-panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.script-tab-panel.active{display:flex}
+#script-editor{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:2px}
+.script-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-3)}
+.script-empty svg{width:28px;height:28px;opacity:.2}.script-empty p{font-size:11px}
+.seg-row{display:flex;border-radius:var(--r-sm);border:1px solid transparent;transition:var(--t);background:transparent}
+.seg-row:hover{background:var(--bg-2);border-color:var(--border-1)}
+.seg-row.active{background:rgba(59,130,246,.06);border-color:var(--blue-border);box-shadow:inset 2px 0 0 var(--blue)}
+.seg-num{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:20px;padding:10px 2px 10px 8px;flex-shrink:0;user-select:none}
+.seg-row.active .seg-num{color:var(--blue)}
+.seg-tc{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:38px;flex-shrink:0;padding:10px 6px;cursor:pointer;transition:var(--t)}
+.seg-tc:hover{color:var(--blue)}.seg-row.active .seg-tc{color:var(--blue)}
+.seg-txt{flex:1;font-size:12px;color:var(--text-2);outline:none;line-height:1.6;cursor:text;word-break:break-word;padding:8px 6px 8px 2px;min-height:20px}
+.seg-row.active .seg-txt,.seg-txt:focus{color:var(--text-1)}
+.console-wrap{height:120px;flex-shrink:0;background:var(--bg-base);border-top:1px solid var(--border-1);display:flex;flex-direction:column}
 .console-head{height:24px;flex-shrink:0;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid var(--border-1);gap:6px}
 .console-label{font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3)}
 .console-clear{margin-left:auto;font-size:9px;color:var(--text-3);cursor:pointer;background:none;border:none;font-family:var(--font-ui);transition:var(--t)}.console-clear:hover{color:var(--text-2)}
@@ -191,108 +180,23 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
 .ll-err{color:var(--red)}.ll-warn{color:var(--amber)}.ll-info{color:var(--text-2)}
 .ws-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0;transition:var(--t)}
 .ws-dot.connected{background:var(--green);box-shadow:0 0 5px var(--green)}.ws-dot.error{background:var(--red)}
-#script-editor{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:1px}
-.script-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-3)}
-.script-empty svg{width:28px;height:28px;opacity:.2}.script-empty p{font-size:11px}
-.seg-row{display:flex;gap:8px;padding:7px 9px;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;transition:var(--t)}
-.seg-row:hover{background:var(--bg-2);border-color:var(--border-1)}
-.seg-row.active{background:rgba(59,130,246,.06);border-color:var(--blue-border);box-shadow:inset 2px 0 0 var(--blue)}
-.seg-row.tc-updated .seg-tc{color:var(--green);transition:color .5s}
-.seg-tc{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:34px;flex-shrink:0;padding-top:2px}
-.seg-row.active .seg-tc{color:var(--blue)}
-.seg-txt{font-size:12px;color:var(--text-2);flex:1;outline:none;line-height:1.55;cursor:text}
-.seg-row.active .seg-txt{color:var(--text-1)}
-
-/* ── SCRIPT EDITOR v2 ── */
-.seg-row{display:flex;gap:0;border-radius:var(--r-sm);border:1px solid transparent;transition:var(--t);position:relative;background:transparent}
-.seg-row:hover{background:var(--bg-2);border-color:var(--border-1)}
-.seg-row.active{background:rgba(59,130,246,.06);border-color:var(--blue-border);box-shadow:inset 2px 0 0 var(--blue)}
-.seg-num{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:20px;padding:8px 2px 8px 8px;flex-shrink:0;user-select:none}
-.seg-row.active .seg-num{color:var(--blue)}
-.seg-tc{font-family:var(--font-mono);font-size:9px;color:var(--text-3);min-width:36px;flex-shrink:0;padding:8px 4px;cursor:pointer;transition:var(--t)}
-.seg-tc:hover{color:var(--blue)}.seg-row.active .seg-tc{color:var(--blue)}
-.seg-body{flex:1;display:flex;flex-direction:column;padding:6px 4px;min-width:0}
-.seg-txt{font-size:12px;color:var(--text-2);outline:none;line-height:1.55;cursor:text;word-break:break-word;min-height:18px}
-.seg-row.active .seg-txt,.seg-txt:focus{color:var(--text-1)}
-.seg-len-bar{height:2px;border-radius:1px;margin-top:4px;transition:width .3s,background .3s;background:var(--green);width:0%}
-.seg-len-bar.warn{background:var(--amber)}.seg-len-bar.over{background:var(--red)}
-.seg-len-label{font-size:8px;font-family:var(--font-mono);color:var(--text-3);margin-top:2px;display:none}
-.seg-row:hover .seg-len-label,.seg-row.active .seg-len-label{display:block}
-.seg-len-label.warn{color:var(--amber)}.seg-len-label.over{color:var(--red)}
-.seg-actions{display:flex;flex-direction:column;gap:2px;padding:4px 4px 4px 2px;opacity:0;transition:opacity .15s;flex-shrink:0}
-.seg-row:hover .seg-actions,.seg-row.active .seg-actions{opacity:1}
-.seg-btn{width:20px;height:20px;border-radius:4px;border:1px solid var(--border-1);background:var(--bg-3);color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:var(--t);flex-shrink:0;font-family:var(--font-ui)}
-.seg-btn:hover{border-color:var(--border-2);color:var(--text-1);background:var(--bg-2)}
-.seg-btn.del:hover{border-color:rgba(239,68,68,.4);color:var(--red);background:rgba(239,68,68,.08)}
-.seg-btn.merge-up:hover{border-color:rgba(59,130,246,.4);color:var(--blue);background:var(--blue-dim)}
-.seg-merge-hint{height:12px;margin:0 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s}
-.seg-merge-hint:hover{opacity:1}
-.seg-merge-line{flex:1;height:1px;background:var(--border-1)}
-.seg-merge-label{font-size:8px;color:var(--text-3);padding:0 6px;white-space:nowrap;transition:color .15s}
-.seg-merge-hint:hover .seg-merge-label{color:var(--blue)}
-.seg-row:hover + .seg-merge-hint,.seg-merge-hint:hover{opacity:1}
-.script-stats{font-size:9px;color:var(--text-3);font-family:var(--font-mono);padding:2px 8px;background:var(--bg-2);border-radius:10px;border:1px solid var(--border-1)}
-.script-action-btn{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:var(--r-sm);border:1px solid var(--border-1);background:var(--bg-2);color:var(--text-3);font-size:10px;font-weight:500;font-family:var(--font-ui);cursor:pointer;transition:var(--t)}
-.script-action-btn:hover{border-color:var(--border-2);color:var(--text-2)}
-.script-action-btn.primary{background:var(--blue-dim);border-color:var(--blue-border);color:#93C5FD}
-.script-action-btn.primary:hover{background:rgba(59,130,246,.18)}
-.script-action-btn:disabled{opacity:.4;cursor:not-allowed}
-.script-action-btn svg{width:10px;height:10px}
-.script-topbar { height: auto !important; min-height: 44px; flex-wrap: wrap; padding: 6px 14px; gap: 6px; }
-.script-tab-panel { overflow: hidden; }
-#script-tab-segments { overflow-y: auto; }
+#full-editor-modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);flex-direction:column;padding:28px}
 #full-editor-modal.open{display:flex}
-
-.script-topbar { height: auto !important; min-height: 44px; flex-wrap: wrap; padding: 6px 14px; }
-
-
-/* ── RESPONSIVE ── */
-@media (max-width: 1100px) {
-  .studio { grid-template-columns: 220px 1fr 260px; }
-}
-@media (max-width: 900px) {
-  .studio { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; height:auto; }
-  .panel-workflow { max-height: 300px; }
-  .panel-script { max-height: 400px; }
-}
-
-/* ── SCRIPT TABS ── */
-.script-tabs { display:flex; border-bottom:1px solid var(--border-1); flex-shrink:0; }
-.script-tab { flex:1; padding:7px 0; font-size:10px; font-weight:600; color:var(--text-3); text-align:center; cursor:pointer; transition:var(--t); border-bottom:2px solid transparent; }
-.script-tab.active { color:var(--text-1); border-bottom-color:var(--blue); }
-.script-tab-panel { display:none; flex:1; overflow:hidden; flex-direction:column; }
-.script-tab-panel.active { display:flex; }
-
-/* ── ÉDITEUR TEXTE LIBRE ── */
-#free-editor { flex:1; width:100%; background:transparent; border:none; color:var(--text-1); font-family:var(--font-ui); font-size:12px; line-height:1.8; padding:10px; outline:none; resize:none; }
-#free-editor::placeholder { color:var(--text-3); }
-
-/* ── MODAL PLEIN ÉCRAN ── */
-#full-editor-modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.92); backdrop-filter:blur(12px); flex-direction:column; padding:28px; }
-#full-editor-modal.open { display:flex; }
-#full-editor-textarea { flex:1; width:100%; background:var(--bg-1); border:1px solid var(--border-1); border-radius:var(--r-lg); color:var(--text-1); font-family:var(--font-ui); font-size:13px; line-height:1.9; padding:20px; outline:none; resize:none; }
-#full-editor-textarea:focus { border-color:var(--blue-border); }
-
+#full-editor-textarea{flex:1;width:100%;background:var(--bg-1);border:1px solid var(--border-1);border-radius:var(--r-lg);color:var(--text-1);font-family:var(--font-ui);font-size:13px;line-height:1.9;padding:20px;outline:none;resize:none}
+#full-editor-textarea:focus{border-color:var(--blue-border)}
 {% endblock %}
 
 {% block content %}
 <style>.navbar,.main-content>.messages{display:none!important}.main-content{padding:0!important;overflow:hidden}.app-shell{overflow:hidden}</style>
-
 <header class="topbar">
   <div class="topbar-brand">
     <div class="brand-mark"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg></div>
     <span class="brand-name">TutorBuilder <span>Vision</span></span>
   </div>
   <nav class="topbar-nav">
-    <a href="{% url 'studio:dashboard' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord
-    </a>
-    <a href="{% url 'studio:cockpit' %}" class="active">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Studio
-    </a>
-    <a href="{% url 'studio:project_list' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Mes projets
-    </a>
+    <a href="{% url 'studio:dashboard' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Tableau de bord</a>
+    <a href="{% url 'studio:cockpit' %}" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Studio</a>
+    <a href="{% url 'studio:project_list' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Mes projets</a>
   </nav>
   <div class="topbar-end">
     <div class="user-pill">
@@ -300,20 +204,15 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
       <span class="user-name">{{ user.username }}</span>
     </div>
     <form method="post" action="{% url 'logout' %}" style="display:inline">
-  {% csrf_token %}
-  <button type="submit" class="mini-btn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    Déconnexion
-  </button>
-</form>
-      
-    </a>
+      {% csrf_token %}
+      <button type="submit" class="mini-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Déconnexion
+      </button>
+    </form>
   </div>
 </header>
 
 <div class="studio">
-
-  <!-- GAUCHE — WORKFLOW -->
   <aside class="panel-workflow">
     <div class="steps-header">
       <div class="steps-title">Progression du workflow</div>
@@ -327,25 +226,13 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
         <div class="step-dot-wrap" id="sdw-4"><div class="step-dot" id="sd-4">4</div><div class="step-dot-label">Exporter</div></div>
       </div>
     </div>
-
     <div class="workflow-body">
-
-      <!-- ÉTAPE 1 -->
       <div class="wsec active" id="wsec-1">
-        <div class="wsec-header">
-          <div class="wsec-num">1</div>
-          <div><div class="wsec-title">Importer votre vidéo</div><div class="wsec-sub">Glissez ou cliquez pour choisir</div></div>
-        </div>
-
-        <!-- BANDEAU REPRISE DE PROJET -->
+        <div class="wsec-header"><div class="wsec-num">1</div><div><div class="wsec-title">Importer votre vidéo</div><div class="wsec-sub">Glissez ou cliquez pour choisir</div></div></div>
         <div class="resume-banner" id="resume-banner">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          <div>
-            <div class="resume-banner-text" id="resume-banner-text">Projet en cours détecté</div>
-            <div class="resume-banner-step" id="resume-banner-step">Reprise automatique…</div>
-          </div>
+          <div><div class="resume-banner-text" id="resume-banner-text">Projet détecté</div><div class="resume-banner-step" id="resume-banner-step">Reprise…</div></div>
         </div>
-
         <div class="drop-zone" id="upload-zone">
           <input type="file" id="file-input" accept="video/*">
           <div class="drop-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg></div>
@@ -361,74 +248,47 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
           </select>
         </div>
       </div>
-
-      <!-- ÉTAPE 2 -->
       <div class="wsec locked" id="wsec-2">
-        <div class="wsec-header">
-          <div class="wsec-num">2</div>
-          <div><div class="wsec-title">Transcrire la parole en texte</div><div class="wsec-sub">Faster-Whisper — local et précis</div></div>
-        </div>
+        <div class="wsec-header"><div class="wsec-num">2</div><div><div class="wsec-title">Transcrire la parole en texte</div><div class="wsec-sub">Faster-Whisper — local et précis</div></div></div>
         <div class="fgroup">
           <div class="flabel">Langue parlée dans la vidéo</div>
           <select class="fselect" id="select-lang">{% for val, label in languages %}<option value="{{ val }}" {% if job and job.language == val %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
         </div>
-        <!-- STT fixé à faster_whisper, champ caché -->
         <input type="hidden" id="select-stt" value="faster_whisper">
         <button class="run-btn" id="btn-transcribe" disabled>
           <div class="run-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
           <div class="run-info"><div class="run-label">Lancer la transcription</div><div class="run-desc">Faster-Whisper · 30s à 2min</div></div>
         </button>
       </div>
-
-      <!-- ÉTAPE 3 -->
       <div class="wsec locked" id="wsec-3">
-        <div class="wsec-header">
-          <div class="wsec-num">3</div>
-          <div><div class="wsec-title">Générer la nouvelle voix</div><div class="wsec-sub">Après correction du script</div></div>
-        </div>
-
-        <!-- Choix moteur TTS -->
+        <div class="wsec-header"><div class="wsec-num">3</div><div><div class="wsec-title">Générer la nouvelle voix</div><div class="wsec-sub">Après correction du script</div></div></div>
         <div class="fgroup">
           <div class="flabel">Moteur vocal</div>
           <select class="fselect" id="select-tts" onchange="onTtsEngineChange()">
             <option value="elevenlabs" {% if job and job.tts_engine == 'elevenlabs' %}selected{% endif %}>🎙️ ElevenLabs — Qualité premium</option>
-            <option value="cartesia"   {% if job and job.tts_engine == 'cartesia'   %}selected{% endif %}>⚡ Cartesia Sonic — Ultra-rapide</option>
+            <option value="cartesia" {% if job and job.tts_engine == 'cartesia' %}selected{% endif %}>⚡ Cartesia Sonic — Ultra-rapide</option>
           </select>
         </div>
-
-        <!-- Voix ElevenLabs -->
         <div id="voices-elevenlabs" class="fgroup">
           <div class="flabel">Personnage vocal <span class="engine-badge elevenlabs">ElevenLabs</span></div>
           <div class="voice-grid" id="voice-grid-el"></div>
         </div>
-
-        <!-- Voix Cartesia -->
         <div id="voices-cartesia" class="fgroup" style="display:none">
           <div class="flabel">Personnage vocal <span class="engine-badge cartesia">Cartesia</span></div>
           <div class="voice-grid" id="voice-grid-ca"></div>
         </div>
-
         <input type="hidden" id="select-voice" value="narrateur_pro">
-
         <button class="run-btn green" id="btn-tts" disabled>
           <div class="run-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
           <div class="run-info"><div class="run-label">Générer la voix off</div><div class="run-desc">Synthèse segment par segment</div></div>
         </button>
-
-         <button class="run-btn" id="btn-reset-to-transcribed" style="margin-top:6px;display:none;background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#F87171" onclick="resetToStep(2)">
-            <div class="run-ico" style="background:rgba(239,68,68,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg></div>
-            <div class="run-info"><div class="run-label">Annuler la voix</div><div class="run-desc">Revenir à la transcription</div></div>
-         </button>
+        <button class="run-btn" id="btn-reset-to-transcribed" style="margin-top:6px;display:none;background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);color:#F87171" onclick="resetToStep(2)">
+          <div class="run-ico" style="background:rgba(239,68,68,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg></div>
+          <div class="run-info"><div class="run-label">Annuler la voix</div><div class="run-desc">Modifier le script et regénérer</div></div>
+        </button>
       </div>
-
-
-      <!-- ÉTAPE 4 -->
       <div class="wsec locked" id="wsec-4">
-        <div class="wsec-header">
-          <div class="wsec-num">4</div>
-          <div><div class="wsec-title">Assembler et exporter</div><div class="wsec-sub">Sync image/voix + sous-titres ASS HD</div></div>
-        </div>
-
+        <div class="wsec-header"><div class="wsec-num">4</div><div><div class="wsec-title">Assembler et exporter</div><div class="wsec-sub">Sync image/voix + sous-titres ASS HD</div></div></div>
         <div class="sub-toggle-row">
           <div class="sub-toggle-label">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
@@ -436,7 +296,6 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
           </div>
           <div class="sw on" id="subtitles-sw" onclick="toggleSw('subtitles-sw');toggleSubEditor()"></div>
         </div>
-
         <div id="sub-editor-wrap" class="sub-editor-wrap">
           <div class="sub-editor">
             <div class="sub-editor-tabs">
@@ -445,10 +304,7 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
               <div class="sub-tab" onclick="switchSubTab('advanced',this)">Avancé</div>
             </div>
             <div class="sub-tab-panel active" id="subtab-preview">
-              <div class="sub-preview-wrap">
-                <canvas id="sub-canvas"></canvas>
-                <span class="sub-preview-label">Aperçu temps réel</span>
-              </div>
+              <div class="sub-preview-wrap"><canvas id="sub-canvas"></canvas><span class="sub-preview-label">Aperçu temps réel</span></div>
               <textarea class="sub-text-input" id="sub-preview-text" rows="2" oninput="drawSubPreview()" placeholder="Texte de prévisualisation...">Bonjour, bienvenue dans ce tutoriel.</textarea>
             </div>
             <div class="sub-tab-panel" id="subtab-style">
@@ -488,7 +344,6 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
             <div class="run-info"><div class="run-label">Annuler l'export</div><div class="run-desc">Revenir à la synthèse vocale</div></div>
           </button>
         </div>
-
         <button class="run-btn amber" id="btn-export" disabled style="margin-top:12px">
           <div class="run-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
           <div class="run-info"><div class="run-label">Assembler la vidéo finale</div><div class="run-desc">Sync image/voix + sous-titres ASS HD</div></div>
@@ -500,7 +355,6 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
     </div>
   </aside>
 
-  <!-- CENTRE — MONITEUR -->
   <main class="panel-monitor">
     <div class="monitor" id="video-monitor">
       <video id="video-player" controls></video>
@@ -529,66 +383,39 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
     </div>
   </main>
 
-  <!-- DROITE — SCRIPT + CONSOLE -->
   <aside class="panel-script">
     <div class="script-topbar">
       <div class="script-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Script<span class="seg-count" id="seg-count"></span>
       </div>
-      <span class="script-stats" id="script-stats" style="display:none"></span>
-      <span class="recalc-badge" id="recalc-badge">⏱ Recalculé</span>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-left:auto;align-items:flex-end">
-        <!-- Rangée 1 -->
+      <span class="saved-badge" id="saved-badge">✅ Sauvegardé</span>
+      <div id="script-buttons" style="display:none;flex-direction:column;gap:4px;margin-left:auto;align-items:flex-end">
         <div style="display:flex;gap:4px">
           <input type="file" id="import-script-input" accept=".txt" style="display:none" onchange="importScript(this)">
-          <button class="script-action-btn" onclick="document.getElementById('import-script-input').click()" id="btn-import-script" style="display:none" title="Importer .txt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Import
+          <button class="script-action-btn" onclick="document.getElementById('import-script-input').click()" title="Importer .txt">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Import
           </button>
-          <button class="script-action-btn" onclick="exportScript()" id="btn-export-script" style="display:none" title="Exporter .txt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Export
+          <button class="script-action-btn" onclick="exportScript()" title="Exporter .txt">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Export
           </button>
         </div>
-        <!-- Rangée 2 -->
         <div style="display:flex;gap:4px">
-          <button class="script-action-btn" onclick="autoSplitLong()" id="btn-auto-split" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-            Découper
+          <button class="script-action-btn" onclick="openFullEditor()" title="Plein écran">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>Plein écran
           </button>
-          <button class="script-action-btn primary" onclick="saveScript()" id="btn-save-script" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Sauvegarder
+          <button class="script-action-btn primary" onclick="saveScript()" id="btn-save-script">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Sauvegarder
           </button>
         </div>
       </div>
     </div>
 
-    <!-- TABS : Segments / Texte libre -->
-    <div class="script-tabs" id="script-tabs" style="display:none">
-      <div class="script-tab active" onclick="switchScriptTab('segments', this)">📋 Segments</div>
-      <div class="script-tab" onclick="switchScriptTab('free', this)">✏️ Texte libre</div>
-    </div>
-
-    <!-- TAB 1 : Éditeur segments -->
-    <div class="script-tab-panel active" id="script-tab-segments">
-      <div id="script-editor" style="flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:1px">
-        <div class="script-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <p>Le texte apparaîtra ici après la transcription</p>
-          <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2 : Texte libre -->
-    <div class="script-tab-panel" id="script-tab-free">
-      <textarea id="free-editor" placeholder="Modifiez le texte ici — un segment par paragraphe (ligne vide entre chaque)&#10;&#10;Cliquez sur 'Sauvegarder' quand vous avez terminé."></textarea>
-      <div style="padding:6px 10px;border-top:1px solid var(--border-1);display:flex;justify-content:flex-end;gap:6px;flex-shrink:0">
-        <button class="script-action-btn" onclick="syncFreeToSegments()" style="color:var(--amber);border-color:rgba(245,158,11,.3)">
-          ↕ Synchroniser
-        </button>
+    <div id="script-editor" style="flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:2px">
+      <div class="script-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p>Le script apparaîtra après la transcription</p>
+        <p style="font-size:10px;margin-top:4px;">Modifiez uniquement le texte — timecodes conservés</p>
       </div>
     </div>
 
@@ -604,1243 +431,336 @@ html,body{height:100%;background:var(--bg-base);color:var(--text-1);font-family:
     </div>
   </aside>
 
-  <!-- MODAL ÉDITEUR PLEIN ÉCRAN -->
   <div id="full-editor-modal">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0">
-      <h2 style="font-size:16px;font-weight:700;color:var(--text-1)">✏️ Éditeur de script — plein écran</h2>
+      <h2 style="font-size:16px;font-weight:700;color:var(--text-1)">✏️ Éditeur plein écran</h2>
       <span style="font-size:11px;color:var(--text-3)">Un segment par paragraphe (ligne vide entre chaque)</span>
       <div style="margin-left:auto;display:flex;gap:8px">
-        <button class="script-action-btn primary" onclick="applyFullEditor()">✅ Appliquer et fermer</button>
-        <button class="script-action-btn" onclick="closeFullEditor()">✕ Annuler</button>
+        <button class="script-action-btn primary" onclick="applyFullEditor()">✅ Appliquer</button>
+        <button class="script-action-btn" onclick="closeFullEditor()">✕ Fermer</button>
       </div>
     </div>
-    <textarea id="full-editor-textarea" placeholder="Un segment par paragraphe...&#10;&#10;Exemple segment 1&#10;&#10;Exemple segment 2"></textarea>
+    <textarea id="full-editor-textarea" placeholder="Un segment par paragraphe..."></textarea>
   </div>
+</div>
 
-<input type="hidden" id="current-job-id"  value="{{ job.pk|default:'' }}">
+<input type="hidden" id="current-job-id"    value="{{ job.pk|default:'' }}">
 <input type="hidden" id="current-job-status" value="{{ job.status|default:'' }}">
-<input type="hidden" id="current-job-tts"  value="{{ job.tts_engine|default:'elevenlabs' }}">
-<input type="hidden" id="current-job-voice" value="{{ job.tts_voice|default:'narrateur_pro' }}">
-<input type="hidden" id="current-job-lang" value="{{ job.language|default:'fr' }}">
-<input type="hidden" id="csrf-token"       value="{{ csrf_token }}">
-<input type="hidden" id="video-url"        value="{{ video_url }}">
-<input type="hidden" id="final-url"        value="{{ final_url }}">
-
+<input type="hidden" id="current-job-tts"    value="{{ job.tts_engine|default:'elevenlabs' }}">
+<input type="hidden" id="current-job-voice"  value="{{ job.tts_voice|default:'narrateur_pro' }}">
+<input type="hidden" id="current-job-lang"   value="{{ job.language|default:'fr' }}">
+<input type="hidden" id="csrf-token"         value="{{ csrf_token }}">
+<input type="hidden" id="video-url"          value="{{ video_url }}">
+<input type="hidden" id="final-url"          value="{{ final_url }}">
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// ═══════════════════════════════════════════════════════
-//  CONFIGURATION VOIX
-// ═══════════════════════════════════════════════════════
-const VOICES = [
-  { id: "narrateur_pro",  name: "Narrateur Pro",  desc: "Professionnel, clair" },
-  { id: "narratrice_pro", name: "Narratrice Pro",  desc: "Douce, narrative" },
-  { id: "expert",         name: "Expert",          desc: "Grave, autorité" },
-  { id: "experte",        name: "Experte",         desc: "Confiante, expressive" },
-  { id: "guide",          name: "Guide",           desc: "Chaleureux, accessible" },
-  { id: "pedagogique",    name: "Pédagogique",     desc: "Claire, rassurante" },
-];
+const VOICES=[{id:"narrateur_pro",name:"Narrateur Pro",desc:"Professionnel, clair"},{id:"narratrice_pro",name:"Narratrice Pro",desc:"Douce, narrative"},{id:"expert",name:"Expert",desc:"Grave, autorité"},{id:"experte",name:"Experte",desc:"Confiante, expressive"},{id:"guide",name:"Guide",desc:"Chaleureux, accessible"},{id:"pedagogique",name:"Pédagogique",desc:"Claire, rassurante"}];
+const STATE={jobId:document.getElementById('current-job-id').value||null,jobStatus:document.getElementById('current-job-status').value||'',segments:[],waveform:[],ws:null,uploadedFile:null,pollInterval:null,isFinalVideo:false,selectedVoice:document.getElementById('current-job-voice').value||'narrateur_pro'};
+const CSRF=document.getElementById('csrf-token').value;
+const _p=new URLSearchParams(location.search).get('project');
+if(_p)document.getElementById('select-project').value=_p;
 
-// ═══════════════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════════════
-const STATE = {
-  jobId:            document.getElementById('current-job-id').value    || null,
-  jobStatus:        document.getElementById('current-job-status').value || '',
-  segments:         [],
-  waveform:         [],
-  ws:               null,
-  uploadedFile:     null,
-  pollInterval:     null,
-  currentStep:      1,
-  prevExportStatus: null,
-  isFinalVideo:     false,
-  selectedVoice:    document.getElementById('current-job-voice').value || 'narrateur_pro',
-};
-const CSRF = document.getElementById('csrf-token').value;
-const _p = new URLSearchParams(location.search).get('project');
-if (_p) document.getElementById('select-project').value = _p;
-
-// ═══════════════════════════════════════════════════════
-//  VOICE GRIDS
-// ═══════════════════════════════════════════════════════
-function buildVoiceGrids() {
-  ['el','ca'].forEach(suffix => {
-    const grid = document.getElementById(`voice-grid-${suffix}`);
-    if (!grid) return;
-    grid.innerHTML = '';
-    VOICES.forEach(v => {
-      const card = document.createElement('div');
-      card.className = 'voice-card' + (v.id === STATE.selectedVoice ? ' sel' : '');
-      card.dataset.voice = v.id;
-      card.innerHTML = `<div class="voice-card-name">${v.name}</div><div class="voice-card-desc">${v.desc}</div>`;
-      card.onclick = () => selectVoice(v.id);
-      grid.appendChild(card);
-    });
-  });
-}
-
-function selectVoice(id) {
-  STATE.selectedVoice = id;
-  document.getElementById('select-voice').value = id;
-  document.querySelectorAll('.voice-card').forEach(c => {
-    c.classList.toggle('sel', c.dataset.voice === id);
-  });
-}
-
-function onTtsEngineChange() {
-  const engine = document.getElementById('select-tts').value;
-  document.getElementById('voices-elevenlabs').style.display = engine === 'elevenlabs' ? '' : 'none';
-  document.getElementById('voices-cartesia').style.display   = engine === 'cartesia'   ? '' : 'none';
-}
-
-// ═══════════════════════════════════════════════════════
-//  TOGGLE SOUS-TITRES
-// ═══════════════════════════════════════════════════════
-function toggleSubEditor() {
-  const on  = getSwState('subtitles-sw');
-  document.getElementById('sub-editor-wrap').classList.toggle('disabled', !on);
-}
-
-// ═══════════════════════════════════════════════════════
-//  SOUS-TITRES CANVAS
-// ═══════════════════════════════════════════════════════
-const SUB_PRESETS = [
-  {name:"Moderne",  size:48,color:"#ffffff",font:"calibri",ow:1,oc:"#000000",bg:true, bgc:"#000000",bga:75,br:10,sh:true, sha:60,pos:"bottom",mg:60},
-  {name:"Classique",size:48,color:"#ffffff",font:"arial",  ow:3,oc:"#000000",bg:false,bgc:"#000000",bga:0, br:0, sh:false,sha:0, pos:"bottom",mg:60},
-  {name:"Netflix",  size:52,color:"#ffff00",font:"arial",  ow:4,oc:"#000000",bg:false,bgc:"#000000",bga:0, br:0, sh:false,sha:0, pos:"bottom",mg:60},
-  {name:"Cinéma",   size:44,color:"#f5f5dc",font:"georgia",ow:2,oc:"#2c1810",bg:false,bgc:"#000000",bga:0, br:0, sh:true, sha:70,pos:"center",mg:60},
-  {name:"Social",   size:44,color:"#ffffff",font:"calibri",ow:0,oc:"#000000",bg:true, bgc:"#000000",bga:90,br:20,sh:false,sha:0, pos:"bottom",mg:60},
-  {name:"Néon",     size:44,color:"#00ffc8",font:"calibri",ow:2,oc:"#00a080",bg:true, bgc:"#000000",bga:80,br:8, sh:true, sha:50,pos:"bottom",mg:60},
-];
-let selPreset = 0;
-
-function hexToRgb(hex, a) {
-  const h=hex.replace('#','');
-  return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;
-}
+function buildVoiceGrids(){['el','ca'].forEach(s=>{const g=document.getElementById(`voice-grid-${s}`);if(!g)return;g.innerHTML='';VOICES.forEach(v=>{const c=document.createElement('div');c.className='voice-card'+(v.id===STATE.selectedVoice?' sel':'');c.dataset.voice=v.id;c.innerHTML=`<div class="voice-card-name">${v.name}</div><div class="voice-card-desc">${v.desc}</div>`;c.onclick=()=>selectVoice(v.id);g.appendChild(c);});})}
+function selectVoice(id){STATE.selectedVoice=id;document.getElementById('select-voice').value=id;document.querySelectorAll('.voice-card').forEach(c=>c.classList.toggle('sel',c.dataset.voice===id));}
+function onTtsEngineChange(){const e=document.getElementById('select-tts').value;document.getElementById('voices-elevenlabs').style.display=e==='elevenlabs'?'':'none';document.getElementById('voices-cartesia').style.display=e==='cartesia'?'':'none';}
+function toggleSubEditor(){document.getElementById('sub-editor-wrap').classList.toggle('disabled',!getSwState('subtitles-sw'));}
+const SUB_PRESETS=[{name:"Moderne",size:48,color:"#ffffff",font:"calibri",ow:1,oc:"#000000",bg:true,bgc:"#000000",bga:75,br:10,sh:true,sha:60,pos:"bottom",mg:60},{name:"Classique",size:48,color:"#ffffff",font:"arial",ow:3,oc:"#000000",bg:false,bgc:"#000000",bga:0,br:0,sh:false,sha:0,pos:"bottom",mg:60},{name:"Netflix",size:52,color:"#ffff00",font:"arial",ow:4,oc:"#000000",bg:false,bgc:"#000000",bga:0,br:0,sh:false,sha:0,pos:"bottom",mg:60},{name:"Cinéma",size:44,color:"#f5f5dc",font:"georgia",ow:2,oc:"#2c1810",bg:false,bgc:"#000000",bga:0,br:0,sh:true,sha:70,pos:"center",mg:60},{name:"Social",size:44,color:"#ffffff",font:"calibri",ow:0,oc:"#000000",bg:true,bgc:"#000000",bga:90,br:20,sh:false,sha:0,pos:"bottom",mg:60},{name:"Néon",size:44,color:"#00ffc8",font:"calibri",ow:2,oc:"#00a080",bg:true,bgc:"#000000",bga:80,br:8,sh:true,sha:50,pos:"bottom",mg:60}];
+let selPreset=0;
+function hexToRgb(hex,a){const h=hex.replace('#','');return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;}
 function getSwState(id){return document.getElementById(id).classList.contains('on')}
 function toggleSw(id){document.getElementById(id).classList.toggle('on')}
 function syncVal(r,v,u){document.getElementById(v).textContent=document.getElementById(r).value+u}
+function getSubStyle(){return{enabled:getSwState('subtitles-sw'),style_preset:SUB_PRESETS[selPreset].name.toLowerCase().replace(/é/g,'e'),font_size:parseInt(document.getElementById('s-size').value),font_family:document.getElementById('s-font').value,text_color:document.getElementById('s-color').value.replace('#','').toUpperCase(),outline_width:parseInt(document.getElementById('s-ow').value),outline_color:document.getElementById('s-oc').value.replace('#','').toUpperCase(),bg_enabled:getSwState('s-bg-sw'),bg_color:document.getElementById('s-bgc').value.replace('#','').toUpperCase(),bg_opacity:parseInt(document.getElementById('s-bga').value),bg_radius:parseInt(document.getElementById('s-br').value),shadow:getSwState('s-sh-sw'),shadow_opacity:parseInt(document.getElementById('s-sha').value),position:document.getElementById('s-pos').value,margin:parseInt(document.getElementById('s-mg').value)};}
+function drawSubPreview(){const canvas=document.getElementById('sub-canvas'),wrap=canvas.parentElement;const W=wrap.offsetWidth||220,H=Math.round(W*9/16);canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d');ctx.fillStyle='#0a0a12';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(10,12,W*0.5,5);ctx.fillRect(10,22,W*0.3,4);ctx.fillStyle='rgba(59,130,246,.06)';ctx.fillRect(10,35,W*0.7,H*0.3);const text=document.getElementById('sub-preview-text').value||'Aperçu sous-titre';const sz=document.getElementById('s-size').value;const fsize=Math.max(10,Math.round(sz*W/640));const font=document.getElementById('s-font').value;const color=document.getElementById('s-color').value;const ow=parseInt(document.getElementById('s-ow').value);const oc=document.getElementById('s-oc').value;const bgOn=getSwState('s-bg-sw');const bgc=document.getElementById('s-bgc').value;const bga=parseInt(document.getElementById('s-bga').value)/100;const br=Math.round(parseInt(document.getElementById('s-br').value)*W/640);const shOn=getSwState('s-sh-sw');const sha=parseInt(document.getElementById('s-sha').value)/100;const pos=document.getElementById('s-pos').value;const mg=Math.round(parseInt(document.getElementById('s-mg').value)*W/640);ctx.font=`bold ${fsize}px ${font}`;ctx.textAlign='center';ctx.textBaseline='middle';const maxW=W*0.88,words=text.split(' ');const lines=[];let cur='';for(const w of words){const t=cur?cur+' '+w:w;if(ctx.measureText(t).width<=maxW){cur=t;}else{if(cur)lines.push(cur);cur=w;if(lines.length>=3)break;}}if(cur&&lines.length<3)lines.push(cur);const lh=fsize*1.35,padX=Math.round(14*W/640),padY=Math.round(8*W/640);let maxLw=0;lines.forEach(l=>{maxLw=Math.max(maxLw,ctx.measureText(l).width)});const bw=maxLw+padX*2,bh=lh*lines.length+padY*2;let cy;if(pos==='bottom')cy=H-mg-bh/2;else if(pos==='top')cy=mg+bh/2;else cy=H/2;const cx=W/2,bx=cx-bw/2,by=cy-bh/2;if(bgOn&&bga>0){ctx.fillStyle=hexToRgb(bgc,bga);const r=Math.min(br,bh/2);ctx.beginPath();ctx.moveTo(bx+r,by);ctx.lineTo(bx+bw-r,by);ctx.quadraticCurveTo(bx+bw,by,bx+bw,by+r);ctx.lineTo(bx+bw,by+bh-r);ctx.quadraticCurveTo(bx+bw,by+bh,bx+bw-r,by+bh);ctx.lineTo(bx+r,by+bh);ctx.quadraticCurveTo(bx,by+bh,bx,by+bh-r);ctx.lineTo(bx,by+r);ctx.quadraticCurveTo(bx,by,bx+r,by);ctx.closePath();ctx.fill();}lines.forEach((line,i)=>{const ly=by+padY+i*lh+lh/2;if(shOn&&sha>0){const so=Math.round(2*W/640);ctx.fillStyle=hexToRgb('#000000',sha);ctx.fillText(line,cx+so,ly+so);}if(ow>0){ctx.strokeStyle=oc;ctx.lineWidth=ow*1.5;ctx.lineJoin='round';ctx.strokeText(line,cx,ly);}ctx.fillStyle=color;ctx.fillText(line,cx,ly);});}
+function applyPreset(idx){selPreset=idx;document.querySelectorAll('.sub-preset').forEach((p,i)=>p.classList.toggle('sel',i===idx));const p=SUB_PRESETS[idx];document.getElementById('s-size').value=p.size;document.getElementById('s-size-v').textContent=p.size+'px';document.getElementById('s-color').value=p.color;document.getElementById('s-font').value=p.font;document.getElementById('s-ow').value=p.ow;document.getElementById('s-ow-v').textContent=p.ow+'px';document.getElementById('s-oc').value=p.oc;document.getElementById('s-bgc').value=p.bgc;document.getElementById('s-bga').value=p.bga;document.getElementById('s-bga-v').textContent=p.bga+'%';document.getElementById('s-br').value=p.br;document.getElementById('s-br-v').textContent=p.br+'px';document.getElementById('s-sha').value=p.sha;document.getElementById('s-sha-v').textContent=p.sha+'%';document.getElementById('s-pos').value=p.pos;document.getElementById('s-mg').value=p.mg;document.getElementById('s-mg-v').textContent=p.mg+'px';document.getElementById('s-bg-sw').classList.toggle('on',p.bg);document.getElementById('s-sh-sw').classList.toggle('on',p.sh);drawSubPreview();}
+function initPresets(){const grid=document.getElementById('sub-presets-grid');SUB_PRESETS.forEach((p,i)=>{const mc=document.createElement('canvas');mc.width=80;mc.height=36;const ctx=mc.getContext('2d');ctx.fillStyle='#111';ctx.fillRect(0,0,80,36);ctx.font=`bold 11px ${p.font}`;ctx.textAlign='center';ctx.textBaseline='middle';const txt='Aa';if(p.bg&&p.bga>0){ctx.fillStyle=hexToRgb(p.bgc,p.bga/100);const tw=ctx.measureText(txt).width+10,r=Math.min(p.br,8),bx=40-tw/2,by=8;ctx.beginPath();ctx.moveTo(bx+r,by);ctx.lineTo(bx+tw-r,by);ctx.quadraticCurveTo(bx+tw,by,bx+tw,by+r);ctx.lineTo(bx+tw,18);ctx.quadraticCurveTo(bx+tw,by+20,bx+tw-r,by+20);ctx.lineTo(bx+r,by+20);ctx.quadraticCurveTo(bx,by+20,bx,18);ctx.lineTo(bx,by+r);ctx.quadraticCurveTo(bx,by,bx+r,by);ctx.closePath();ctx.fill();}if(p.ow>0){ctx.strokeStyle=p.oc;ctx.lineWidth=p.ow;ctx.strokeText(txt,40,18);}ctx.fillStyle=p.color;ctx.fillText(txt,40,18);const el=document.createElement('div');el.className='sub-preset'+(i===0?' sel':'');el.onclick=()=>applyPreset(i);el.innerHTML=`<div class="sub-preset-prev"><img src="${mc.toDataURL()}" width="80" height="36"/></div><div class="sub-preset-name">${p.name}</div>`;grid.appendChild(el);});}
+function switchSubTab(name,el){document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.sub-tab-panel').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('subtab-'+name).classList.add('active');if(name==='preview')setTimeout(drawSubPreview,50);}
 
-function getSubStyle(){
-  return{
-    enabled:        getSwState('subtitles-sw'),
-    style_preset:   SUB_PRESETS[selPreset].name.toLowerCase().replace(/é/g,'e'),
-    font_size:      parseInt(document.getElementById('s-size').value),
-    font_family:    document.getElementById('s-font').value,
-    text_color:     document.getElementById('s-color').value.replace('#','').toUpperCase(),
-    outline_width:  parseInt(document.getElementById('s-ow').value),
-    outline_color:  document.getElementById('s-oc').value.replace('#','').toUpperCase(),
-    bg_enabled:     getSwState('s-bg-sw'),
-    bg_color:       document.getElementById('s-bgc').value.replace('#','').toUpperCase(),
-    bg_opacity:     parseInt(document.getElementById('s-bga').value),
-    bg_radius:      parseInt(document.getElementById('s-br').value),
-    shadow:         getSwState('s-sh-sw'),
-    shadow_opacity: parseInt(document.getElementById('s-sha').value),
-    position:       document.getElementById('s-pos').value,
-    margin:         parseInt(document.getElementById('s-mg').value),
-  };
-}
-
-function drawSubPreview(){
-  const canvas=document.getElementById('sub-canvas');
-  const wrap=canvas.parentElement;
-  const W=wrap.offsetWidth||220, H=Math.round(W*9/16);
-  canvas.width=W; canvas.height=H;
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#0a0a12'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(255,255,255,.04)';
-  ctx.fillRect(10,12,W*0.5,5); ctx.fillRect(10,22,W*0.3,4);
-  ctx.fillStyle='rgba(59,130,246,.06)'; ctx.fillRect(10,35,W*0.7,H*0.3);
-  const text=document.getElementById('sub-preview-text').value||'Aperçu sous-titre';
-  const sz=document.getElementById('s-size').value;
-  const fsize=Math.max(10,Math.round(sz*W/640));
-  const font=document.getElementById('s-font').value;
-  const color=document.getElementById('s-color').value;
-  const ow=parseInt(document.getElementById('s-ow').value);
-  const oc=document.getElementById('s-oc').value;
-  const bgOn=getSwState('s-bg-sw');
-  const bgc=document.getElementById('s-bgc').value;
-  const bga=parseInt(document.getElementById('s-bga').value)/100;
-  const br=Math.round(parseInt(document.getElementById('s-br').value)*W/640);
-  const shOn=getSwState('s-sh-sw');
-  const sha=parseInt(document.getElementById('s-sha').value)/100;
-  const pos=document.getElementById('s-pos').value;
-  const mg=Math.round(parseInt(document.getElementById('s-mg').value)*W/640);
-  ctx.font=`bold ${fsize}px ${font}`; ctx.textAlign='center'; ctx.textBaseline='middle';
-  const maxW=W*0.88, words=text.split(' ');
-  const lines=[]; let cur='';
-  for(const w of words){const t=cur?cur+' '+w:w; if(ctx.measureText(t).width<=maxW){cur=t;}else{if(cur)lines.push(cur);cur=w;if(lines.length>=3)break;}}
-  if(cur&&lines.length<3)lines.push(cur);
-  const lh=fsize*1.35, padX=Math.round(14*W/640), padY=Math.round(8*W/640);
-  let maxLw=0; lines.forEach(l=>{maxLw=Math.max(maxLw,ctx.measureText(l).width)});
-  const bw=maxLw+padX*2, bh=lh*lines.length+padY*2;
-  let cy; if(pos==='bottom')cy=H-mg-bh/2; else if(pos==='top')cy=mg+bh/2; else cy=H/2;
-  const cx=W/2, bx=cx-bw/2, by=cy-bh/2;
-  if(bgOn&&bga>0){ctx.fillStyle=hexToRgb(bgc,bga);const r=Math.min(br,bh/2);ctx.beginPath();ctx.moveTo(bx+r,by);ctx.lineTo(bx+bw-r,by);ctx.quadraticCurveTo(bx+bw,by,bx+bw,by+r);ctx.lineTo(bx+bw,by+bh-r);ctx.quadraticCurveTo(bx+bw,by+bh,bx+bw-r,by+bh);ctx.lineTo(bx+r,by+bh);ctx.quadraticCurveTo(bx,by+bh,bx,by+bh-r);ctx.lineTo(bx,by+r);ctx.quadraticCurveTo(bx,by,bx+r,by);ctx.closePath();ctx.fill();}
-  lines.forEach((line,i)=>{const ly=by+padY+i*lh+lh/2;if(shOn&&sha>0){const so=Math.round(2*W/640);ctx.fillStyle=hexToRgb('#000000',sha);ctx.fillText(line,cx+so,ly+so);}if(ow>0){ctx.strokeStyle=oc;ctx.lineWidth=ow*1.5;ctx.lineJoin='round';ctx.strokeText(line,cx,ly);}ctx.fillStyle=color;ctx.fillText(line,cx,ly);});
-}
-
-function applyPreset(idx){
-  selPreset=idx;
-  document.querySelectorAll('.sub-preset').forEach((p,i)=>p.classList.toggle('sel',i===idx));
-  const p=SUB_PRESETS[idx];
-  document.getElementById('s-size').value=p.size; document.getElementById('s-size-v').textContent=p.size+'px';
-  document.getElementById('s-color').value=p.color;
-  document.getElementById('s-font').value=p.font;
-  document.getElementById('s-ow').value=p.ow; document.getElementById('s-ow-v').textContent=p.ow+'px';
-  document.getElementById('s-oc').value=p.oc;
-  document.getElementById('s-bgc').value=p.bgc;
-  document.getElementById('s-bga').value=p.bga; document.getElementById('s-bga-v').textContent=p.bga+'%';
-  document.getElementById('s-br').value=p.br; document.getElementById('s-br-v').textContent=p.br+'px';
-  document.getElementById('s-sha').value=p.sha; document.getElementById('s-sha-v').textContent=p.sha+'%';
-  document.getElementById('s-pos').value=p.pos;
-  document.getElementById('s-mg').value=p.mg; document.getElementById('s-mg-v').textContent=p.mg+'px';
-  document.getElementById('s-bg-sw').classList.toggle('on',p.bg);
-  document.getElementById('s-sh-sw').classList.toggle('on',p.sh);
-  drawSubPreview();
-}
-
-function initPresets(){
-  const grid=document.getElementById('sub-presets-grid');
-  SUB_PRESETS.forEach((p,i)=>{
-    const mc=document.createElement('canvas'); mc.width=80; mc.height=36;
-    const ctx=mc.getContext('2d'); ctx.fillStyle='#111'; ctx.fillRect(0,0,80,36);
-    ctx.font=`bold 11px ${p.font}`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    const txt='Aa';
-    if(p.bg&&p.bga>0){ctx.fillStyle=hexToRgb(p.bgc,p.bga/100);const tw=ctx.measureText(txt).width+10,r=Math.min(p.br,8),bx=40-tw/2,by=18-10;ctx.beginPath();ctx.moveTo(bx+r,by);ctx.lineTo(bx+tw-r,by);ctx.quadraticCurveTo(bx+tw,by,bx+tw,by+r);ctx.lineTo(bx+tw,18);ctx.quadraticCurveTo(bx+tw,by+20,bx+tw-r,by+20);ctx.lineTo(bx+r,by+20);ctx.quadraticCurveTo(bx,by+20,bx,18);ctx.lineTo(bx,by+r);ctx.quadraticCurveTo(bx,by,bx+r,by);ctx.closePath();ctx.fill();}
-    if(p.ow>0){ctx.strokeStyle=p.oc;ctx.lineWidth=p.ow;ctx.strokeText(txt,40,18);}
-    ctx.fillStyle=p.color;ctx.fillText(txt,40,18);
-    const el=document.createElement('div');
-    el.className='sub-preset'+(i===0?' sel':'');
-    el.onclick=()=>applyPreset(i);
-    el.innerHTML=`<div class="sub-preset-prev"><img src="${mc.toDataURL()}" width="80" height="36"/></div><div class="sub-preset-name">${p.name}</div>`;
-    grid.appendChild(el);
-  });
-}
-
-function switchSubTab(name,el){
-  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.sub-tab-panel').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('subtab-'+name).classList.add('active');
-  if(name==='preview')setTimeout(drawSubPreview,50);
-}
-
-// ═══════════════════════════════════════════════════════
-//  WORKFLOW STEPS
-// ═══════════════════════════════════════════════════════
-function goToStep(n){
-  STATE.currentStep=n;
-  document.querySelectorAll('.wsec').forEach((s,i)=>{
-    s.classList.remove('active','done','locked');
-    if(i+1<n){s.classList.add('done');s.querySelector('.wsec-num').textContent='✓';}
-    else if(i+1===n){s.classList.add('active');s.querySelector('.wsec-num').textContent=i+1;}
-    else{s.classList.add('locked');s.querySelector('.wsec-num').textContent=i+1;}
-  });
-  for(let i=1;i<=4;i++){
-    const dot=document.getElementById(`sd-${i}`),wrap=document.getElementById(`sdw-${i}`);
-    dot.className='step-dot';wrap.className='step-dot-wrap';
-    if(i<n){dot.classList.add('done');wrap.classList.add('done');dot.textContent='✓';}
-    else if(i===n){dot.classList.add('active');wrap.classList.add('active');dot.textContent=i;}
-    else{dot.textContent=i;}
-  }
-  for(let i=1;i<=3;i++)document.getElementById(`sc-${i}-${i+1}`).classList.toggle('done',i<n);
-}
-
-// ═══════════════════════════════════════════════════════
-//  LOG + PROGRESS
-// ═══════════════════════════════════════════════════════
-function log(msg,t=''){
-  const el=document.getElementById('log-monitor');
-  const ts=new Date().toLocaleTimeString('fr-FR');
-  el.innerHTML+=`<span class="${t?'ll-'+t:''}">[${ts}] ${msg}\n</span>`;
-  el.scrollTop=el.scrollHeight;
-}
+function goToStep(n){STATE.currentStep=n;document.querySelectorAll('.wsec').forEach((s,i)=>{s.classList.remove('active','done','locked');if(i+1<n){s.classList.add('done');s.querySelector('.wsec-num').textContent='✓';}else if(i+1===n){s.classList.add('active');s.querySelector('.wsec-num').textContent=i+1;}else{s.classList.add('locked');s.querySelector('.wsec-num').textContent=i+1;}});for(let i=1;i<=4;i++){const dot=document.getElementById(`sd-${i}`),wrap=document.getElementById(`sdw-${i}`);dot.className='step-dot';wrap.className='step-dot-wrap';if(i<n){dot.classList.add('done');wrap.classList.add('done');dot.textContent='✓';}else if(i===n){dot.classList.add('active');wrap.classList.add('active');dot.textContent=i;}else{dot.textContent=i;}}for(let i=1;i<=3;i++)document.getElementById(`sc-${i}-${i+1}`).classList.toggle('done',i<n);}
+function log(msg,t=''){const el=document.getElementById('log-monitor');const ts=new Date().toLocaleTimeString('fr-FR');el.innerHTML+=`<span class="${t?'ll-'+t:''}">[${ts}] ${msg}\n</span>`;el.scrollTop=el.scrollHeight;}
 function clearLog(){document.getElementById('log-monitor').innerHTML='';}
-function setProgress(label,pct,state='active'){
-  document.getElementById('progress-label').textContent=label;
-  document.getElementById('progress-pct').textContent=pct>0?pct+'%':'';
-  document.getElementById('progress-bar').style.width=pct+'%';
-  const dot=document.getElementById('progress-dot');
-  dot.className='dot';
-  if(state==='active')dot.classList.add('pulse');
-  else if(state==='done')dot.classList.add('done');
-  else if(state==='error')dot.classList.add('error');
-}
+function setProgress(label,pct,state='active'){document.getElementById('progress-label').textContent=label;document.getElementById('progress-pct').textContent=pct>0?pct+'%':'';document.getElementById('progress-bar').style.width=pct+'%';const dot=document.getElementById('progress-dot');dot.className='dot';if(state==='active')dot.classList.add('pulse');else if(state==='done')dot.classList.add('done');else if(state==='error')dot.classList.add('error');}
 function msToTC(ms){const s=Math.floor(ms/1000);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
-async function apiPost(url,data){
-  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify(data)});
-  return r.json();
-}
+async function apiPost(url,data){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify(data)});return r.json();}
 
-// ═══════════════════════════════════════════════════════
-//  REPRISE DE PROJET — LOGIQUE AMÉLIORÉE
-// ═══════════════════════════════════════════════════════
-const STEP_LABELS = {
-  'pending':      { step: 1, label: 'Vidéo chargée — lancez la transcription',       desc: 'Étape 2 : Transcrire' },
-  'extracting':   { step: 2, label: 'Extraction audio en cours…',                    desc: 'Étape 2 : Transcrire' },
-  'transcribing': { step: 2, label: 'Transcription en cours…',                       desc: 'Étape 2 : Transcrire' },
-  'transcribed':  { step: 3, label: 'Transcription terminée — corrigez le script',   desc: 'Étape 3 : Générer la voix' },
-  'synthesizing': { step: 3, label: 'Synthèse vocale en cours…',                     desc: 'Étape 3 : Générer la voix' },
-  'done':         { step: 4, label: 'Voix générée — assemblez la vidéo',             desc: 'Étape 4 : Exporter' },
-  'error':        { step: 1, label: 'Erreur — relancez depuis le début ou continuez','desc': 'Vérifiez le journal' },
-};
-
-function showResumeBanner(jobStatus, jobStep) {
-  const banner = document.getElementById('resume-banner');
-  const info   = STEP_LABELS[jobStatus] || STEP_LABELS['pending'];
-  document.getElementById('resume-banner-text').textContent = `Reprise — ${info.label}`;
-  document.getElementById('resume-banner-step').textContent = info.desc || '';
-  banner.classList.add('show');
-}
-
-async function resumeProject(jobId, jobStatus) {
-  log(`🔄 Reprise du projet (statut : ${jobStatus})…`, 'info');
-
-  // Toujours recharger les segments
-  try {
-    const segsRaw = await (await fetch(`/api/jobs/${jobId}/segments/`)).json();
-    const segsData = Array.isArray(segsRaw) ? segsRaw : (segsRaw.results || []);
-    if (segsData.length) {
-      STATE.segments = segsData.map(s => ({
-        id: s.id, index: s.index,
-        start: s.start_ms, end: s.end_ms,
-        start_ms: s.start_ms, end_ms: s.end_ms,
-        text: s.text,
-      }));
-      renderScript(STATE.segments);
-      // Afficher les boutons import/export/plein écran
-      showScriptButtons();
-      // Bouton retour selon l'étape
-      if (['done', 'synthesizing'].includes(jobStatus)) {
-        const rb = document.getElementById('btn-reset-to-transcribed');
-        if (rb) rb.style.display = 'flex';
-      }
-      if (jobStatus === 'done') {
-        const rb2 = document.getElementById('btn-reset-to-tts');
-        if (rb2) rb2.style.display = 'flex';
-      }
-      document.getElementById('seg-count').textContent = `— ${STATE.segments.length} segments`;
-      syncSegmentsToFree();
-      if (segsData[0]) {
-        document.getElementById('sub-preview-text').value = segsData[0].text || '';
-        drawSubPreview();
-      }
-      log(`✅ ${STATE.segments.length} segments rechargés.`, 'info');
-    }
-  } catch(e) { log('⚠️ Impossible de charger les segments.', 'warn'); }
-
-  // Activer les bons boutons selon le statut
-  switch(jobStatus) {
-    case 'pending':
-      goToStep(1);
-      document.getElementById('btn-transcribe').disabled = false;
-      setProgress('Vidéo chargée — lancez la transcription', 5, 'done');
-      break;
-
-    case 'extracting':
-    case 'transcribing':
-      goToStep(2);
-      setProgress('Transcription en cours…', 40);
-      poll(jobId); // relancer le polling
-      break;
-
-    case 'transcribed':
-      goToStep(3);
-      document.getElementById('btn-transcribe').disabled = false;
-      document.getElementById('btn-tts').disabled = false;
-      setProgress('Transcription terminée — corrigez le script puis générez la voix', 100, 'done');
-      break;
-
-    case 'synthesizing':
-      goToStep(3);
-      setProgress('Synthèse vocale en cours…', 60);
-      poll(jobId);
-      break;
-
-    case 'done':
-      goToStep(4);
-      document.getElementById('btn-transcribe').disabled = false;
-      document.getElementById('btn-tts').disabled = false;
-      document.getElementById('btn-export').disabled = false;
-
-      // Vérifier si la vidéo finale existe
-      const finalUrl = document.getElementById('final-url').value;
-      if (finalUrl) {
-        STATE.isFinalVideo = true;
-        showFinalVideo(finalUrl);
-        setProgress('Vidéo finale disponible — vous pouvez télécharger', 100, 'done');
-      } else {
-        setProgress('Voix générée — vous pouvez assembler la vidéo finale', 100, 'done');
-      }
-      break;
-
-    case 'error':
-      goToStep(1);
-      document.getElementById('btn-transcribe').disabled = false;
-      if (STATE.segments.length) {
-        document.getElementById('btn-tts').disabled = false;
-        goToStep(3);
-      }
-      setProgress('Erreur précédente — reprenez depuis l\'étape disponible', 0, 'error');
-      break;
-
-    default:
-      goToStep(1);
+// ── SCRIPT EDITOR v9 — texte seulement, timecodes fixes ──
+function renderScript(segs){
+  const ed=document.getElementById('script-editor');
+  ed.innerHTML='';
+  document.getElementById('seg-count').textContent=segs.length?`— ${segs.length} segments`:'';
+  if(!segs.length){
+    ed.innerHTML=`<div class="script-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Le script apparaîtra après la transcription</p><p style="font-size:10px;margin-top:4px;">Modifiez uniquement le texte — timecodes conservés</p></div>`;
+    return;
   }
-
-  showResumeBanner(jobStatus);
-}
-
-// ═══════════════════════════════════════════════════════
-//  UPLOAD
-// ═══════════════════════════════════════════════════════
-const zone=document.getElementById('upload-zone'), fin=document.getElementById('file-input');
-zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
-zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
-zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files[0])pick(e.dataTransfer.files[0])});
-fin.addEventListener('change',()=>{if(fin.files[0])pick(fin.files[0])});
-
-function pick(file){
-  STATE.uploadedFile=file;
-  document.getElementById('upload-filename').textContent='📄 '+file.name;
-  const v=document.getElementById('video-player');
-  v.src=URL.createObjectURL(file); v.style.display='block';
-  document.getElementById('video-placeholder').style.display='none';
-  document.getElementById('btn-transcribe').disabled=false;
-  document.getElementById('wsec-2').classList.remove('locked');
-  document.getElementById('wsec-2').classList.add('active');
-  setProgress('Vidéo chargée — lancez la transcription',5,'done');
-  log(`Vidéo : ${file.name} (${(file.size/1048576).toFixed(1)} Mo)`);
-  // Masquer le bandeau de reprise si on importe une nouvelle vidéo
-  document.getElementById('resume-banner').classList.remove('show');
-}
-
-// ═══════════════════════════════════════════════════════
-//  TRANSCRIPTION
-// ═══════════════════════════════════════════════════════
-document.getElementById('btn-transcribe').addEventListener('click', async()=>{
-  const pid=document.getElementById('select-project').value;
-  if(!pid){log('⚠️ Sélectionnez un projet.','warn');return;}
-  if(!STATE.uploadedFile&&!STATE.jobId){log('⚠️ Aucune vidéo sélectionnée.','warn');return;}
-  document.getElementById('btn-transcribe').disabled=true;
-  goToStep(2); setProgress('Envoi de la vidéo…',8);
-
-  // Si on relance la transcription sur un job existant avec un nouveau fichier
-  if(STATE.uploadedFile){
-    const fd=new FormData();
-    fd.append('video_file',STATE.uploadedFile);
-    fd.append('project_id',pid);
-    fd.append('stt_engine','faster_whisper');
-    fd.append('tts_engine',document.getElementById('select-tts').value);
-    fd.append('language',document.getElementById('select-lang').value);
-    let up;
-    try{
-      const r=await fetch('/api/jobs/',{method:'POST',headers:{'X-CSRFToken':CSRF},body:fd});
-      up=await r.json();
-    }catch(e){log('❌ Erreur envoi : '+e.message,'err');document.getElementById('btn-transcribe').disabled=false;return;}
-    if(!up.id){log('❌ Upload échoué : '+JSON.stringify(up),'err');document.getElementById('btn-transcribe').disabled=false;return;}
-    STATE.jobId=up.id;
-  }
-
-  log('Transcription démarrée…'); setProgress('Transcription en cours…',20);
-  connectWS(STATE.jobId);
-  const tr=await apiPost(`/api/jobs/${STATE.jobId}/transcribe/`,{
-    stt_engine:'faster_whisper',
-    language:document.getElementById('select-lang').value,
+  segs.forEach((seg,i)=>{
+    const row=document.createElement('div');
+    row.className='seg-row';
+    row.dataset.index=i;
+    row.innerHTML=`<span class="seg-num">${i+1}</span><span class="seg-tc" title="Aller à ce moment">${msToTC(seg.start_ms||seg.start||0)}</span><div class="seg-txt" contenteditable="true" data-index="${i}" spellcheck="true" oninput="onSegInput(this,${i})">${seg.text||''}</div>`;
+    row.querySelector('.seg-tc').addEventListener('click',e=>{e.stopPropagation();document.getElementById('video-player').currentTime=(seg.start_ms||seg.start||0)/1000;hl(i);});
+    row.addEventListener('click',()=>hl(i));
+    ed.appendChild(row);
   });
-  if(tr.task_id){if(!STATE.ws||STATE.ws.readyState!==WebSocket.OPEN)poll(STATE.jobId);}
-  else{log('❌ '+JSON.stringify(tr),'err');document.getElementById('btn-transcribe').disabled=false;}
-});
+}
+function hl(idx){document.querySelectorAll('.seg-row').forEach(r=>r.classList.remove('active'));const r=document.querySelector(`.seg-row[data-index="${idx}"]`);if(r){r.classList.add('active');r.scrollIntoView({block:'nearest',behavior:'smooth'});}}
+function onSegInput(el,idx){if(STATE.segments[idx])STATE.segments[idx].text=el.textContent.trim();}
 
-// ═══════════════════════════════════════════════════════
-//  SAUVEGARDE + REDÉCOUPAGE
-// ═══════════════════════════════════════════════════════
+// ── TABS ──
+
+
+
+function showScriptUI(){document.getElementById('script-buttons').style.display='flex';}
+
+// ── SAUVEGARDE — textes uniquement ──
 async function saveScript(){
   if(!STATE.jobId)return;
   const btn=document.getElementById('btn-save-script');
   btn.disabled=true;
   const editedSegments=[];
-  document.querySelectorAll('.seg-txt').forEach(r=>{
-    const idx=parseInt(r.dataset.index);
+  document.querySelectorAll('.seg-txt').forEach(el=>{
+    const idx=parseInt(el.dataset.index);
     const seg=STATE.segments[idx];
     if(!seg)return;
-    editedSegments.push({id:seg.id,index:seg.index!==undefined?seg.index:idx,start_ms:seg.start_ms||seg.start||0,end_ms:seg.end_ms||seg.end||0,text:r.textContent.trim()});
+    editedSegments.push({id:seg.id,index:seg.index!==undefined?seg.index:idx,start_ms:seg.start_ms||seg.start||0,end_ms:seg.end_ms||seg.end||0,text:el.textContent.trim()});
   });
-  log(`💾 Sauvegarde + redécoupage de ${editedSegments.length} segments…`,'info');
+  log(`💾 Sauvegarde de ${editedSegments.length} segments…`,'info');
   try{
     const res=await apiPost(`/api/jobs/${STATE.jobId}/split_segments/`,{segments:editedSegments});
     if(res.segments&&res.segments.length){
-      STATE.segments=res.segments.map(s=>({id:s.id,index:s.index,start:s.start_ms,end:s.end_ms,start_ms:s.start_ms,end_ms:s.end_ms,text:s.text}));
-      renderScript(STATE.segments);
-      document.getElementById('seg-count').textContent=`— ${STATE.segments.length} segments`;
-      const delta=res.new_count-res.original_count;
-      log(delta>0?`✅ ${res.original_count} segments → ${res.new_count} après découpage.`:`✅ ${res.new_count} segments sauvegardés.`,'info');
-      showRecalcBadge();
-      document.querySelectorAll('.seg-row').forEach(r=>{r.classList.add('tc-updated');setTimeout(()=>r.classList.remove('tc-updated'),2000)});
-    }else{log('⚠️ Réponse inattendue : '+JSON.stringify(res),'warn');}
-  }catch(e){log('❌ Erreur split_segments : '+e.message,'err');}
+      res.segments.forEach(s=>{const seg=STATE.segments.find(x=>x.index===s.index);if(seg)seg.text=s.text;});
+      log(`✅ ${res.new_count} segments sauvegardés.`,'info');
+      const b=document.getElementById('saved-badge');b.classList.add('show');setTimeout(()=>b.classList.remove('show'),2000);
+    }
+  }catch(e){log('❌ Erreur : '+e.message,'err');}
   btn.disabled=false;
-  btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Sauvegarder`;
 }
-function showRecalcBadge(){const b=document.getElementById('recalc-badge');b.classList.add('show');setTimeout(()=>b.classList.remove('show'),3000);}
 
-// ═══════════════════════════════════════════════════════
-//  SYNTHÈSE
-// ═══════════════════════════════════════════════════════
+// ── IMPORT / EXPORT ──
+function exportScript(){if(!STATE.segments.length)return;const lines=STATE.segments.map((s,i)=>`[${i+1}] ${msToTC(s.start_ms||s.start||0)}\n${s.text}`).join('\n\n');const blob=new Blob([lines],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`script_${(STATE.jobId||'export').slice(0,8)}.txt`;a.click();log('📥 Script exporté','info');}
+function importScript(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{const blocks=e.target.result.split(/\n\n+/);let idx=0;blocks.forEach(block=>{const lines=block.trim().split('\n');const content=lines.filter(l=>!l.match(/^\[\d+\]/)).join(' ').trim();if(content&&STATE.segments[idx]){STATE.segments[idx].text=content;idx++;}});renderScript(STATE.segments);log(`📤 Script importé — ${idx} segments mis à jour`,'info');input.value='';};reader.readAsText(file);}
+
+// ── PLEIN ÉCRAN ──
+function openFullEditor(){const ta=document.getElementById('full-editor-textarea');ta.value=STATE.segments.map(s=>s.text||'').join('\n\n');document.getElementById('full-editor-modal').classList.add('open');ta.focus();}
+function closeFullEditor(){document.getElementById('full-editor-modal').classList.remove('open');}
+function applyFullEditor(){const blocks=document.getElementById('full-editor-textarea').value.split(/\n\n+/).filter(b=>b.trim());blocks.forEach((block,i)=>{if(STATE.segments[i])STATE.segments[i].text=block.trim();});renderScript(STATE.segments);closeFullEditor();log(`✅ ${blocks.length} segments mis à jour`,'info');}
+
+// ── RETOUR EN ARRIÈRE ──
+async function resetToStep(step){
+  if(!STATE.jobId)return;
+  const msgs={2:'Annuler la voix ?\n(La transcription est conservée)',3:"Annuler l'export ?\n(La voix est conservée)"};
+  if(!confirm(msgs[step]))return;
+  try{
+    const r=await apiPost(`/api/jobs/${STATE.jobId}/reset/`,{step});
+    if(r.status==='ok'){
+      const videoUrl=document.getElementById('video-url').value;
+      if(videoUrl){STATE.isFinalVideo=false;const v=document.getElementById('video-player');v.src=videoUrl;document.getElementById('hud-mode').textContent='APERÇU SOURCE';document.getElementById('hud-mode').style.color='';document.getElementById('btn-download').style.display='none';}
+      if(step===2){goToStep(3);document.getElementById('btn-tts').disabled=false;document.getElementById('btn-reset-to-transcribed').style.display='none';setProgress('Transcription disponible — corrigez puis regénérez la voix',100,'done');log('↩️ Voix annulée — modifiez le script et regénérez','info');}
+      else if(step===3){goToStep(4);document.getElementById('btn-export').disabled=false;document.getElementById('btn-reset-to-tts').style.display='none';setProgress("Voix disponible — relancez l'assemblage",100,'done');log("↩️ Export annulé — relancez l'assemblage",'info');}
+    }
+  }catch(e){log('❌ Erreur reset : '+e.message,'err');}
+}
+
+// ── REPRISE DE PROJET ──
+const STEP_LABELS={pending:{label:'Vidéo chargée — lancez la transcription',desc:'Étape 2 : Transcrire'},extracting:{label:'Extraction audio en cours…',desc:'Étape 2 : Transcrire'},transcribing:{label:'Transcription en cours…',desc:'Étape 2 : Transcrire'},transcribed:{label:'Transcription terminée — corrigez le script',desc:'Étape 3 : Générer la voix'},synthesizing:{label:'Synthèse vocale en cours…',desc:'Étape 3 : Générer la voix'},done:{label:'Voix générée — assemblez la vidéo',desc:'Étape 4 : Exporter'},error:{label:"Erreur — reprenez depuis l'étape disponible",desc:'Vérifiez le journal'}};
+
+async function resumeProject(jobId,jobStatus){
+  log(`🔄 Reprise (statut : ${jobStatus})…`,'info');
+  try{
+    const segsRaw=await(await fetch(`/api/jobs/${jobId}/segments/`)).json();
+    const segsData=Array.isArray(segsRaw)?segsRaw:(segsRaw.results||[]);
+    if(segsData.length){
+      STATE.segments=segsData.map(s=>({id:s.id,index:s.index,start:s.start_ms,end:s.end_ms,start_ms:s.start_ms,end_ms:s.end_ms,text:s.text}));
+      renderScript(STATE.segments);showScriptUI();
+      if(['done','synthesizing'].includes(jobStatus)){const rb=document.getElementById('btn-reset-to-transcribed');if(rb)rb.style.display='flex';}
+      if(jobStatus==='done'){const rb2=document.getElementById('btn-reset-to-tts');if(rb2)rb2.style.display='flex';}
+      document.getElementById('seg-count').textContent=`— ${STATE.segments.length} segments`;
+      if(segsData[0]){document.getElementById('sub-preview-text').value=segsData[0].text||'';drawSubPreview();}
+      log(`✅ ${STATE.segments.length} segments rechargés.`,'info');
+    }
+  }catch(e){log('⚠️ Impossible de charger les segments.','warn');}
+  const info=STEP_LABELS[jobStatus]||STEP_LABELS.pending;
+  document.getElementById('resume-banner-text').textContent=`Reprise — ${info.label}`;
+  document.getElementById('resume-banner-step').textContent=info.desc;
+  document.getElementById('resume-banner').classList.add('show');
+  switch(jobStatus){
+    case 'pending':goToStep(1);document.getElementById('btn-transcribe').disabled=false;setProgress('Vidéo chargée — lancez la transcription',5,'done');break;
+    case 'extracting':case 'transcribing':goToStep(2);setProgress('Transcription en cours…',40);poll(jobId);break;
+    case 'transcribed':goToStep(3);document.getElementById('btn-transcribe').disabled=false;document.getElementById('btn-tts').disabled=false;setProgress('Transcription terminée — corrigez le script puis générez la voix',100,'done');break;
+    case 'synthesizing':goToStep(3);setProgress('Synthèse vocale en cours…',60);poll(jobId);break;
+    case 'done':
+      goToStep(4);document.getElementById('btn-transcribe').disabled=false;document.getElementById('btn-tts').disabled=false;document.getElementById('btn-export').disabled=false;
+      const finalUrl=document.getElementById('final-url').value;
+      if(finalUrl){
+        // IMPORTANT : marquer comme vidéo finale pour désactiver l'overlay HTML
+        // et éviter le double sous-titrage (ASS gravé + overlay HTML)
+        STATE.isFinalVideo=true;
+        setProgress('Vidéo finale disponible',100,'done');
+        document.getElementById('btn-download').href=finalUrl;
+        document.getElementById('btn-download').style.display='flex';
+      }
+      else{setProgress('Voix générée — assemblez la vidéo finale',100,'done');}
+      break;
+    case 'error':
+      goToStep(1);document.getElementById('btn-transcribe').disabled=false;
+      if(STATE.segments.length){document.getElementById('btn-tts').disabled=false;goToStep(3);}
+      setProgress("Erreur — reprenez depuis l'étape disponible",0,'error');break;
+    default:goToStep(1);
+  }
+}
+
+// ── UPLOAD ──
+const zone=document.getElementById('upload-zone'),fin=document.getElementById('file-input');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
+zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files[0])pick(e.dataTransfer.files[0])});
+fin.addEventListener('change',()=>{if(fin.files[0])pick(fin.files[0])});
+function pick(file){STATE.uploadedFile=file;document.getElementById('upload-filename').textContent='📄 '+file.name;const v=document.getElementById('video-player');v.src=URL.createObjectURL(file);v.style.display='block';document.getElementById('video-placeholder').style.display='none';document.getElementById('btn-transcribe').disabled=false;document.getElementById('wsec-2').classList.remove('locked');document.getElementById('wsec-2').classList.add('active');setProgress('Vidéo chargée — lancez la transcription',5,'done');log(`Vidéo : ${file.name} (${(file.size/1048576).toFixed(1)} Mo)`);document.getElementById('resume-banner').classList.remove('show');}
+
+// ── TRANSCRIPTION ──
+document.getElementById('btn-transcribe').addEventListener('click',async()=>{
+  const pid=document.getElementById('select-project').value;
+  if(!pid){log('⚠️ Sélectionnez un projet.','warn');return;}
+  if(!STATE.uploadedFile&&!STATE.jobId){log('⚠️ Aucune vidéo sélectionnée.','warn');return;}
+  document.getElementById('btn-transcribe').disabled=true;
+  goToStep(2);setProgress('Envoi de la vidéo…',8);
+  if(STATE.uploadedFile){
+    const fd=new FormData();fd.append('video_file',STATE.uploadedFile);fd.append('project_id',pid);fd.append('stt_engine','faster_whisper');fd.append('tts_engine',document.getElementById('select-tts').value);fd.append('language',document.getElementById('select-lang').value);
+    try{const r=await fetch('/api/jobs/',{method:'POST',headers:{'X-CSRFToken':CSRF},body:fd});const up=await r.json();if(!up.id){log('❌ Upload échoué : '+JSON.stringify(up),'err');document.getElementById('btn-transcribe').disabled=false;return;}STATE.jobId=up.id;}
+    catch(e){log('❌ Erreur : '+e.message,'err');document.getElementById('btn-transcribe').disabled=false;return;}
+  }
+  log('Transcription démarrée…');setProgress('Transcription en cours…',20);
+  connectWS(STATE.jobId);
+  const tr=await apiPost(`/api/jobs/${STATE.jobId}/transcribe/`,{stt_engine:'faster_whisper',language:document.getElementById('select-lang').value});
+  if(tr.task_id){if(!STATE.ws||STATE.ws.readyState!==WebSocket.OPEN)poll(STATE.jobId);}
+  else{log('❌ '+JSON.stringify(tr),'err');document.getElementById('btn-transcribe').disabled=false;}
+});
+
+// ── SYNTHÈSE ──
 document.getElementById('btn-tts').addEventListener('click',async()=>{
   if(!STATE.jobId||!STATE.segments.length){log('⚠️ Transcription requise.','warn');return;}
   document.getElementById('btn-tts').disabled=true;
-  goToStep(3); setProgress('Génération de la voix off…',10);
-  const engine=document.getElementById('select-tts').value;
-  const voice=STATE.selectedVoice;
-  log(`🎙️ Voix "${voice}" via ${engine}…`);
-  const r=await apiPost(`/api/jobs/${STATE.jobId}/synthesize/`,{
-    tts_engine:engine,
-    voice:voice,
-    language:document.getElementById('select-lang').value,
-  });
+  goToStep(3);setProgress('Génération de la voix off…',10);
+  const r=await apiPost(`/api/jobs/${STATE.jobId}/synthesize/`,{tts_engine:document.getElementById('select-tts').value,voice:STATE.selectedVoice,language:document.getElementById('select-lang').value});
   if(r.task_id)poll(STATE.jobId);
   else{log('❌ '+JSON.stringify(r),'err');document.getElementById('btn-tts').disabled=false;}
 });
 
-// ═══════════════════════════════════════════════════════
-//  EXPORT
-// ═══════════════════════════════════════════════════════
+// ── EXPORT ──
 document.getElementById('btn-export').addEventListener('click',async()=>{
   if(!STATE.jobId){log('⚠️ Aucun job actif.','warn');return;}
-  document.getElementById('btn-export').disabled=true;
-  STATE.isFinalVideo=false; STATE.prevExportStatus=null;
-  goToStep(4); setProgress('Démarrage du montage…',5);
-  log('Assemblage de la vidéo finale…');
+  document.getElementById('btn-export').disabled=true;STATE.isFinalVideo=false;
+  goToStep(4);setProgress('Démarrage du montage…',5);log('Assemblage de la vidéo finale…');
   const r=await apiPost(`/api/jobs/${STATE.jobId}/export/`,{subtitle_style:getSubStyle()});
   if(r.task_id){log('Export démarré…','info');pollExport(STATE.jobId);}
   else{log('❌ '+JSON.stringify(r),'err');document.getElementById('btn-export').disabled=false;}
 });
 
 function pollExport(jobId){
-  const steps=['Découpage des segments…','Synchronisation image/voix…','Assemblage vidéo…','Sous-titres ASS…','Encodage final…'];
+  const steps=['Calcul des silences…','Rendu des clips…','Assemblage vidéo…','Mixage audio…','Encodage final…'];
   let pct=5,stepIdx=0;
   const iv=setInterval(async()=>{
-    pct=Math.min(pct+2,90); setProgress(steps[Math.min(stepIdx,steps.length-1)],pct); stepIdx++;
+    pct=Math.min(pct+2,90);setProgress(steps[Math.min(stepIdx,steps.length-1)],pct);stepIdx++;
     try{
       const job=await(await fetch(`/api/jobs/${jobId}/`)).json();
-      if(STATE.prevExportStatus!==null&&STATE.prevExportStatus!=='done'&&job.status==='done'){
-        clearInterval(iv); setProgress('Vérification du fichier…',92);
-        const url=`/media/exports/${jobId}/final.mp4`;
-        const ok=await waitForFile(url);
-        if(ok){STATE.isFinalVideo=true;setProgress('Vidéo finale prête !',100,'done');showFinalVideo(url);}
-        else{setProgress('Délai dépassé — réessayez',0,'error');}
-        document.getElementById('btn-export').disabled=false;
-      }
+      if(job.status==='done'&&pct>10){clearInterval(iv);setProgress('Vérification du fichier…',92);const url=`/media/exports/${jobId}/final.mp4`;const ok=await waitForFile(url);if(ok){STATE.isFinalVideo=true;setProgress('Vidéo finale prête !',100,'done');showFinalVideo(url);}else{setProgress('Délai dépassé — réessayez',0,'error');}document.getElementById('btn-export').disabled=false;}
       if(job.status==='error'){clearInterval(iv);setProgress("Erreur lors de l'assemblage",0,'error');log('❌ '+(job.error_message||'Erreur inconnue'),'err');document.getElementById('btn-export').disabled=false;}
-      STATE.prevExportStatus=job.status;
     }catch(e){}
   },3000);
 }
+async function waitForFile(url,maxAttempts=60,delayMs=5000){for(let i=0;i<maxAttempts;i++){try{const r=await fetch(url,{method:'HEAD'});if(r.ok){const size=parseInt(r.headers.get('content-length')||'0');if(size>1000000){log(`✅ Fichier prêt (${(size/1024/1024).toFixed(1)} Mo)`,'info');return true;}}}catch(e){}await new Promise(res=>setTimeout(res,delayMs));}return false;}
+function showFinalVideo(url){STATE.isFinalVideo=true;const v=document.getElementById('video-player');v.pause();v.removeAttribute('src');v.load();setTimeout(()=>{v.src=url+'?t='+Date.now();v.style.display='block';document.getElementById('video-placeholder').style.display='none';document.getElementById('hud-mode').textContent='✓ VIDÉO FINALE';document.getElementById('hud-mode').style.color='#34D399';const dl=document.getElementById('btn-download');dl.href=url;dl.style.display='flex';v.play().catch(()=>{});log('✅ Vidéo finale — prévisualisez et téléchargez.','info');},800);}
 
-async function waitForFile(url,maxAttempts=60,delayMs=5000){
-  for(let i=0;i<maxAttempts;i++){
-    try{const r=await fetch(url,{method:'HEAD'});if(r.ok){const size=parseInt(r.headers.get('content-length')||'0');if(size>1000000){log(`✅ Fichier prêt (${(size/1024/1024).toFixed(1)} Mo)`,'info');return true;}setProgress(`Encodage en cours… ${size>0?(size/1024).toFixed(0)+' Ko':' démarrage'}`,93);}}catch(e){}
-    await new Promise(res=>setTimeout(res,delayMs));
-  }
-  return false;
-}
-
-function showFinalVideo(url){
-  STATE.isFinalVideo = true;
-  const v=document.getElementById('video-player');
-  v.pause();v.removeAttribute('src');v.load();
-  setTimeout(()=>{
-    v.src=url+'?t='+Date.now(); v.style.display='block';
-    document.getElementById('video-placeholder').style.display='none';
-    document.getElementById('hud-mode').textContent='✓ VIDÉO FINALE';
-    document.getElementById('hud-mode').style.color='#34D399';
-    const dl=document.getElementById('btn-download');
-    dl.href=url; dl.style.display='flex';
-    v.play().catch(()=>{});
-    log('✅ Vidéo finale chargée — prévisualisez puis téléchargez.','info');
-  },800);
-}
-
-// ═══════════════════════════════════════════════════════
-//  WEBSOCKET
-// ═══════════════════════════════════════════════════════
-function connectWS(jid){
-  if(STATE.ws)STATE.ws.close();
-  const proto=location.protocol==='https:'?'wss':'ws';
-  STATE.ws=new WebSocket(`${proto}://${location.host}/ws/job/${jid}/`);
-  const dot=document.getElementById('ws-dot'),lbl=document.getElementById('ws-status');
-  STATE.ws.onopen=()=>{dot.className='ws-dot connected';lbl.textContent='Connecté'};
-  STATE.ws.onclose=()=>{dot.className='ws-dot';lbl.textContent='Déconnecté'};
-  STATE.ws.onerror=()=>{dot.className='ws-dot error';lbl.textContent='Erreur'};
-  STATE.ws.onmessage=e=>onWS(JSON.parse(e.data));
-}
-
+// ── WEBSOCKET ──
+function connectWS(jid){if(STATE.ws)STATE.ws.close();const proto=location.protocol==='https:'?'wss':'ws';STATE.ws=new WebSocket(`${proto}://${location.host}/ws/job/${jid}/`);const dot=document.getElementById('ws-dot'),lbl=document.getElementById('ws-status');STATE.ws.onopen=()=>{dot.className='ws-dot connected';lbl.textContent='Connecté'};STATE.ws.onclose=()=>{dot.className='ws-dot';lbl.textContent='Déconnecté'};STATE.ws.onerror=()=>{dot.className='ws-dot error';lbl.textContent='Erreur'};STATE.ws.onmessage=e=>onWS(JSON.parse(e.data));}
 function onWS(msg){
   switch(msg.type){
-    case 'status':   log(msg.message); break;
-    case 'progress': setProgress(msg.label||'…',msg.percent||0); break;
-    case 'waveform': STATE.waveform=msg.data; drawWave(msg.data); break;
+    case 'status':log(msg.message);break;
+    case 'progress':setProgress(msg.label||'…',msg.percent||0);break;
+    case 'waveform':STATE.waveform=msg.data;drawWave(msg.data);break;
     case 'segments':
-      STATE.segments=msg.data; renderScript(msg.data);
-      syncSegmentsToFree();
-      showScriptButtons();
-      setProgress('Transcription terminée — corrigez puis sauvegardez',100,'done');
-      goToStep(3);
+      STATE.segments=msg.data;renderScript(msg.data);showScriptUI();
+      setProgress('Transcription terminée — corrigez le script',100,'done');goToStep(3);
       document.getElementById('btn-tts').disabled=false;
-      if(msg.data.length)document.getElementById('sub-preview-text').value=msg.data[0].text||'';
-      drawSubPreview();
-      log(`✅ ${msg.data.length} segments transcrits.`); break;
-    case 'tts_progress':
-      setProgress(`Génération voix — segment ${msg.current}/${msg.total}…`,Math.round(msg.current/msg.total*100)); break;
+      if(msg.data.length){document.getElementById('sub-preview-text').value=msg.data[0].text||'';drawSubPreview();}
+      log(`✅ ${msg.data.length} segments transcrits.`);break;
+    case 'tts_progress':setProgress(`Voix — segment ${msg.current}/${msg.total}…`,Math.round(msg.current/msg.total*100));break;
     case 'tts_done':
       log(`✅ ${msg.nb_ok}/${msg.nb_total} segments vocaux générés.`);
-      setProgress('Voix générée — vous pouvez assembler la vidéo',100,'done');
-      goToStep(4);
-      document.getElementById('btn-tts').disabled=false;
-      document.getElementById('btn-export').disabled=false; break;
+      setProgress('Voix générée — assemblez la vidéo',100,'done');goToStep(4);
+      document.getElementById('btn-tts').disabled=false;document.getElementById('btn-export').disabled=false;break;
     case 'export_done':
-      (async()=>{
-        if(STATE.isFinalVideo)return;
-        setProgress('Vérification du fichier…',95);
-        const url=msg.download_url;
-        let ready=false;
-        for(let i=0;i<12;i++){
-          try{const r=await fetch(url,{method:'HEAD'});if(r.ok&&parseInt(r.headers.get('content-length')||'0')>1000000){ready=true;break;}}catch(e){}
-          await new Promise(res=>setTimeout(res,3000));
-        }
-        if(ready){STATE.isFinalVideo=true;setProgress('Vidéo finale prête !',100,'done');showFinalVideo(url);}
-        document.getElementById('btn-export').disabled=false;
-      })(); break;
-    case 'error':
-      log('❌ '+msg.message,'err'); setProgress('Erreur',0,'error');
-      document.getElementById('btn-transcribe').disabled=false;
-      document.getElementById('btn-tts').disabled=false; break;
+      (async()=>{if(STATE.isFinalVideo)return;const url=msg.download_url;const ok=await waitForFile(url,12,3000);if(ok){STATE.isFinalVideo=true;setProgress('Vidéo finale prête !',100,'done');showFinalVideo(url);}document.getElementById('btn-export').disabled=false;})();break;
+    case 'error':log('❌ '+msg.message,'err');setProgress('Erreur',0,'error');document.getElementById('btn-transcribe').disabled=false;document.getElementById('btn-tts').disabled=false;break;
   }
 }
 
-// ═══════════════════════════════════════════════════════
-//  POLLING
-// ═══════════════════════════════════════════════════════
+// ── POLLING ──
 function poll(jid){
   if(STATE.pollInterval)clearInterval(STATE.pollInterval);
   STATE.pollInterval=setInterval(async()=>{
     try{
-      const job=await(await fetch(`/api/jobs/${jid}/`)).json();
-      const s=job.status;
-      const labels={extracting:['Extraction audio…',30],transcribing:['Transcription…',60],transcribed:['Transcription terminée',100],synthesizing:['Synthèse vocale…',70],done:['Terminé',100],error:['Erreur',0]};
+      const job=await(await fetch(`/api/jobs/${jid}/`)).json();const s=job.status;
+      const labels={extracting:['Extraction audio…',30],transcribing:['Transcription…',60],transcribed:['Terminée',100],synthesizing:['Synthèse vocale…',70],done:['Terminé',100],error:['Erreur',0]};
       if(labels[s])setProgress(labels[s][0],labels[s][1],s==='error'?'error':s==='done'?'done':'active');
       if(s==='transcribed'&&!STATE.segments.length){
-        const sdRaw=await(await fetch(`/api/jobs/${jid}/segments/`)).json();
-        const sd=Array.isArray(sdRaw)?sdRaw:(sdRaw.results||[]);
-        if(sd.length){
-          STATE.segments=sd.map(x=>({id:x.id,index:x.index,start:x.start_ms,end:x.end_ms,start_ms:x.start_ms,end_ms:x.end_ms,text:x.text}));
-          renderScript(STATE.segments);
-          syncSegmentsToFree();
-          showScriptButtons();
-          goToStep(3);
-          document.getElementById('btn-tts').disabled=false;
-          document.getElementById('btn-transcribe').disabled=false;
-          document.getElementById('sub-preview-text').value=sd[0].text||'';
-          drawSubPreview();
-          setProgress('Transcription terminée — corrigez puis sauvegardez',100,'done');
-          clearInterval(STATE.pollInterval); STATE.pollInterval=null;
-        }
+        const sdRaw=await(await fetch(`/api/jobs/${jid}/segments/`)).json();const sd=Array.isArray(sdRaw)?sdRaw:(sdRaw.results||[]);
+        if(sd.length){STATE.segments=sd.map(x=>({id:x.id,index:x.index,start:x.start_ms,end:x.end_ms,start_ms:x.start_ms,end_ms:x.end_ms,text:x.text}));renderScript(STATE.segments);showScriptUI();goToStep(3);document.getElementById('btn-tts').disabled=false;document.getElementById('btn-transcribe').disabled=false;document.getElementById('sub-preview-text').value=sd[0].text||'';drawSubPreview();setProgress('Transcription terminée — corrigez le script',100,'done');clearInterval(STATE.pollInterval);STATE.pollInterval=null;}
       }
-      if(s==='done'){
-        clearInterval(STATE.pollInterval); STATE.pollInterval=null;
-        document.getElementById('btn-tts').disabled=false;
-        document.getElementById('btn-export').disabled=false;
-        document.getElementById('btn-transcribe').disabled=false;
-        goToStep(4);
-        if(!STATE.segments.length){
-          const sd=await(await fetch(`/api/jobs/${jid}/segments/`)).json();
-          if(sd.length){STATE.segments=sd.map(x=>({id:x.id,index:x.index,start:x.start_ms,end:x.end_ms,start_ms:x.start_ms,end_ms:x.end_ms,text:x.text}));renderScript(STATE.segments);document.getElementById('btn-save-script').style.display='flex';}
-        }
-      }
+      if(s==='done'){clearInterval(STATE.pollInterval);STATE.pollInterval=null;document.getElementById('btn-tts').disabled=false;document.getElementById('btn-export').disabled=false;document.getElementById('btn-transcribe').disabled=false;goToStep(4);}
       if(s==='error'){clearInterval(STATE.pollInterval);STATE.pollInterval=null;log('❌ '+(job.error_message||'Erreur'),'err');document.getElementById('btn-transcribe').disabled=false;document.getElementById('btn-tts').disabled=false;}
     }catch(e){}
   },2500);
 }
 
-// ═══════════════════════════════════════════════════════
-//  WAVEFORM
-// ═══════════════════════════════════════════════════════
-function drawWave(data){
-  const c=document.getElementById('waveform-canvas');
-  const ctx=c.getContext('2d');
-  const W=c.offsetWidth,H=c.offsetHeight;
-  c.width=W;c.height=H;
-  ctx.fillStyle='#07090E';ctx.fillRect(0,0,W,H);
-  if(!data||!data.length)return;
-  const g=ctx.createLinearGradient(0,0,W,0);
-  g.addColorStop(0,'rgba(59,130,246,.5)');g.addColorStop(.5,'rgba(6,182,212,.6)');g.addColorStop(1,'rgba(59,130,246,.5)');
-  ctx.strokeStyle=g;ctx.lineWidth=1;
-  const step=W/data.length;
-  for(let i=0;i<data.length;i++){const x=i*step,a=data[i]*(H/2);ctx.beginPath();ctx.moveTo(x,H/2-a);ctx.lineTo(x,H/2+a);ctx.stroke();}
-}
-function drawHead(){
-  if(!STATE.waveform.length)return;
-  const c=document.getElementById('waveform-canvas'),v=document.getElementById('video-player');
-  if(!v.duration)return;
-  drawWave(STATE.waveform);
-  const ctx=c.getContext('2d');
-  const x=(v.currentTime/v.duration)*c.width;
-  ctx.strokeStyle='rgba(239,68,68,.8)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,c.height);ctx.stroke();
-}
+// ── WAVEFORM ──
+function drawWave(data){const c=document.getElementById('waveform-canvas');const ctx=c.getContext('2d');const W=c.offsetWidth,H=c.offsetHeight;c.width=W;c.height=H;ctx.fillStyle='#07090E';ctx.fillRect(0,0,W,H);if(!data||!data.length)return;const g=ctx.createLinearGradient(0,0,W,0);g.addColorStop(0,'rgba(59,130,246,.5)');g.addColorStop(.5,'rgba(6,182,212,.6)');g.addColorStop(1,'rgba(59,130,246,.5)');ctx.strokeStyle=g;ctx.lineWidth=1;const step=W/data.length;for(let i=0;i<data.length;i++){const x=i*step,a=data[i]*(H/2);ctx.beginPath();ctx.moveTo(x,H/2-a);ctx.lineTo(x,H/2+a);ctx.stroke();}}
+function drawHead(){if(!STATE.waveform.length)return;const c=document.getElementById('waveform-canvas'),v=document.getElementById('video-player');if(!v.duration)return;drawWave(STATE.waveform);const ctx=c.getContext('2d');const x=(v.currentTime/v.duration)*c.width;ctx.strokeStyle='rgba(239,68,68,.8)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,c.height);ctx.stroke();}
 
-// ═══════════════════════════════════════════════════════
-//  SCRIPT EDITOR
-// ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════
-//  SCRIPT EDITOR v2 — avec suppression, fusion, longueur
-// ═══════════════════════════════════════════════════════
-
-const MAX_SEG_CHARS = 120;  // seuil orange
-const MAX_SEG_HARD  = 200;  // seuil rouge (trop long)
-
-function renderScript(segs) {
-  const ed = document.getElementById('script-editor');
-  ed.innerHTML = '';
-
-  // Stats
-  const totalChars = segs.reduce((a, s) => a + (s.text || '').length, 0);
-  const longSegs    = segs.filter(s => (s.text || '').length > MAX_SEG_CHARS).length;
-  document.getElementById('seg-count').textContent = `— ${segs.length} segments`;
-
-  const statsEl = document.getElementById('script-stats');
-  if (statsEl) {
-    statsEl.textContent = `${totalChars} car. · ${longSegs > 0 ? `⚠️ ${longSegs} longs` : '✅ ok'}`;
-    statsEl.style.color = longSegs > 0 ? 'var(--amber)' : 'var(--text-3)';
-  }
-
-  if (!segs.length) {
-    ed.innerHTML = `<div class="script-empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <p>Le texte apparaîtra ici après la transcription</p>
-      <p style="font-size:10px;margin-top:4px;">Corrigez-le avant de générer la voix</p>
-    </div>`;
-    return;
-  }
-
-  segs.forEach((seg, i) => {
-    const text    = seg.text || '';
-    const chars   = text.length;
-    const pct     = Math.min(100, (chars / MAX_SEG_HARD) * 100);
-    const isWarn  = chars > MAX_SEG_CHARS;
-    const isOver  = chars > MAX_SEG_HARD;
-    const barClass = isOver ? 'over' : isWarn ? 'warn' : '';
-    const lblClass = isOver ? 'over' : isWarn ? 'warn' : '';
-
-    const row = document.createElement('div');
-    row.className = 'seg-row';
-    row.dataset.index = i;
-
-    row.innerHTML = `
-      <span class="seg-num">${i + 1}</span>
-      <span class="seg-tc" title="Aller à ce moment">${msToTC(seg.start || seg.start_ms || 0)}</span>
-      <div class="seg-body">
-        <div class="seg-txt" contenteditable="true" data-index="${i}"
-             spellcheck="true"
-             oninput="onSegInput(this, ${i})">${text}</div>
-        <div class="seg-len-bar ${barClass}" style="width:${pct}%"></div>
-        <div class="seg-len-label ${lblClass}">${chars} car.${isOver ? ' — trop long !' : isWarn ? ' — long' : ''}</div>
-      </div>
-      <div class="seg-actions">
-        ${i > 0 ? `<button class="seg-btn merge" title="Fusionner avec le segment précédent" onclick="mergeWithPrev(${i})">↑</button>` : '<div style="width:20px"></div>'}
-        <button class="seg-btn del" title="Supprimer ce segment" onclick="deleteSegment(${i})">×</button>
-      </div>
-    `;
-
-    // Clic sur le timecode → aller à ce moment dans la vidéo
-    row.querySelector('.seg-tc').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.getElementById('video-player').currentTime = (seg.start || seg.start_ms || 0) / 1000;
-      hl(i);
-      document.getElementById('sub-preview-text').value = text;
-      drawSubPreview();
-    });
-
-    // Clic sur la ligne → highlight
-    row.addEventListener('click', () => {
-      hl(i);
-      document.getElementById('sub-preview-text').value = text;
-      drawSubPreview();
-    });
-
-    ed.appendChild(row);
-
-    // Séparateur de fusion entre segments
-    if (i < segs.length - 1) {
-      const sep = document.createElement('div');
-      sep.className = 'seg-merge-hint';
-      sep.title = 'Fusionner ces deux segments';
-      sep.addEventListener('click', () => mergeSegments(i, i + 1));
-      ed.appendChild(sep);
-    }
-  });
-}
-
-function hl(idx) {
-  document.querySelectorAll('.seg-row').forEach(r => r.classList.remove('active'));
-  const r = document.querySelector(`.seg-row[data-index="${idx}"]`);
-  if (r) {
-    r.classList.add('active');
-    r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
-}
-
-// Mise à jour en temps réel de la barre de longueur
-function onSegInput(el, idx) {
-  const chars   = el.textContent.length;
-  const pct     = Math.min(100, (chars / MAX_SEG_HARD) * 100);
-  const isWarn  = chars > MAX_SEG_CHARS;
-  const isOver  = chars > MAX_SEG_HARD;
-  const row     = el.closest('.seg-row');
-
-  const bar = row.querySelector('.seg-len-bar');
-  bar.style.width = pct + '%';
-  bar.className = 'seg-len-bar' + (isOver ? ' over' : isWarn ? ' warn' : '');
-
-  const lbl = row.querySelector('.seg-len-label');
-  lbl.textContent = `${chars} car.${isOver ? ' — trop long !' : isWarn ? ' — long' : ''}`;
-  lbl.className = 'seg-len-label' + (isOver ? ' over' : isWarn ? ' warn' : '');
-
-  // Mettre à jour le texte dans STATE.segments
-  if (STATE.segments[idx]) {
-    STATE.segments[idx].text = el.textContent.trim();
-  }
-}
-
-// Supprimer un segment
-function deleteSegment(idx) {
-  if (STATE.segments.length <= 1) {
-    log('⚠️ Impossible de supprimer le dernier segment.', 'warn');
-    return;
-  }
-  if (!confirm(`Supprimer le segment ${idx + 1} ?`)) return;
-
-  STATE.segments.splice(idx, 1);
-  // Réindexer
-  STATE.segments.forEach((s, i) => s.index = i);
-  renderScript(STATE.segments);
-  log(`🗑️ Segment ${idx + 1} supprimé.`, 'info');
-}
-
-// Fusionner un segment avec le précédent
-function mergeWithPrev(idx) {
-  if (idx <= 0) return;
-  mergeSegments(idx - 1, idx);
-}
-
-// Fusionner deux segments consécutifs
-function mergeSegments(idxA, idxB) {
-  if (idxB >= STATE.segments.length) return;
-
-  const segA = STATE.segments[idxA];
-  const segB = STATE.segments[idxB];
-
-  const newText = (segA.text || '').trim() + ' ' + (segB.text || '').trim();
-  const merged  = {
-    ...segA,
-    text:     newText,
-    end_ms:   segB.end_ms || segB.end || segA.end_ms,
-    end:      segB.end_ms || segB.end || segA.end_ms,
-  };
-
-  STATE.segments.splice(idxA, 2, merged);
-  STATE.segments.forEach((s, i) => s.index = i);
-  renderScript(STATE.segments);
-  log(`🔗 Segments ${idxA + 1} et ${idxB + 1} fusionnés.`, 'info');
-}
-
-// Découper automatiquement tous les segments trop longs
-function autoSplitLong() {
-  let splitCount = 0;
-  const newSegs = [];
-
-  STATE.segments.forEach(seg => {
-    const text = (seg.text || '').trim();
-    if (text.length <= MAX_SEG_CHARS) {
-      newSegs.push(seg);
-      return;
-    }
-
-    // Découper aux fins de phrase d'abord
-    const parts = smartSplit(text, MAX_SEG_CHARS);
-    if (parts.length <= 1) {
-      newSegs.push(seg);
-      return;
-    }
-
-    const dur   = ((seg.end_ms || seg.end || 0) - (seg.start_ms || seg.start || 0));
-    const total = parts.reduce((a, p) => a + p.length, 0) || 1;
-    let cursor  = seg.start_ms || seg.start || 0;
-
-    parts.forEach((part, pi) => {
-      const ratio  = part.length / total;
-      const subDur = Math.max(200, Math.round(dur * ratio));
-      const subEnd = pi === parts.length - 1
-        ? (seg.end_ms || seg.end || 0)
-        : cursor + subDur;
-
-      newSegs.push({
-        ...seg,
-        text:     part,
-        start_ms: cursor,
-        start:    cursor,
-        end_ms:   subEnd,
-        end:      subEnd,
-      });
-      cursor = subEnd;
-      splitCount++;
-    });
-    splitCount--; // on compte les nouveaux, pas l'original
-  });
-
-  if (splitCount > 0) {
-    STATE.segments = newSegs;
-    STATE.segments.forEach((s, i) => s.index = i);
-    renderScript(STATE.segments);
-    log(`✂️ ${splitCount} segments découpés automatiquement.`, 'info');
-  } else {
-    log('✅ Aucun segment trop long trouvé.', 'info');
-  }
-}
-
-// Découpage intelligent par phrases/virgules
-function smartSplit(text, maxChars) {
-  if (text.length <= maxChars) return [text];
-
-  // 1. Couper aux fins de phrase
-  const sentences = text.split(/(?<=[.!?])\s+/);
-  const chunks = [];
-  let current = '';
-
-  for (const sent of sentences) {
-    const test = current ? current + ' ' + sent : sent;
-    if (test.length <= maxChars) {
-      current = test;
-    } else {
-      if (current) chunks.push(current);
-      current = sent;
-    }
-  }
-  if (current) chunks.push(current);
-
-  // 2. Si encore trop long, couper aux virgules
-  const result = [];
-  for (const chunk of chunks) {
-    if (chunk.length <= maxChars) {
-      result.push(chunk);
-      continue;
-    }
-    const parts2 = chunk.split(/(?<=,)\s+/);
-    let cur2 = '';
-    for (const p of parts2) {
-      const t = cur2 ? cur2 + ' ' + p : p;
-      if (t.length <= maxChars) { cur2 = t; }
-      else { if (cur2) result.push(cur2); cur2 = p; }
-    }
-    if (cur2) result.push(cur2);
-  }
-
-  return result.filter(Boolean);
-}
-
-// ── Sauvegarder le script (version améliorée) ────────────────────────────
-async function saveScript() {
-  if (!STATE.jobId) return;
-  const btn = document.getElementById('btn-save-script');
-  btn.disabled = true;
-
-  // Collecter les textes édités depuis le DOM
-  const editedSegments = [];
-  document.querySelectorAll('.seg-txt').forEach(el => {
-    const idx = parseInt(el.dataset.index);
-    const seg = STATE.segments[idx];
-    if (!seg) return;
-    editedSegments.push({
-      id:       seg.id,
-      index:    seg.index !== undefined ? seg.index : idx,
-      start_ms: seg.start_ms || seg.start || 0,
-      end_ms:   seg.end_ms   || seg.end   || 0,
-      text:     el.textContent.trim(),
-    });
-  });
-
-  log(`💾 Sauvegarde de ${editedSegments.length} segments…`, 'info');
-
-  try {
-    const res = await apiPost(`/api/jobs/${STATE.jobId}/split_segments/`, {
-      segments: editedSegments
-    });
-
-    if (res.segments && res.segments.length) {
-      STATE.segments = res.segments.map(s => ({
-        id:       s.id,
-        index:    s.index,
-        start:    s.start_ms,
-        end:      s.end_ms,
-        start_ms: s.start_ms,
-        end_ms:   s.end_ms,
-        text:     s.text,
-      }));
-      renderScript(STATE.segments);
-      document.getElementById('seg-count').textContent = `— ${STATE.segments.length} segments`;
-
-      const delta = res.new_count - res.original_count;
-      if (delta > 0) {
-        log(`✅ ${res.original_count} → ${res.new_count} segments après découpage intelligent.`, 'info');
-      } else {
-        log(`✅ ${res.new_count} segments sauvegardés.`, 'info');
-      }
-      showRecalcBadge();
-
-      document.querySelectorAll('.seg-row').forEach(r => {
-        r.classList.add('tc-updated');
-        setTimeout(() => r.classList.remove('tc-updated'), 2000);
-      });
-    } else {
-      log('⚠️ Réponse inattendue : ' + JSON.stringify(res), 'warn');
-    }
-  } catch(e) {
-    log('❌ Erreur sauvegarde : ' + e.message, 'err');
-  }
-
-  btn.disabled = false;
-}
-// ═══════════════════════════════════════════════════════
-//  SCRIPT TABS — Segments / Texte libre
-// ═══════════════════════════════════════════════════════
-function switchScriptTab(name, el) {
-  document.querySelectorAll('.script-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.script-tab-panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('script-tab-' + name).classList.add('active');
-  if (name === 'free') syncSegmentsToFree();
-}
-
-function syncSegmentsToFree() {
-  const ta = document.getElementById('free-editor');
-  if (ta) ta.value = STATE.segments.map(s => s.text || '').join('\n\n');
-}
-
-function syncFreeToSegments() {
-  const ta = document.getElementById('free-editor');
-  if (!ta) return;
-  const blocks = ta.value.split(/\n\n+/).filter(b => b.trim());
-  blocks.forEach((block, i) => {
-    if (STATE.segments[i]) STATE.segments[i].text = block.trim();
-  });
-  renderScript(STATE.segments);
-  log(`✅ ${blocks.length} segments synchronisés`, 'info');
-}
-
-function showScriptButtons() {
-  ['btn-import-script','btn-export-script','btn-auto-split','btn-save-script'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'flex';
-  });
-  const tabs = document.getElementById('script-tabs');
-  if (tabs) tabs.style.display = 'flex';
-}
-
-// ═══════════════════════════════════════════════════════
-//  EXPORT / IMPORT SCRIPT
-// ═══════════════════════════════════════════════════════
-function exportScript() {
-  if (!STATE.segments.length) return;
-  const lines = STATE.segments.map((s, i) =>
-    `[${i+1}] ${msToTC(s.start_ms||s.start||0)}\n${s.text}`
-  ).join('\n\n');
-  const blob = new Blob([lines], {type: 'text/plain;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `script_${STATE.jobId?.slice(0,8) || 'export'}.txt`;
-  a.click();
-  log('📥 Script exporté en .txt', 'info');
-}
-
-function importScript(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const text = e.target.result;
-    // Parser le format [N] TC\nTexte\n\nTexte
-    const blocks = text.split(/\n\n+/);
-    let idx = 0;
-    blocks.forEach(block => {
-      const lines = block.trim().split('\n');
-      // Enlever la première ligne si c'est un header [N] TC
-      const content = lines.filter(l => !l.match(/^\[\d+\]/)).join(' ').trim();
-      if (content && STATE.segments[idx]) {
-        STATE.segments[idx].text = content;
-        idx++;
-      }
-    });
-    renderScript(STATE.segments);
-    log(`📤 Script importé — ${idx} segments mis à jour`, 'info');
-    input.value = '';
-  };
-  reader.readAsText(file);
-}
-
-// ═══════════════════════════════════════════════════════
-//  ÉDITEUR PLEIN ÉCRAN
-// ═══════════════════════════════════════════════════════
-function openFullEditor() {
-  const modal = document.getElementById('full-editor-modal');
-  const ta = document.getElementById('full-editor-textarea');
-  // Mettre tous les textes dans la textarea, un par ligne vide
-  ta.value = STATE.segments.map(s => s.text || '').join('\n\n');
-  modal.style.display = 'flex';
-  ta.focus();
-}
-
-function closeFullEditor() {
-  document.getElementById('full-editor-modal').style.display = 'none';
-}
-
-function applyFullEditor() {
-  const ta = document.getElementById('full-editor-textarea');
-  const blocks = ta.value.split(/\n\n+/).filter(b => b.trim());
-  blocks.forEach((block, i) => {
-    if (STATE.segments[i]) {
-      STATE.segments[i].text = block.trim();
-    }
-  });
-  renderScript(STATE.segments);
-  closeFullEditor();
-  log(`✅ ${blocks.length} segments mis à jour depuis l'éditeur plein écran`, 'info');
-}
-
-// ═══════════════════════════════════════════════════════
-//  RETOUR EN ARRIÈRE
-// ═══════════════════════════════════════════════════════
-async function resetToStep(step) {
-  if (!STATE.jobId) return;
-  const labels = {2: 'la voix', 3: "l'export"};
-  if (!confirm(`Annuler ${labels[step]} et revenir à l'étape ${step} ?`)) return;
-
-  try {
-    const r = await apiPost(`/api/jobs/${STATE.jobId}/reset/`, {step});
-    if (r.status === 'ok') {
-      log(`↩️ Retour à l'étape ${step}`, 'info');
-      goToStep(step);
-      if (step === 2) {
-        // Rester à l'étape 3 — la voix est annulée mais la transcription est là
-        goToStep(3);  // ← 3 et non 2 !
-        document.getElementById('btn-tts').disabled = false;
-        document.getElementById('btn-reset-to-transcribed').style.display = 'none';
-        setProgress('Voix annulée — regénérez la voix off', 100, 'done');
-      } else if (step === 3) {
-        document.getElementById('btn-export').disabled = false;
-        document.getElementById('btn-reset-to-tts').style.display = 'none';
-        setProgress('Voix disponible — relancez l\'export', 100, 'done');
-      }
-    }
-
-    // Revenir à la vidéo originale
-    const videoUrl = document.getElementById('video-url').value;
-    if (videoUrl) {
-      STATE.isFinalVideo = false;
-      const v = document.getElementById('video-player');
-      v.src = videoUrl;
-      document.getElementById('hud-mode').textContent = 'APERÇU SOURCE';
-      document.getElementById('hud-mode').style.color = '';
-      document.getElementById('btn-download').style.display = 'none';
-    }
-  } catch(e) {
-    log('❌ Erreur reset : ' + e.message, 'err');
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  TRANSPORT
-// ═══════════════════════════════════════════════════════
+// ── TRANSPORT ──
 const vid=document.getElementById('video-player'),sb=document.getElementById('seek-bar');
-function togglePlay(){
-  const ico=document.getElementById('play-icon');
-  if(vid.paused){vid.play();ico.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}
-  else{vid.pause();ico.innerHTML='<polygon points="5 3 19 12 5 21"/>';}
-}
+function togglePlay(){const ico=document.getElementById('play-icon');if(vid.paused){vid.play();ico.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}else{vid.pause();ico.innerHTML='<polygon points="5 3 19 12 5 21"/>';}}
 vid.addEventListener('timeupdate',()=>{
   if(!vid.duration)return;
   const ov=document.getElementById('subtitle-overlay');
-  if (STATE.isFinalVideo) {
-      ov.style.display = 'none';
-      sb.value=(vid.currentTime/vid.duration)*100;
-      document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
-      drawHead();
-      return;
-  }
   sb.value=(vid.currentTime/vid.duration)*100;
   document.getElementById('time-display').textContent=`${msToTC(vid.currentTime*1000)} / ${msToTC(vid.duration*1000)}`;
-  {const ms=vid.currentTime*1000;const seg=STATE.segments.find(s=>ms>=(s.start||s.start_ms)&&ms<=(s.end||s.end_ms));if(seg){ov.textContent=seg.text;ov.style.display='block';hl(STATE.segments.indexOf(seg));}else{ov.style.display='none';}}
+  if(STATE.isFinalVideo){ov.style.display='none';}
+  else{const ms=vid.currentTime*1000;const seg=STATE.segments.find(s=>ms>=(s.start||s.start_ms)&&ms<=(s.end||s.end_ms));if(seg){ov.textContent=seg.text;ov.style.display='block';hl(STATE.segments.indexOf(seg));}else{ov.style.display='none';}}
   drawHead();
 });
-vid.addEventListener('loadedmetadata',()=>{
-  const el=document.getElementById('hud-res');
-  el.textContent=`${vid.videoWidth}×${vid.videoHeight}`;
-  el.style.display='block';
-});
+vid.addEventListener('loadedmetadata',()=>{const el=document.getElementById('hud-res');el.textContent=`${vid.videoWidth}×${vid.videoHeight}`;el.style.display='block';});
 sb.addEventListener('input',()=>{if(vid.duration)vid.currentTime=(sb.value/100)*vid.duration;});
 
-// ═══════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════
+// ── INIT ──
 window.addEventListener('load',()=>{
-  // Construire les grilles de voix
   buildVoiceGrids();
-  // Appliquer le moteur TTS sauvegardé
-  const savedEngine = document.getElementById('current-job-tts').value || 'elevenlabs';
-  document.getElementById('select-tts').value = savedEngine;
-  onTtsEngineChange();
-  // Appliquer la voix sauvegardée
-  const savedVoice = document.getElementById('current-job-voice').value || 'narrateur_pro';
-  selectVoice(savedVoice);
-
-  initPresets();
-  drawSubPreview();
-
+  const savedEngine=document.getElementById('current-job-tts').value||'elevenlabs';
+  document.getElementById('select-tts').value=savedEngine;onTtsEngineChange();
+  selectVoice(document.getElementById('current-job-voice').value||'narrateur_pro');
+  initPresets();drawSubPreview();
   if(STATE.jobId){
     connectWS(STATE.jobId);
-
-    // Charger la vidéo (finale si dispo, sinon source)
     const videoUrl=document.getElementById('video-url').value;
     const finalUrl=document.getElementById('final-url').value;
-
+    if(videoUrl){const v=document.getElementById('video-player');v.src=videoUrl;v.style.display='block';document.getElementById('video-placeholder').style.display='none';document.getElementById('upload-filename').textContent='📄 '+videoUrl.split('/').pop();}
     if(finalUrl){
+      // Charger la vidéo finale ET désactiver l'overlay HTML dès le départ
       STATE.isFinalVideo=true;
       const v=document.getElementById('video-player');
-      v.src=finalUrl+'?t='+Date.now(); v.style.display='block';
+      v.src=finalUrl+'?t='+Date.now();
+      v.style.display='block';
       document.getElementById('video-placeholder').style.display='none';
       document.getElementById('hud-mode').textContent='✓ VIDÉO FINALE';
       document.getElementById('hud-mode').style.color='#34D399';
+      document.getElementById('subtitle-overlay').style.display='none';
       document.getElementById('btn-download').href=finalUrl;
       document.getElementById('btn-download').style.display='flex';
-      const fname=finalUrl.split('/').pop().split('?')[0];
-      document.getElementById('upload-filename').textContent='🎬 '+fname;
-    }else if(videoUrl){
-      const v=document.getElementById('video-player');
-      v.src=videoUrl; v.style.display='block';
-      document.getElementById('video-placeholder').style.display='none';
-      const fname=videoUrl.split('/').pop().split('?')[0];
-      document.getElementById('upload-filename').textContent='📄 '+fname;
+      document.getElementById('upload-filename').textContent='🎬 '+finalUrl.split('/').pop().split('?')[0];
     }
-
-    // ── REPRISE DE PROJET ──────────────────────────
-    const jobStatus = STATE.jobStatus;
-    resumeProject(STATE.jobId, jobStatus);
+    resumeProject(STATE.jobId,STATE.jobStatus);
   }
-
   window.addEventListener('resize',drawSubPreview);
 });
 </script>
