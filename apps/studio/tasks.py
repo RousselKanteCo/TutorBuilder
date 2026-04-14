@@ -126,7 +126,11 @@ def _estimate_tts_ms(text, lang="fr"):
     )
     return max(400.0, base_ms + pauses)
 
-def _chunk_for_subtitle(text):
+def _text_to_screen(text):
+    """
+    Découpe un texte en lignes de 44 chars max.
+    Retourne une liste de lignes — SANS limite de nombre.
+    """
     words, lines, current = text.split(), [], ""
     for word in words:
         test = (current + " " + word).strip() if current else word
@@ -135,12 +139,73 @@ def _chunk_for_subtitle(text):
         else:
             if current:
                 lines.append(current)
-                if len(lines) >= SUBTITLE_MAX_LINES:
-                    return "\n".join(lines)
             current = word
-    if current and len(lines) < SUBTITLE_MAX_LINES:
+    if current:
         lines.append(current)
-    return "\n".join(lines)
+    return lines
+
+
+def _chunk_for_subtitle(text):
+    """
+    Retourne les 3 premières lignes du texte pour un aperçu.
+    Utilisé uniquement pour la prévisualisation dans le plan.
+    Le vrai découpage en événements est fait par _split_subtitle_events.
+    """
+    lines = _text_to_screen(text)
+    return "\n".join(lines[:3])
+
+
+def _split_subtitle_events(text, start_ms, end_ms):
+    """
+    Découpe un texte en écrans de 3 lignes max (44 chars par ligne).
+    AUCUN texte n est perdu — si ca depasse 3 lignes, on cree un nouvel ecran.
+    Timing proportionnel au nombre de mots.
+
+    Exemple (texte long) :
+      Ecran 1 : lignes 1-3  → [start_ms → milieu]
+      Ecran 2 : lignes 4-6  → [milieu → end_ms]
+    """
+    MAX_LINES_PER_SCREEN = 3
+
+    # 1. Découper tout le texte en lignes de 44 chars
+    all_lines = _text_to_screen(text)
+
+    if not all_lines:
+        return [{"start_ms": start_ms, "end_ms": end_ms,
+                 "text": text, "sub_text": ""}]
+
+    # 2. Regrouper les lignes par écrans de MAX_LINES_PER_SCREEN
+    screens = []
+    for i in range(0, len(all_lines), MAX_LINES_PER_SCREEN):
+        screens.append(all_lines[i:i + MAX_LINES_PER_SCREEN])
+
+    if len(screens) == 1:
+        return [{"start_ms": start_ms, "end_ms": end_ms,
+                 "text": text, "sub_text": "\n".join(screens[0])}]
+
+    # 3. Répartir le temps proportionnellement au nombre de mots par écran
+    screen_texts  = ["\n".join(s) for s in screens]
+    screen_words  = [len(t.split()) for t in screen_texts]
+    total_words   = sum(screen_words) or 1
+    total_ms      = max(end_ms - start_ms, 100)
+    events        = []
+    cursor        = start_ms
+
+    for i, (screen_text, nb_words) in enumerate(zip(screen_texts, screen_words)):
+        is_last = (i == len(screens) - 1)
+        duree   = int(total_ms * nb_words / total_words)
+        fin     = end_ms if is_last else cursor + duree
+
+        events.append({
+            "start_ms": int(cursor),
+            "end_ms":   int(fin),
+            "text":     screen_text,
+            "sub_text": screen_text,
+        })
+        cursor = fin
+
+    return events
+
 
 def _silence_speed(silence_dur_s: float) -> float:
     """Vitesse d'accélération dynamique selon la durée du silence."""
@@ -723,12 +788,12 @@ def task_export(self, job_id, subtitle_style=None):
                 tts_start_ms = max(timeline_ms, audio_cursor_ms)
                 audio_end_ms = tts_start_ms + tts_ms
 
-                subtitle_events.append({
-                    "start_ms": int(tts_start_ms),
-                    "end_ms":   int(audio_end_ms),
-                    "text":     item["text"],
-                    "sub_text": item.get("subtitle_text", _chunk_for_subtitle(item["text"])),
-                })
+                # Découper le texte en événements sous-titres (max 2 lignes chacun)
+                # proportionnels au nombre de mots → cohérence avec la voix
+                sub_events = _split_subtitle_events(
+                    item["text"], int(tts_start_ms), int(audio_end_ms)
+                )
+                subtitle_events.extend(sub_events)
                 part_files.append({
                     "path":              part_path,
                     "clip_dur_ms":       clip_dur_ms,
