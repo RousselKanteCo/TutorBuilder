@@ -11,6 +11,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 
 from .models import Project, Job
 
@@ -63,19 +65,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 
 # ─────────────────────────────────────────
-#  COCKPIT (interface principale)
+#  COCKPIT — never_cache pour forcer
+#  le rechargement chez tous les clients
 # ─────────────────────────────────────────
 
+@method_decorator(never_cache, name='dispatch')
 class CockpitView(LoginRequiredMixin, TemplateView):
     template_name = "studio/cockpit.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        job = None
+        job       = None
         video_url = ""
         final_url = ""
-        job_id = self.kwargs.get("job_id")
+        job_id    = self.kwargs.get("job_id")
 
         if job_id:
             job = get_object_or_404(
@@ -99,7 +103,7 @@ class CockpitView(LoginRequiredMixin, TemplateView):
         ctx.update({
             "job":           job,
             "video_url":     video_url,
-            "final_url":     final_url,   # ← nouveau
+            "final_url":     final_url,
             "stt_engines":   Job.STTEngine.choices,
             "tts_engines":   Job.TTSEngine.choices,
             "languages":     Job.Language.choices,
@@ -108,6 +112,8 @@ class CockpitView(LoginRequiredMixin, TemplateView):
             ).order_by("name"),
         })
         return ctx
+
+
 # ─────────────────────────────────────────
 #  PROJETS
 # ─────────────────────────────────────────
