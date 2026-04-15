@@ -17,6 +17,7 @@ from django.utils.decorators import method_decorator
 from .models import Project, Job
 
 logger = logging.getLogger(__name__)
+from pathlib import Path
 
 
 # ─────────────────────────────────────────
@@ -69,51 +70,77 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 #  le rechargement chez tous les clients
 # ─────────────────────────────────────────
 
+from pathlib import Path
+from django.conf import settings
+
 @method_decorator(never_cache, name='dispatch')
 class CockpitView(LoginRequiredMixin, TemplateView):
     template_name = "studio/cockpit.html"
-
+ 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-
-        job       = None
-        video_url = ""
-        final_url = ""
-        job_id    = self.kwargs.get("job_id")
-
+ 
+        # Projets de l'utilisateur (pour le sélecteur)
+        ctx["user_projects"] = Project.objects.filter(
+            owner=self.request.user
+        ).order_by("-updated_at")
+ 
+        # Langues disponibles
+        ctx["languages"] = [
+            ("fr", "Français"),
+            ("en", "Anglais"),
+            ("es", "Espagnol"),
+            ("de", "Allemand"),
+            ("it", "Italien"),
+            ("pt", "Portugais"),
+        ]
+ 
+        # Job courant (si job_id dans l'URL)
+        job_id = self.kwargs.get("job_id")
+        job    = None
+ 
         if job_id:
-            job = get_object_or_404(
-                Job.objects.select_related("project"),
-                pk=job_id,
-                project__owner=self.request.user,
-            )
             try:
-                if job.video_file:
+                job = Job.objects.get(
+                    pk=job_id,
+                    project__owner=self.request.user
+                )
+            except Job.DoesNotExist:
+                pass
+ 
+        ctx["job"] = job
+ 
+        if job:
+            # ── URL vidéo source ─────────────────────────────────────────
+            # On construit l'URL relative depuis MEDIA_URL
+            video_url = ""
+            if job.video_file:
+                try:
+                    # job.video_file.url retourne /media/jobs/.../video.mp4
                     video_url = job.video_file.url
-            except Exception:
-                video_url = ""
-
-            # Vérifier si la vidéo finale existe sur le disque
-            from pathlib import Path
-            from django.conf import settings
-            final_path = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk) / "final.mp4"
-            if final_path.exists() and final_path.stat().st_size > 10_000:
+                except Exception:
+                    # Fallback : construire manuellement
+                    rel = str(job.video_file).replace("\\", "/")
+                    video_url = f"{settings.MEDIA_URL.rstrip('/')}/{rel.lstrip('/')}"
+ 
+            ctx["video_url"] = video_url
+ 
+            # ── URL vidéo finale ─────────────────────────────────────────
+            final_url = ""
+            exports_dir = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk)
+            final_path  = exports_dir / "final.mp4"
+ 
+            if final_path.exists() and final_path.stat().st_size > 10000:
                 final_url = f"{settings.MEDIA_URL.rstrip('/')}/exports/{job.pk}/final.mp4"
-
-        ctx.update({
-            "job":           job,
-            "video_url":     video_url,
-            "final_url":     final_url,
-            "stt_engines":   Job.STTEngine.choices,
-            "tts_engines":   Job.TTSEngine.choices,
-            "languages":     Job.Language.choices,
-            "user_projects": Project.objects.filter(
-                owner=self.request.user
-            ).order_by("name"),
-        })
+ 
+            ctx["final_url"] = final_url
+ 
+        else:
+            ctx["video_url"] = ""
+            ctx["final_url"] = ""
+ 
         return ctx
-
-
+    
 # ─────────────────────────────────────────
 #  PROJETS
 # ─────────────────────────────────────────

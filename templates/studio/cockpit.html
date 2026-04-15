@@ -2,127 +2,25 @@
 {% block title %}Studio — TutoBuilder Vision{% endblock %}
 
 {% block extra_style %}
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-
+/* ── Aliases cockpit → base.html ── */
 :root {
-  --bg:          #F7F6F3;
-  --surface:     #FFFFFF;
-  --surface-2:   #F2F1EE;
-  --surface-3:   #E8E7E3;
-  --border:      rgba(0,0,0,.09);
-  --border-md:   rgba(0,0,0,.14);
-  --border-str:  rgba(0,0,0,.20);
-  --blue:        #1A6BF0;
-  --blue-bg:     #EBF1FE;
-  --blue-border: rgba(26,107,240,.25);
-  --green:       #1A8C50;
-  --green-bg:    #E8F5EE;
-  --green-border:rgba(26,140,80,.22);
-  --amber:       #B86A00;
-  --amber-bg:    #FEF5E7;
-  --amber-border:rgba(184,106,0,.22);
-  --red:         #C4281D;
-  --red-bg:      #FDEEEC;
-  --red-border:  rgba(196,40,29,.22);
-  --text-1:      #111110;
-  --text-2:      #4A4945;
-  --text-3:      #8A8880;
-  --font-ui:     'DM Sans', system-ui, sans-serif;
-  --font-mono:   'DM Mono', monospace;
-  --r:           8px;
-  --r-lg:        12px;
-  --sh:          0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --sh-md:       0 4px 12px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.04);
-  --t:           all .15s ease;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  height: 100%;
-  background: var(--bg);
-  color: var(--text-1);
-  font-family: var(--font-ui);
-  font-size: 13px;
-  -webkit-font-smoothing: antialiased;
+  --font-ui:      var(--font);
+  --r:            7px;
+  --r-lg:         12px;
+  --sh:           var(--sh);
+  --sh-md:        var(--sh-md);
+  --t:            all .15s ease;
+  --blue-border:  var(--blue-bd);
+  --green-border: var(--green-bd);
+  --amber-border: var(--amber-bd);
+  --red-border:   var(--red-bd);
+  /* Cockpit layout override */
   overflow: hidden;
 }
-
-/* ── SCROLLBAR ── */
+html, body { height: 100%; overflow: hidden; font-size: 13px; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
-
-/* ══════════════════════════════════════════════
-   TOPBAR
-══════════════════════════════════════════════ */
-.topbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
-  height: 48px;
-  display: flex; align-items: center;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--sh);
-}
-.topbar-brand {
-  display: flex; align-items: center; gap: 9px;
-  padding: 0 18px; height: 100%;
-  border-right: 1px solid var(--border);
-  min-width: 210px;
-}
-.brand-mark {
-  width: 28px; height: 28px;
-  background: var(--blue);
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-}
-.brand-mark svg { width: 14px; height: 14px; color: #fff; }
-.brand-name { font-size: 13.5px; font-weight: 600; color: var(--text-1); letter-spacing: -.2px; }
-.brand-name span { color: var(--text-3); font-weight: 400; }
-
-.topbar-nav { display: flex; align-items: center; gap: 2px; padding: 0 10px; flex: 1; }
-.topbar-nav a {
-  display: flex; align-items: center; gap: 6px;
-  padding: 0 11px; height: 32px;
-  border-radius: var(--r);
-  font-size: 12.5px; font-weight: 500;
-  color: var(--text-3);
-  text-decoration: none;
-  transition: var(--t);
-}
-.topbar-nav a:hover { color: var(--text-2); background: var(--surface-2); }
-.topbar-nav a.active { color: var(--blue); background: var(--blue-bg); }
-.topbar-nav a svg { width: 13px; height: 13px; flex-shrink: 0; }
-
-.topbar-end { display: flex; align-items: center; gap: 8px; padding: 0 14px; }
-.user-pill {
-  display: flex; align-items: center; gap: 7px;
-  padding: 4px 10px 4px 5px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-}
-.user-av {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: var(--blue-bg);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 600; color: var(--blue);
-}
-.user-name { font-size: 12px; color: var(--text-2); font-weight: 500; }
-.mini-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 11px;
-  border-radius: var(--r);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 12px; font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: var(--t);
-  font-family: var(--font-ui);
-}
-.mini-btn:hover { border-color: var(--border-md); color: var(--text-1); }
-.mini-btn svg { width: 11px; height: 11px; }
 
 /* ══════════════════════════════════════════════
    LAYOUT STUDIO
@@ -131,7 +29,7 @@ html, body {
   display: grid;
   grid-template-columns: 272px 1fr 310px;
   height: 100vh;
-  padding-top: 48px;
+  padding-top: 50px;
   overflow: hidden;
 }
 
@@ -801,59 +699,12 @@ html, body {
 
 {% block content %}
 <style>
-  .navbar, .main-content>.messages { display: none !important; }
-  .main-content { padding: 0 !important; overflow: hidden; }
   .app-shell { overflow: hidden; }
 </style>
 
-<!-- TOPBAR -->
-<header class="topbar">
-  <div class="topbar-brand">
-    <div class="brand-mark">
-      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>
-    </div>
-    <span class="brand-name">TutoBuilder <span>Vision</span></span>
-  </div>
-  <nav class="topbar-nav">
-    <a href="{% url 'studio:dashboard' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Tableau de bord
-    </a>
-    <a href="{% url 'studio:cockpit' %}" class="active">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      Studio
-    </a>
-    <a href="{% url 'studio:project_list' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-      Mes projets
-    </a>
-  </nav>
-  <div class="topbar-end">
-    <div class="user-pill">
-      <div class="user-av">{{ user.username|slice:":1"|upper }}</div>
-      <span class="user-name">{{ user.username }}</span>
-    </div>
-    <form method="post" action="{% url 'logout' %}" style="display:inline">
-      {% csrf_token %}
-      <button type="submit" class="mini-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Déconnexion
-      </button>
-    </form>
-  </div>
-</header>
+<!-- Topbar fourni par base.html -->
 
-<!-- TOAST ERREUR GLOBAL -->
-<div id="error-toast">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-  </svg>
-  <div>
-    <div class="toast-title" id="toast-title">Erreur</div>
-    <div class="toast-msg" id="toast-msg"></div>
-  </div>
-  <button class="toast-close" onclick="hideToast()">×</button>
-</div>
+<!-- Toast fourni par base.html -->
 
 <div class="studio">
 
@@ -1358,14 +1209,10 @@ if (_p) document.getElementById('select-project').value = _p;
    TOAST D'ERREUR
 ═══════════════════════════════════════════════════════════════ */
 function showError(title, msg) {
-  document.getElementById('toast-title').textContent = title;
-  document.getElementById('toast-msg').textContent = msg;
-  document.getElementById('error-toast').classList.add('show');
-  setTimeout(hideToast, 7000);
+  // Utilise le système de toasts global de base.html
+  toast.err(title, msg, 8000);
 }
-function hideToast() {
-  document.getElementById('error-toast').classList.remove('show');
-}
+function hideToast() { /* géré par base.html */ }
 
 /* ═══════════════════════════════════════════════════════════════
    AVERTISSEMENTS CONTEXTUELS
@@ -1814,7 +1661,16 @@ async function resetToStep(step) {
     2: 'Annuler la voix et revenir à la correction du script ?\n\nLa transcription est conservée.',
     3: "Annuler l'export et revenir à la synthèse vocale ?\n\nLa voix générée est conservée.",
   };
-  if (!confirm(msgs[step])) return;
+  const msgs_r = {
+    2: 'Annuler la voix et revenir à la correction du script ?\n\nLa transcription est conservée.',
+    3: "Annuler l\'export et revenir à la synthèse vocale ?\n\nLa voix générée est conservée.",
+  };
+  const ok_r = await tbConfirm(
+    step === 2 ? 'Annuler la voix off' : "Annuler l'export",
+    msgs_r[step] || '',
+    { confirm: 'Confirmer', type: 'warn' }
+  );
+  if (!ok_r) return;
   try {
     const r = await apiPost(`/api/jobs/${STATE.jobId}/reset/`, {step});
     if (r.status === 'ok') {
@@ -1986,7 +1842,12 @@ document.getElementById('btn-transcribe').addEventListener('click', async () => 
   }
   // Si script existant, avertir
   if (STATE.segments.length > 0) {
-    if (!confirm('Relancer la transcription effacera le script actuel et la voix générée.\n\nContinuer ?')) return;
+    const ok_t = await tbConfirm(
+      'Relancer la transcription',
+      'Relancer la transcription effacera le script actuel et la voix générée.\n\nContinuer quand même ?',
+      { confirm: 'Relancer', type: 'warn' }
+    );
+    if (!ok_t) return;
   }
 
   document.getElementById('btn-transcribe').disabled = true;
@@ -2049,10 +1910,10 @@ document.getElementById('btn-tts').addEventListener('click', async () => {
 
   // Sauvegarder si le script a été modifié (obligatoire — les textes modifiés doivent être en base)
   if (STATE.scriptDirty) {
-    const confirm_save = confirm(
-      'Vous avez des modifications non sauvegardées dans le script.\n\n' +
-      'La synthèse utilise les textes en base de données.\n' +
-      'Cliquez OK pour sauvegarder maintenant, puis lancer la synthèse.'
+    const confirm_save = await tbConfirm(
+      'Script non sauvegardé',
+      'Vous avez des modifications non sauvegardées. La synthèse utilise les textes en base de données. Cliquez Sauvegarder pour continuer.',
+      { confirm: 'Sauvegarder et continuer', cancel: 'Annuler', type: 'warn' }
     );
     if (!confirm_save) return;
     const ok = await saveScript();
@@ -2121,11 +1982,10 @@ document.getElementById('btn-export').addEventListener('click', async () => {
 
   // Avertissement si synthèse partielle (nb_echecs > 0)
   if (STATE.ttsEchecs.length > 0) {
-    const continuer = confirm(
-      `La synthèse vocale était partielle : ${STATE.ttsEchecs.length} segment(s) silencieux ` +
-      `(numéros : ${STATE.ttsEchecs.join(', ')}).\n\n` +
-      'La vidéo finale aura des moments sans voix à ces endroits.\n\n' +
-      'Continuer quand même ?'
+    const continuer = await tbConfirm(
+      'Synthèse vocale partielle',
+      `${STATE.ttsEchecs.length} segment(s) seront silencieux dans la vidéo finale (numéros : ${STATE.ttsEchecs.join(', ')}). Continuer quand même ?`,
+      { confirm: 'Assembler quand même', cancel: 'Annuler', type: 'warn' }
     );
     if (!continuer) return;
   }
@@ -2611,27 +2471,76 @@ window.addEventListener('load', () => {
 
   if (STATE.jobId) {
     connectWS(STATE.jobId);
-    const videoUrl = document.getElementById('video-url').value;
-    const finalUrl = document.getElementById('final-url').value;
-    if (videoUrl) {
-      const v = document.getElementById('video-player');
-      v.src = videoUrl; v.style.display = 'block';
-      document.getElementById('video-placeholder').style.display = 'none';
-      document.getElementById('upload-filename').textContent = videoUrl.split('/').pop();
-    }
-    if (finalUrl) {
-      STATE.isFinalVideo = true;
-      const v = document.getElementById('video-player');
-      v.src = finalUrl + '?t=' + Date.now(); v.style.display = 'block';
-      document.getElementById('video-placeholder').style.display = 'none';
-      document.getElementById('hud-mode').textContent = 'FINALE';
-      document.getElementById('hud-mode').style.color = '#1A8C50';
-      document.getElementById('subtitle-overlay').style.display = 'none';
-      document.getElementById('btn-download').href = finalUrl;
-      document.getElementById('btn-download').style.display = 'flex';
-      document.getElementById('upload-filename').textContent = finalUrl.split('/').pop().split('?')[0];
-    }
-    resumeProject(STATE.jobId, STATE.jobStatus);
+
+    // ── Chargement robuste du job depuis l'API ──────────────────────
+    // On ne dépend PAS de {{ video_url }} / {{ final_url }} du template
+    // car la vue CockpitView peut ne pas les passer si job_id est dans l'URL.
+    // L'API /api/jobs/<id>/ retourne toujours les vraies URLs.
+    (async () => {
+      try {
+        const job = await (await fetch(`/api/jobs/${STATE.jobId}/`)).json();
+
+        // Mettre à jour le statut depuis l'API (plus fiable)
+        if (job.status) STATE.jobStatus = job.status;
+
+        // Construire l'URL vidéo source depuis le champ video_file
+        // L'API retourne video_file comme chemin relatif ou URL complète
+        let videoUrl = document.getElementById('video-url').value;
+        if (!videoUrl && job.video_file) {
+          // video_file peut être "jobs/<id>/video.mp4" ou une URL complète
+          videoUrl = job.video_file.startsWith('http')
+            ? job.video_file
+            : `/media/${job.video_file}`;
+        }
+
+        // URL vidéo finale
+        let finalUrl = document.getElementById('final-url').value;
+        if (!finalUrl && job.final_video_url) {
+          finalUrl = job.final_video_url;
+        }
+        // Construire l'URL finale si on sait que le job est done
+        if (!finalUrl && job.status === 'done') {
+          finalUrl = `/media/exports/${STATE.jobId}/final.mp4`;
+          // Vérifier qu'elle existe
+          try {
+            const head = await fetch(finalUrl, { method: 'HEAD' });
+            if (!head.ok) finalUrl = '';
+          } catch { finalUrl = ''; }
+        }
+
+        // ── Afficher la vidéo appropriée ─────────────────────────────
+        if (finalUrl) {
+          showFinalVideo(finalUrl);
+          document.getElementById('upload-filename').textContent =
+            (job.video_filename || finalUrl.split('/').pop().split('?')[0]);
+        } else if (videoUrl) {
+          const v = document.getElementById('video-player');
+          v.src = videoUrl + '?t=' + Date.now();
+          v.style.display = 'block';
+          document.getElementById('video-placeholder').style.display = 'none';
+          document.getElementById('upload-filename').textContent =
+            job.video_filename || videoUrl.split('/').pop();
+          log(`Vidéo chargée : ${job.video_filename || 'source'}`, 'ok');
+        } else {
+          log('Aucune vidéo trouvée pour ce job.', 'warn');
+        }
+
+      } catch(e) {
+        // Fallback minimal sur les valeurs du template
+        const videoUrl = document.getElementById('video-url').value;
+        const finalUrl = document.getElementById('final-url').value;
+        if (finalUrl) showFinalVideo(finalUrl);
+        else if (videoUrl) {
+          const v = document.getElementById('video-player');
+          v.src = videoUrl; v.style.display = 'block';
+          document.getElementById('video-placeholder').style.display = 'none';
+        }
+        log('Avertissement : chargement via template (fallback)', 'warn');
+      }
+
+      // Reprendre l'état du job (segments, étapes, boutons)
+      resumeProject(STATE.jobId, STATE.jobStatus);
+    })();
   }
 
   window.addEventListener('resize', drawSubPreview);
