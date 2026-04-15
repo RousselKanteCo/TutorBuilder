@@ -215,17 +215,63 @@ class JobViewSet(viewsets.ModelViewSet):
     @extend_schema(tags=["jobs"])
     @action(detail=True, methods=["post"], url_path="export")
     def export(self, request, pk=None):
+        import json
         job = self.get_object()
+ 
+        # ── Vérification 1 : segments transcrits ─────────────────────────
         if not job.segments.exists():
-            return Response({"detail": "Transcription requise."}, status=400)
-        if not job.segments.filter(audio_file__gt="").exists():
-            return Response({"detail": "Synthèse vocale requise."}, status=400)
-
+            return Response(
+                {"detail": "Aucun segment transcrit. Lancez la transcription avant d'exporter."},
+                status=400,
+            )
+ 
+        # ── Vérification 2 : synthesis_plan.json présent et valide ───────
+        plan_path = job.output_dir / "synthesis_plan.json"
+        if not plan_path.exists():
+            return Response(
+                {"detail": (
+                    "La synthèse vocale n'a pas encore été effectuée pour ce job. "
+                    "Retournez à l'étape 3 et générez la voix off avant d'assembler."
+                )},
+                status=400,
+            )
+ 
+        try:
+            with open(plan_path, "r", encoding="utf-8") as f:
+                plan = json.load(f)
+        except Exception as e:
+            return Response(
+                {"detail": f"Fichier de synthèse corrompu ({e}). Relancez la synthèse."},
+                status=400,
+            )
+ 
+        nb_valides = plan.get("nb_valides", 0)
+        nb_total   = plan.get("nb_total", 0)
+        tts_valid  = plan.get("tts_valid", False)
+ 
+        if not tts_valid or nb_valides == 0:
+            return Response(
+                {"detail": (
+                    f"La synthèse vocale a échoué ({nb_valides}/{nb_total} segments valides). "
+                    "Relancez la synthèse à l'étape 3 avant d'assembler la vidéo."
+                )},
+                status=400,
+            )
+ 
+        # ── Avertissement partiel (loggué, pas bloquant) ──────────────────
+        echecs = plan.get("echecs", [])
+        if echecs:
+            logger.warning(
+                f"Export job {job.pk} avec synthèse partielle : "
+                f"{nb_valides}/{nb_total} segments valides, "
+                f"{len(echecs)} segment(s) silencieux."
+            )
+ 
         subtitle_style = request.data.get("subtitle_style", {})
-
+ 
         from apps.studio.tasks import task_export
         from django.conf import settings as djs
-
+ 
         if getattr(djs, "CELERY_TASK_ALWAYS_EAGER", False):
             import threading
             threading.Thread(
@@ -238,11 +284,22 @@ class JobViewSet(viewsets.ModelViewSet):
         else:
             task    = task_export.delay(str(job.pk), subtitle_style=subtitle_style)
             task_id = task.id
-
+ 
         job.celery_task_id = task_id
         job.save(update_fields=["celery_task_id"])
-        return Response({"job_id": str(job.pk), "task_id": task_id, "status": "queued",
-                         "message": "Montage vidéo lancé."})
+ 
+        msg = f"Montage lancé — {nb_valides}/{nb_total} segments audio."
+        if echecs:
+            msg += f" Attention : {len(echecs)} segment(s) seront silencieux."
+ 
+        return Response({
+            "job_id":    str(job.pk),
+            "task_id":   task_id,
+            "status":    "queued",
+            "message":   msg,
+            "nb_valides": nb_valides,
+            "nb_total":   nb_total,
+        })
 
     # ── GET /api/jobs/<id>/segments/ ──
     @extend_schema(tags=["jobs"])
@@ -376,24 +433,25 @@ class JobViewSet(viewsets.ModelViewSet):
             job.set_status(Job.Status.TRANSCRIBED)
             tts_dir = job.output_dir / "tts"
             if tts_dir.exists():
-                shutil.rmtree(str(tts_dir))
+                shutil.rmtree(str(tts_dir), ignore_errors=True)
             plan = job.output_dir / "synthesis_plan.json"
             if plan.exists():
-                plan.unlink()
-            # Supprimer aussi la vidéo finale
+                try: plan.unlink()
+                except Exception: pass
             exports_dir = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk)
             if exports_dir.exists():
-                shutil.rmtree(str(exports_dir))
+                shutil.rmtree(str(exports_dir), ignore_errors=True)
 
         elif step == 3:
             job.set_status(Job.Status.DONE)
             exports_dir = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk)
             if exports_dir.exists():
-                shutil.rmtree(str(exports_dir))
+                shutil.rmtree(str(exports_dir), ignore_errors=True)  # ← ignore_errors
             for f in ["assembled.mp4", "composite.wav", "subtitles.ass"]:
                 fp = job.output_dir / f
                 if fp.exists():
-                    fp.unlink()
+                    try: fp.unlink()
+                    except Exception: pass
 
         elif step == 1:
             job.set_status(Job.Status.PENDING)
@@ -446,3 +504,130 @@ class TaskStatusView(APIView):
             response["error"]    = str(result.result)
 
         return Response(response)
+    
+class SynthesisStatusView(APIView):
+    """
+    GET /api/jobs/<job_id>/synthesis_status/
+ 
+    Lit synthesis_plan.json et retourne le statut détaillé de la synthèse TTS.
+    Utilisé par le poll HTTP du cockpit quand le WebSocket n'est pas disponible
+    (cas actuel — /ws/job/<id>/ retourne 404).
+ 
+    Réponse :
+    {
+        "tts_valid":       bool,   // true si au moins 1 segment valide
+        "nb_valides":      int,
+        "nb_total":        int,
+        "echecs_indices":  [int],  // indices des segments échoués
+        "tts_engine":      str,
+        "langue":          str,
+        "detail":          str     // message lisible si plan absent
+    }
+    """
+    permission_classes = [IsAuthenticated]
+ 
+    def get(self, request, job_id):
+        import json
+ 
+        try:
+            job = Job.objects.get(pk=job_id, project__owner=request.user)
+        except Job.DoesNotExist:
+            return Response(
+                {"detail": "Job introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+ 
+        plan_path = job.output_dir / "synthesis_plan.json"
+ 
+        # Plan absent = synthèse jamais lancée
+        if not plan_path.exists():
+            return Response({
+                "tts_valid":      False,
+                "nb_valides":     0,
+                "nb_total":       0,
+                "echecs_indices": [],
+                "tts_engine":     "",
+                "langue":         "",
+                "detail":         "Aucune synthèse effectuée pour ce job.",
+            })
+ 
+        try:
+            with open(plan_path, "r", encoding="utf-8") as f:
+                plan = json.load(f)
+        except Exception as e:
+            return Response(
+                {"detail": f"Erreur lecture synthesis_plan.json : {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+ 
+        # echecs est une liste de dicts {"index": N, "raison": "..."}
+        echecs_indices = [
+            e["index"] for e in plan.get("echecs", [])
+            if isinstance(e, dict) and "index" in e
+        ]
+ 
+        return Response({
+            "tts_valid":      plan.get("tts_valid", False),
+            "nb_valides":     plan.get("nb_valides", 0),
+            "nb_total":       plan.get("nb_total", 0),
+            "echecs_indices": echecs_indices,
+            "tts_engine":     plan.get("tts_engine", ""),
+            "langue":         plan.get("langue", ""),
+        })
+ 
+ 
+# ─────────────────────────────────────────────────────────────────────────────
+# AMÉLIORATION : méthode synthesize() dans JobViewSet
+#
+# Ajouter ce bloc AVANT la ligne "segments_data = list(...)"
+# pour ne relancer que les segments échoués si synthesis_plan.json existe.
+#
+# Remplacer :
+#   segments_data = list(job.segments.values("index", "start_ms", "end_ms", "text"))
+#
+# Par :
+# ─────────────────────────────────────────────────────────────────────────────
+ 
+        import json
+ 
+        # Si un plan existe et est partiel → ne relancer que les segments échoués
+        plan_path = job.output_dir / "synthesis_plan.json"
+        segments_a_traiter = None
+ 
+        if plan_path.exists():
+            try:
+                with open(plan_path, "r", encoding="utf-8") as f:
+                    plan_existant = json.load(f)
+                echecs = plan_existant.get("echecs", [])
+                if echecs:
+                    indices_echecs = {e["index"] for e in echecs if isinstance(e, dict)}
+                    segments_a_traiter = list(
+                        job.segments.filter(index__in=indices_echecs)
+                        .order_by("index")
+                        .values("index", "start_ms", "end_ms", "text")
+                    )
+                    nb_echecs = len(segments_a_traiter)
+                    logger.info(
+                        f"Synthèse partielle détectée — relance de {nb_echecs} "
+                        f"segment(s) échoué(s) : {list(indices_echecs)}"
+                    )
+            except Exception:
+                pass  # plan corrompu → on refait tout
+ 
+        segments_data = segments_a_traiter or list(
+            job.segments.values("index", "start_ms", "end_ms", "text")
+        )
+ 
+        # Message adapté selon le mode
+        nb_msg = len(segments_data)
+        total_msg = job.segments.count()
+        mode_msg = (
+            f"Relance de {nb_msg} segment(s) échoué(s) sur {total_msg}"
+            if segments_a_traiter else
+            f"Synthèse complète — {nb_msg} segments"
+        )
+ 
+        # Remplacer aussi le message dans la Response finale :
+        # "message": f"Synthèse lancée ({len(segments_data)} segments)"
+        # par :
+        # "message": mode_msg

@@ -14,20 +14,15 @@ router.register(r"projects", views.ProjectViewSet, basename="project")
 router.register(r"jobs", views.JobViewSet, basename="job")
 
 urlpatterns = [
-    # ── Racine API ──
     path("", include(router.urls)),
-
-    # ── Système ──
     path("health/", views.HealthView.as_view(), name="health"),
     path("providers/", views.ProvidersView.as_view(), name="providers"),
-
-    # ── Tâches Celery (polling HTTP) ──
     path("tasks/<str:task_id>/", views.TaskStatusView.as_view(), name="task_status"),
-
-    # ── Segments ──
     path("segments/<int:pk>/", views.SegmentUpdateView.as_view(), name="segment_update"),
 
-    # ── Documentation Swagger (drf_spectacular) ──  ← les 3 lignes manquantes
+    # ── Synthèse : statut détaillé (lu depuis synthesis_plan.json) ──
+    path("jobs/<uuid:job_id>/synthesis_status/", views.SynthesisStatusView.as_view(), name="synthesis_status"),
+
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="api:schema"), name="swagger-ui"),
     path("redoc/", SpectacularRedocView.as_view(url_name="api:schema"), name="redoc"),
