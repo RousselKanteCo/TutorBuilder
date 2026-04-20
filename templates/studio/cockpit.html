@@ -1118,6 +1118,10 @@ html, body { height: 100%; overflow: hidden; font-size: 13px; }
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Sauvegarder
           </button>
+                    <button class="script-action-btn" onclick="resetScript()" id="btn-reset-script" title="Revenir au texte original Whisper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg>
+            Réinitialiser
+          </button>
         </div>
       </div>
     </div>
@@ -1576,63 +1580,112 @@ function exportScript() {
   a.click();
   log('Script exporté en .txt', 'ok');
 }
+
 function importScript(input) {
-  const file = input.files[0]; if (!file) return;
+  const file = input.files[0];
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    // ── RÈGLE ABSOLUE : les timecodes (start_ms, end_ms) ne sont JAMAIS modifiés.
-    // L'import ne peut changer que le texte de chaque segment.
-    // Le matching se fait par position (segment 1 → bloc 1, etc.)
-    // Les timecodes Whisper sont sacrés — seule la DB fait foi.
-
     const raw = e.target.result;
 
-    // Format attendu : blocs séparés par une ligne vide
-    // Chaque bloc peut commencer par "[N] HH:MM" (ignoré) ou directement le texte
-    const blocs = raw.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
+    // ── Parser universel — 4 formats acceptés ───────────────────────
+    // Format 1 — Tabs :     [1]\t00:00\tTexte
+    // Format 2 — Lignes :   [1] 00:00\nTexte\n\n[2] 00:08\nTexte
+    // Format 3 — Une ligne: [1] 00:00 Texte [2] 00:08 Texte
+    // Format 4 — Brut :     Texte 1\n\nTexte 2
+    // RÈGLE : timecodes Whisper jamais modifiés. Texte vide = on garde l'original.
 
+    let blocs = []; // [{num, texte}]
+
+    // Format 1 : tabs
+    if (/^\[\d+\]\t/m.test(raw)) {
+      raw.split('\n').forEach(line => {
+        line = line.trim();
+        if (!line) return;
+        const m = line.match(/^\[(\d+)\]\t[\d:]+\t?(.*)/);
+        if (m) blocs.push({ num: parseInt(m[1]), texte: m[2].trim() });
+      });
+
+    // Format 3 : tout sur une ligne
+    } else if (raw.split('\n').length <= 2 && /\[\d+\]\s+[\d:]+\s+\w/.test(raw)) {
+      const re = /\[(\d+)\]\s+[\d:]+\s+(.*?)(?=\s*\[\d+\]|$)/g;
+      let m;
+      while ((m = re.exec(raw)) !== null) {
+        const t = m[2].trim();
+        if (t) blocs.push({ num: parseInt(m[1]), texte: t });
+      }
+
+    // Format 2 : [N] MM:SS sur sa propre ligne
+    } else if (/^\[\d+\]\s+[\d:]+\s*$/m.test(raw)) {
+      raw.split(/\n{2,}/).forEach(bloc => {
+        bloc = bloc.trim();
+        if (!bloc) return;
+        const lignes = bloc.split('\n');
+        const header = lignes[0].match(/^\[(\d+)\]\s+[\d:]+/);
+        const num    = header ? parseInt(header[1]) : null;
+        const texte  = lignes.slice(header ? 1 : 0)
+                             .filter(l => !/^\[\d+\]/.test(l.trim()))
+                             .join(' ').trim();
+        blocs.push({ num, texte });
+      });
+
+    // Format 4 : texte brut
+    } else {
+      raw.split(/\n{2,}/).forEach((bloc, i) => {
+        const t = bloc.replace(/^\[\d+\]\s*[\d:]*\s*/gm, '').trim();
+        if (t) blocs.push({ num: i + 1, texte: t });
+      });
+    }
+
+    // Appliquer les textes
     let modifies = 0;
-    const avertissements = [];
-
-    blocs.forEach((bloc, i) => {
-      // Ignorer les lignes de timecode "[N] MM:SS" ou "[N]"
-      const lignes = bloc.split('\n').filter(l => !l.match(/^\[\d+\](\s+\d{2}:\d{2})?$/));
-      const texte  = lignes.join(' ').trim();
-
-      if (!texte) return;
-
-      const seg = STATE.segments[i];
-      if (!seg) {
-        avertissements.push(`Bloc ${i+1} ignoré : plus de segments que dans le script actuel (${STATE.segments.length})`);
-        return;
-      }
-
-      // Vérification : on ne modifie pas les timecodes
-      // On log un avertissement si le nombre de segments diffère
-      if (i === 0 && blocs.length !== STATE.segments.length) {
-        avertissements.push(
-          `Attention : le fichier contient ${blocs.length} blocs pour ${STATE.segments.length} segments. ` +
-          `Seuls les ${Math.min(blocs.length, STATE.segments.length)} premiers sont importés.`
-        );
-      }
-
-      seg.text = texte;
+    blocs.forEach(bloc => {
+      if (!bloc.texte) return;
+      const seg = bloc.num ? STATE.segments[bloc.num - 1] : null;
+      if (!seg) return;
+      seg.text = bloc.texte;
       modifies++;
     });
 
     renderScript(STATE.segments);
     STATE.scriptDirty = true;
 
-    log(`Import terminé : ${modifies} texte(s) mis à jour. Les timecodes sont inchangés.`, 'ok');
-    avertissements.forEach(a => log(a, 'warn'));
-
-    if (avertissements.length) {
-      showError('Import partiel', avertissements[0]);
+    const nbNonVides = blocs.filter(b => b.texte).length;
+    log(`Import : ${modifies} texte(s) mis à jour. Timecodes inchangés.`, 'ok');
+    if (nbNonVides !== STATE.segments.length) {
+      log(`Info : ${nbNonVides} textes importés pour ${STATE.segments.length} segments.`, 'warn');
     }
-
     input.value = '';
   };
   reader.readAsText(file, 'utf-8');
+}
+
+async function resetScript() {
+  if (!STATE.jobId) return;
+  const ok = await tbConfirm(
+    'Réinitialiser le script',
+    'Revenir aux textes originaux de la transcription Whisper ?\n\nToutes vos modifications seront perdues.',
+    { confirm: 'Réinitialiser', type: 'warn' }
+  );
+  if (!ok) return;
+
+  try {
+    const segsRaw  = await (await fetch(`/api/jobs/${STATE.jobId}/segments/`)).json();
+    const segsData = Array.isArray(segsRaw) ? segsRaw : (segsRaw.results || []);
+    if (segsData.length) {
+      STATE.segments = segsData.map(s => ({
+        id: s.id, index: s.index,
+        start: s.start_ms, end: s.end_ms,
+        start_ms: s.start_ms, end_ms: s.end_ms,
+        text: s.text,
+      }));
+      renderScript(STATE.segments);
+      STATE.scriptDirty = false;
+      log('Script réinitialisé — textes Whisper originaux restaurés.', 'ok');
+    }
+  } catch(e) {
+    log('Erreur réinitialisation : ' + e.message, 'err');
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
