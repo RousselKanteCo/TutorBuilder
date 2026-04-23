@@ -1,5 +1,5 @@
 """
-apps/studio/tasks.py — TutoBuilder Vision v13
+apps/studio/tasks.py — TutoBuilder Vision v14
 ══════════════════════════════════════════════════════════════════════════════
 
 RÈGLE ABSOLUE : LA VOIX N'EST JAMAIS MODIFIÉE
@@ -38,7 +38,18 @@ CORRECTIONS WHISPER (avant export)
   C2 : Intro silencieuse → clip muet [0 → seg[0].start]
   C3 : Outro silencieux → clip muet [last.end → video_end]
   C4 : Durée nulle/négative → ignorer le segment
-  C5 : Texte vide/ponctuation → ignorer, traiter en silence
+  C5 : Texte vide/ponctuation → traiter en silence (jamais clip durée 0)
+
+CORRECTIONS v14
+───────────────
+  FIX-1 : freeze_ms_added initialisé à 0 — n'avance le curseur que si le
+           freeze a réellement été ajouté à video_clips
+  FIX-2 : segments empty=True → convertis en silence dans la timeline,
+           jamais en clip parole de durée 0 (évite désync)
+  FIX-3 : clip ignoré (extract_clip échoué) → le curseur audio avance quand
+           même de la durée du clip pour garder la sync
+  FIX-4 : copy_tts_exact fallback → vérification sample rate avant usage
+  FIX-5 : concat file list → échappement des apostrophes dans les chemins
 
 GARANTIES FFMPEG
 ────────────────
@@ -74,8 +85,6 @@ logger = logging.getLogger(__name__)
 OUTPUT_FPS          = 25
 OUTPUT_FPS_STR      = "25"
 SAMPLE_RATE         = 22050
-# La voix n'est JAMAIS acceleree — x1.0 toujours
-# Si TTS deborde → freeze de la derniere frame (max 5s)
 FREEZE_MAX_MS       = 5000.0
 MIN_CLIP_DURATION   = 0.10
 MIN_SEGMENT_CHARS   = 3
@@ -176,18 +185,40 @@ def build_silence_wav(duration_ms: float, output_path: str) -> bool:
 def copy_tts_exact(tts_path: str, output_path: str) -> float:
     """
     Copie le TTS sans aucune modification de vitesse.
-    La voix est TOUJOURS a x1.0 — c'est une regle absolue.
-    Retourne la duree reelle du fichier (ms).
+    La voix est TOUJOURS à x1.0 — règle absolue.
+    Retourne la durée réelle du fichier (ms).
+
+    FIX-4 : si ffmpeg échoue, on vérifie que le fallback shutil.copy2
+    produit bien un fichier au bon sample rate avant de l'utiliser.
+    Si ce n'est pas le cas, on génère un silence de sécurité.
     """
     r = subprocess.run([
         "ffmpeg", "-y", "-i", tts_path,
         "-ar", str(SAMPLE_RATE), "-ac", "1", "-sample_fmt", "s16",
         output_path,
     ], capture_output=True, text=True)
+
     if r.returncode == 0 and os.path.exists(output_path):
         return get_wav_duration_ms(output_path)
-    shutil.copy2(tts_path, output_path)
-    return get_wav_duration_ms(tts_path)
+
+    # Fallback : copie brute — vérifier que le SR est compatible
+    logger.warning(f"copy_tts_exact : ffmpeg échoué, tentative copie brute : {r.stderr[-200:]}")
+    try:
+        shutil.copy2(tts_path, output_path)
+        with wave.open(output_path, "rb") as wf:
+            src_sr = wf.getframerate()
+        if src_sr == SAMPLE_RATE:
+            return get_wav_duration_ms(output_path)
+        # SR incompatible → générer silence de sécurité de durée estimée
+        logger.error(f"copy_tts_exact : SR source {src_sr} ≠ {SAMPLE_RATE}, silence de sécurité")
+        src_dur_ms = get_wav_duration_ms(tts_path)
+        build_silence_wav(src_dur_ms, output_path)
+        return src_dur_ms
+    except Exception as e:
+        logger.error(f"copy_tts_exact fallback échoué : {e}")
+        # Dernier recours : silence de 3s
+        build_silence_wav(3000.0, output_path)
+        return 3000.0
 
 
 def make_freeze_frame(source_clip: str, duration_ms: float,
@@ -203,7 +234,10 @@ def make_freeze_frame(source_clip: str, duration_ms: float,
         "-frames:v", "1", "-q:v", "2", frame_path,
     ], capture_output=True, text=True)
 
-    logger.info(f"make_freeze_frame tentative1 returncode={r1.returncode} frame_exists={os.path.exists(frame_path)} source_video={source_video}")
+    logger.info(
+        f"make_freeze_frame tentative1 returncode={r1.returncode} "
+        f"frame_exists={os.path.exists(frame_path)} source_video={source_video}"
+    )
 
     if (r1.returncode != 0 or not os.path.exists(frame_path)) and source_video:
         seek_s = max(0.0, source_time_s - 0.1)
@@ -214,10 +248,13 @@ def make_freeze_frame(source_clip: str, duration_ms: float,
             "-i", source_video,
             "-frames:v", "1", "-q:v", "2", frame_path,
         ], capture_output=True, text=True)
-        logger.info(f"make_freeze_frame fallback returncode={r1.returncode} stderr={r1.stderr[-200:]}")
+        logger.info(
+            f"make_freeze_frame fallback returncode={r1.returncode} "
+            f"stderr={r1.stderr[-200:]}"
+        )
 
     if r1.returncode != 0 or not os.path.exists(frame_path):
-        logger.error(f"make_freeze_frame : impossible d'extraire une frame")
+        logger.error("make_freeze_frame : impossible d'extraire une frame")
         return False
 
     r2 = subprocess.run([
@@ -238,6 +275,7 @@ def make_freeze_frame(source_clip: str, duration_ms: float,
         logger.error(f"make_freeze_frame clip : {r2.stderr[-200:]}")
         return False
     return True
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  UTILITAIRES VIDÉO
@@ -275,16 +313,12 @@ def extract_clip(video_path: str, start_s: float, end_s: float,
     """
     Extrait un clip vidéo [start_s → end_s] à la vitesse `speed`.
     fps forcé sur chaque clip — garantit zéro frame dupliquée au concat.
-
-    speed > 1.0 → setpts=1/speed*PTS (accélération)
-    speed = 1.0 → découpe pure sans modification
     """
     src_dur = end_s - start_s
     if src_dur < MIN_CLIP_DURATION:
         logger.warning(f"extract_clip ignoré : durée {src_dur:.3f}s < min")
         return False
 
-    # setpts pour la vitesse
     pts = f"setpts={1.0/speed:.6f}*PTS," if speed != 1.0 else ""
     vf  = f"{pts}fps={OUTPUT_FPS},scale={video_w}:{video_h}:flags=lanczos"
 
@@ -300,7 +334,10 @@ def extract_clip(video_path: str, start_s: float, end_s: float,
     ], capture_output=True, text=True)
 
     if r.returncode != 0 or not os.path.exists(output_path):
-        logger.error(f"extract_clip [{start_s:.2f}→{end_s:.2f}s x{speed}] : {r.stderr[-300:]}")
+        logger.error(
+            f"extract_clip [{start_s:.2f}→{end_s:.2f}s x{speed}] : "
+            f"{r.stderr[-300:]}"
+        )
         return False
     return True
 
@@ -318,13 +355,19 @@ def silence_speed(duration_s: float) -> float:
 
 def concat_video_clips(clip_paths: list[str], output_path: str,
                        tmp_dir: Path) -> bool:
-    """Concatène des clips via le demuxer concat de ffmpeg."""
+    """
+    Concatène des clips via le demuxer concat de ffmpeg.
+    FIX-5 : échappement des apostrophes dans les chemins.
+    """
     if not clip_paths:
         return False
     concat_f = str(tmp_dir / "_concat.txt")
     with open(concat_f, "w", encoding="utf-8") as f:
         for p in clip_paths:
-            f.write(f"file '{p}'\n")
+            # Échapper les apostrophes pour le format concat ffmpeg
+            p_escaped = p.replace("'", "'\\''")
+            f.write(f"file '{p_escaped}'\n")
+
     r = subprocess.run([
         "ffmpeg", "-y",
         "-f", "concat", "-safe", "0", "-i", concat_f,
@@ -349,12 +392,11 @@ def concat_video_clips(clip_paths: list[str], output_path: str,
 def is_empty_text(text: str) -> bool:
     """
     Cas C5 : texte vide, ponctuation seule, hallucination Whisper.
-    Retourne True si le texte ne contient pas de contenu réel à synthétiser.
+    Retourne True si le texte ne contient pas de contenu réel.
     """
     t = (text or "").strip()
     if len(t) < MIN_SEGMENT_CHARS:
         return True
-    # Pas de lettre ni chiffre → ponctuation/symboles seuls
     if not re.search(r'[a-zA-Z0-9\u00C0-\u024F\u0400-\u04FF]', t):
         return True
     return False
@@ -367,27 +409,23 @@ def sanitize_segments(segments: list[dict], video_duration_s: float) -> list[dic
     C1 : Chevauchements → forcer start[i] = end[i-1]
     C4 : Durée nulle ou négative → supprimer
     C5 : Texte vide/ponctuation → marquer empty=True (pas de TTS)
-
-    Retourne une liste propre triée par start_ms.
     """
     video_end_ms = int(video_duration_s * 1000)
-
-    # Tri par start_ms
-    segs = sorted(segments, key=lambda s: s["start_ms"])
-
-    clean = []
-    prev_end_ms = 0
+    segs         = sorted(segments, key=lambda s: s["start_ms"])
+    clean        = []
+    prev_end_ms  = 0
 
     for seg in segs:
         start_ms = int(seg["start_ms"])
         end_ms   = int(seg["end_ms"])
 
-        # C4 : durée nulle ou négative
         if end_ms <= start_ms:
-            logger.warning(f"Segment idx={seg.get('index','?')} ignoré : durée nulle/négative ({start_ms}→{end_ms})")
+            logger.warning(
+                f"Segment idx={seg.get('index','?')} ignoré : "
+                f"durée nulle/négative ({start_ms}→{end_ms})"
+            )
             continue
 
-        # C1 : chevauchement avec le segment précédent
         if start_ms < prev_end_ms:
             logger.warning(
                 f"Segment idx={seg.get('index','?')} : overlap corrigé "
@@ -395,14 +433,12 @@ def sanitize_segments(segments: list[dict], video_duration_s: float) -> list[dic
             )
             start_ms = prev_end_ms
             if end_ms <= start_ms:
-                continue  # réduit à rien après correction
+                continue
 
-        # Clamp à la durée vidéo
         end_ms = min(end_ms, video_end_ms)
         if end_ms <= start_ms:
             continue
 
-        # C5 : texte vide
         empty = is_empty_text(seg.get("text", ""))
 
         clean.append({
@@ -436,11 +472,11 @@ def _text_to_lines(text: str, max_chars: int = SUBTITLE_MAX_CHARS) -> list[str]:
 
 
 def _split_subtitle_events(text: str, start_ms: int, end_ms: int) -> list[dict]:
-    MAX_LINES = 3
-    all_lines = _text_to_lines(text)
+    MAX_LINES   = 3
+    all_lines   = _text_to_lines(text)
     if not all_lines:
         return []
-    screens = [all_lines[i:i+MAX_LINES] for i in range(0, len(all_lines), MAX_LINES)]
+    screens     = [all_lines[i:i+MAX_LINES] for i in range(0, len(all_lines), MAX_LINES)]
     if len(screens) == 1:
         return [{"start_ms": start_ms, "end_ms": end_ms,
                  "sub_text": "\n".join(screens[0])}]
@@ -454,7 +490,7 @@ def _split_subtitle_events(text: str, start_ms: int, end_ms: int) -> list[dict]:
         dur  = int(total_ms * nb / total_words)
         fin  = end_ms if last else cur + dur
         events.append({"start_ms": int(cur), "end_ms": int(fin), "sub_text": txt})
-        cur = fin
+        cur  = fin
     return events
 
 
@@ -474,24 +510,24 @@ def _ms_to_ass(ms: int) -> str:
 def generate_ass(events: list[dict], video_w: int, video_h: int,
                  style: dict, output_path: str) -> bool:
     try:
-        font_map  = {"calibri":"Calibri","arial":"Arial","segoe":"Segoe UI",
-                     "georgia":"Georgia","impact":"Impact"}
-        font_name = font_map.get(style.get("font_family", "calibri"), "Arial")
-        font_size = int(style.get("font_size", 48))
-        prim_clr  = _hex_to_ass(style.get("text_color",    "FFFFFF"))
-        out_clr   = _hex_to_ass(style.get("outline_color", "000000"))
-        bg_clr    = _hex_to_ass(style.get("bg_color",      "000000"))
-        outline_w = int(style.get("outline_width", 2))
-        shadow_d  = 2 if style.get("shadow", True) else 0
-        bg_on     = bool(style.get("bg_enabled", True))
-        bg_opacity= int(style.get("bg_opacity", 75))
-        bg_alpha  = hex(max(0, 255 - int(bg_opacity * 2.55)))[2:].upper().zfill(2)
-        position  = style.get("position", "bottom")
-        margin_v  = int(style.get("margin", 60))
-        alignment = {"bottom": 2, "top": 8, "center": 5}.get(position, 2)
-        bstyle    = 3 if bg_on else 1
-        back_color= f"&H{bg_alpha}{bg_clr}&"
-        ow_actual = outline_w if not bg_on else 0
+        font_map   = {"calibri": "Calibri", "arial": "Arial", "segoe": "Segoe UI",
+                      "georgia": "Georgia", "impact": "Impact"}
+        font_name  = font_map.get(style.get("font_family", "calibri"), "Arial")
+        font_size  = int(style.get("font_size", 48))
+        prim_clr   = _hex_to_ass(style.get("text_color",    "FFFFFF"))
+        out_clr    = _hex_to_ass(style.get("outline_color", "000000"))
+        bg_clr     = _hex_to_ass(style.get("bg_color",      "000000"))
+        outline_w  = int(style.get("outline_width", 2))
+        shadow_d   = 2 if style.get("shadow", True) else 0
+        bg_on      = bool(style.get("bg_enabled", True))
+        bg_opacity = int(style.get("bg_opacity", 75))
+        bg_alpha   = hex(max(0, 255 - int(bg_opacity * 2.55)))[2:].upper().zfill(2)
+        position   = style.get("position", "bottom")
+        margin_v   = int(style.get("margin", 60))
+        alignment  = {"bottom": 2, "top": 8, "center": 5}.get(position, 2)
+        bstyle     = 3 if bg_on else 1
+        back_color = f"&H{bg_alpha}{bg_clr}&"
+        ow_actual  = outline_w if not bg_on else 0
 
         header = (
             f"[Script Info]\nScriptType: v4.00+\n"
@@ -511,8 +547,7 @@ def generate_ass(events: list[dict], video_w: int, video_h: int,
         )
 
         sorted_ev = sorted(events, key=lambda x: x["start_ms"])
-        # Éviter les chevauchements entre événements sous-titres
-        clean_ev = []
+        clean_ev  = []
         for i, ev in enumerate(sorted_ev):
             s = ev["start_ms"]
             e = ev["end_ms"]
@@ -553,7 +588,9 @@ def _extraire_waveform(wav_path: str, nb_points: int = 500) -> list:
             samples = np.frombuffer(wf.readframes(n), dtype=np.int16).astype(np.float32)
         block = max(1, len(samples) // nb_points)
         return [
-            round(float(np.max(np.abs(samples[i*block:min((i+1)*block, len(samples))])) / 32767), 4)
+            round(float(np.max(np.abs(
+                samples[i*block:min((i+1)*block, len(samples))]
+            )) / 32767), 4)
             for i in range(nb_points)
         ]
     except Exception:
@@ -566,8 +603,8 @@ def _extraire_vignettes(video_path: str, job, nb_max: int = 10) -> list:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             return []
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        step  = max(1, total // nb_max)
+        total      = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        step       = max(1, total // nb_max)
         thumbs_dir = job.output_dir / "thumbs"
         thumbs_dir.mkdir(parents=True, exist_ok=True)
         paths = []
@@ -682,7 +719,6 @@ def task_synthesize(self, job_id, segments_data,
     job.output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Vérification clé API
         if tts_engine == "elevenlabs":
             api_key = getattr(settings, "ELEVENLABS_API_KEY", "").strip()
             if not api_key:
@@ -710,7 +746,6 @@ def task_synthesize(self, job_id, segments_data,
         output_dir = str(job.output_dir / "tts")
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-        # Toujours utiliser les timecodes en base (SACRÉS)
         db_segments = list(
             Segment.objects.filter(job=job).order_by("index")
             .values("index", "start_ms", "end_ms", "text")
@@ -735,7 +770,6 @@ def task_synthesize(self, job_id, segments_data,
             ws_progress(job_id, i + 1, total, f"Segment {i+1}/{total}")
             ws_send(job_id, "tts_progress", current=i+1, total=total)
 
-            # C5 : Filtrer les segments vides / ponctuation
             if is_empty_text(texte):
                 ws_status(job_id, f"  Segment {idx} vide/ponctuation — ignoré", "warn")
                 plan.append({
@@ -750,15 +784,14 @@ def task_synthesize(self, job_id, segments_data,
                 })
                 continue
 
-            # Estimation préventive
             dur_parole_ms = float(seg["end_ms"] - seg["start_ms"])
             est_tts_ms    = len(texte) / 14.0 * 1000
             if est_tts_ms > dur_parole_ms * 1.5:
                 longs.append(idx)
 
-            filename = f"seg_{idx:04d}.wav"
-            filepath = None
-            last_err = ""
+            filename     = f"seg_{idx:04d}.wav"
+            filepath     = None
+            last_err     = ""
             RETRY_DELAYS = [0, 3, 7]
 
             for attempt in range(3):
@@ -768,8 +801,8 @@ def task_synthesize(self, job_id, segments_data,
                 if wait > 0:
                     import time
                     ws_status(job_id,
-                        f"  Seg {idx} — attente {wait}s avant tentative {attempt+1}/3...",
-                        "warn")
+                        f"  Seg {idx} — attente {wait}s avant tentative "
+                        f"{attempt+1}/3...", "warn")
                     time.sleep(wait)
 
                 try:
@@ -784,7 +817,8 @@ def task_synthesize(self, job_id, segments_data,
                     else:
                         last_err = raison
                         ws_status(job_id,
-                            f"  Seg {idx} tentative {attempt+1}/3 invalide : {raison}", "warn")
+                            f"  Seg {idx} tentative {attempt+1}/3 invalide : "
+                            f"{raison}", "warn")
 
                 except TTSErrorCleAPI as e:
                     last_err = str(e)
@@ -794,12 +828,12 @@ def task_synthesize(self, job_id, segments_data,
                         echecs.append({"index": seg_rest["index"],
                                        "raison": "arrêté — erreur clé API"})
                         plan.append({
-                            "index": seg_rest["index"],
+                            "index":    seg_rest["index"],
                             "start_ms": seg_rest["start_ms"],
                             "end_ms":   seg_rest["end_ms"],
                             "text":     (seg_rest["text"] or "").strip(),
                             "tts_path": None, "tts_ms": 0,
-                            "valid": False, "empty": False,
+                            "valid":    False, "empty": False,
                         })
                     db_segments = db_segments[:i+1]
                     break
@@ -821,7 +855,8 @@ def task_synthesize(self, job_id, segments_data,
                 except Exception as e:
                     last_err = str(e)
                     ws_status(job_id,
-                        f"  Seg {idx} tentative {attempt+1}/3 inattendu : {last_err}", "warn")
+                        f"  Seg {idx} tentative {attempt+1}/3 inattendu : "
+                        f"{last_err}", "warn")
 
             if filepath:
                 dur_ms = get_wav_duration_ms(filepath)
@@ -884,8 +919,9 @@ def task_synthesize(self, job_id, segments_data,
 
         if longs:
             ws_status(job_id,
-                f"Avertissement : {len(longs)} segment(s) probablement trop longs "
-                f"pour leur durée — {longs}. Raccourcissez leurs textes.", "warn")
+                f"Avertissement : {len(longs)} segment(s) ont un texte un peu long "
+                f"pour leur durée vidéo — {longs}. "
+                "La vidéo sera gelée quelques secondes le temps que la voix finisse.", "warn")
 
         job.set_status(Job.Status.DONE)
         ws_send(job_id, "tts_done",
@@ -912,27 +948,20 @@ def task_synthesize(self, job_id, segments_data,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  TÂCHE 3 : EXPORT v12
+#  TÂCHE 3 : EXPORT v14
 # ══════════════════════════════════════════════════════════════════════════════
 
 @shared_task(bind=True, name="studio.export")
 def task_export(self, job_id, subtitle_style=None):
     """
-    Export v12 — logique déterministe, zéro répétition garantie.
+    Export v14 — synchronisation audio/vidéo garantie.
 
-    PIPELINE :
-    ┌─────────────────────────────────────────────────────────┐
-    │ 1. Charger le plan + corrections Whisper                │
-    │ 2. Construire la timeline complète                      │
-    │    (intro + [parole + silence]×N + outro)               │
-    │ 3. Pour chaque entrée de la timeline :                  │
-    │    a. Extraire le clip vidéo (x1.0 ou accéléré)         │
-    │    b. Préparer l'audio (TTS ajusté ou silence)          │
-    │ 4. Concaténer tous les clips vidéo                      │
-    │ 5. Mixage audio composite                               │
-    │ 6. Sous-titres ASS                                      │
-    │ 7. Encodage final                                       │
-    └─────────────────────────────────────────────────────────┘
+    CORRECTIONS v14 :
+    - FIX-1 : freeze_ms_added initialisé à 0, n'avance le curseur que si
+               le freeze a été réellement ajouté à video_clips
+    - FIX-2 : segments empty → convertis en silence dans la timeline,
+               jamais en clip parole de durée 0
+    - FIX-3 : clip ignoré → curseur audio avance quand même pour garder la sync
     """
     from apps.studio.models import Job
 
@@ -945,7 +974,7 @@ def task_export(self, job_id, subtitle_style=None):
         return {"status": "error", "message": "Job introuvable"}
 
     job.set_status(Job.Status.EXTRACTING)
-    ws_status(job_id, "Démarrage de l'export v12...")
+    ws_status(job_id, "Démarrage de l'export v14...")
 
     try:
         video_path  = str(job.video_file.path)
@@ -982,8 +1011,6 @@ def task_export(self, job_id, subtitle_style=None):
                 "Relancez la synthèse vocale avant d'exporter."
             )
 
-        langue = plan_data.get("langue", "fr")
-
         # Valider les fichiers TTS présents
         raw_items = []
         for item in plan_data.get("plan", []):
@@ -991,7 +1018,8 @@ def task_export(self, job_id, subtitle_style=None):
                 raw_items.append(item)
                 continue
             if not item.get("valid", False):
-                ws_status(job_id, f"  Seg {item.get('index','?')} ignoré (invalide)", "warn")
+                ws_status(job_id,
+                    f"  Seg {item.get('index','?')} ignoré (invalide)", "warn")
                 raw_items.append({**item, "tts_path": None, "valid": False})
                 continue
             ok, raison = validate_tts_file(item.get("tts_path", ""))
@@ -1008,63 +1036,62 @@ def task_export(self, job_id, subtitle_style=None):
                 "Relancez la synthèse — les fichiers précédents sont manquants."
             )
 
-        # ── 2. Corrections Whisper + construction de la timeline ──────────
+        # ── 2. Construction de la timeline ────────────────────────────────
         ws_progress(job_id, 2, 7, "Construction de la timeline")
 
-        # Sanitize les timecodes (C1, C4)
         segs_clean = sanitize_segments(raw_items, video_dur)
-
-        # Construction de la timeline complète :
-        # [intro?] [parole_0][silence_0] [parole_1][silence_1] … [outro?]
-        #
-        # Chaque entrée : {
-        #   type       : "speech" | "silence"
-        #   start_s    : float
-        #   end_s      : float
-        #   speed      : float (1.0 pour parole, calculé pour silence)
-        #   tts_path   : str | None
-        #   tts_ms     : float
-        #   text       : str (pour sous-titres)
-        #   seg_index  : int
-        # }
-
-        timeline = []
+        timeline   = []
+        TTS_WPM    = 130
 
         # C2 : intro silencieuse
         first_start_s = segs_clean[0]["start_ms"] / 1000.0 if segs_clean else 0.0
         if first_start_s > MIN_CLIP_DURATION:
             spd = silence_speed(first_start_s)
             timeline.append({
-                "type":      "silence",
-                "start_s":   0.0,
-                "end_s":     first_start_s,
-                "speed":     spd,
-                "tts_path":  None,
-                "tts_ms":    0.0,
-                "text":      "",
-                "seg_index": -1,
+                "type": "silence", "start_s": 0.0, "end_s": first_start_s,
+                "speed": spd, "tts_path": None, "tts_ms": 0.0,
+                "text": "", "seg_index": -1,
             })
             ws_status(job_id,
                 f"  Intro silencieuse {first_start_s:.1f}s détectée → x{spd:.0f}")
 
-        TTS_WPM = 130  # mots/minute — même valeur que le frontend
-
         for i, seg in enumerate(segs_clean):
-            start_s    = seg["start_ms"] / 1000.0
-            end_s      = seg["end_ms"]   / 1000.0
-            seg_dur_ms = float(seg["end_ms"] - seg["start_ms"])
+            start_s = seg["start_ms"] / 1000.0
+            end_s   = seg["end_ms"]   / 1000.0
+
+            # ── FIX-2 : segments empty → silence, jamais clip parole durée 0 ──
+            if seg.get("empty", False):
+                spd = silence_speed(end_s - start_s)
+                timeline.append({
+                    "type": "silence", "start_s": start_s, "end_s": end_s,
+                    "speed": spd, "tts_path": None, "tts_ms": 0.0,
+                    "text": "", "seg_index": seg.get("index", i),
+                })
+                ws_status(job_id,
+                    f"  Seg {seg.get('index',i)} vide → silence x{spd:.0f}", "info")
+                # Gap vers le segment suivant
+                if i + 1 < len(segs_clean):
+                    next_start_s = segs_clean[i+1]["start_ms"] / 1000.0
+                    gap_s        = next_start_s - end_s
+                    if gap_s >= MIN_CLIP_DURATION:
+                        spd2 = silence_speed(gap_s)
+                        timeline.append({
+                            "type": "silence", "start_s": end_s,
+                            "end_s": next_start_s, "speed": spd2,
+                            "tts_path": None, "tts_ms": 0.0,
+                            "text": "", "seg_index": -1,
+                        })
+                continue
 
             # Calculer la portion parlée réelle via le TTS
             tts_ms = float(seg.get("tts_ms", 0))
             if tts_ms < 100:
-                # Pas de TTS disponible → estimer depuis le texte
                 words  = len((seg.get("text") or "").split())
                 tts_ms = (words / TTS_WPM) * 60.0 * 1000.0
 
-            # La portion parole = du début jusqu'à la fin du TTS (max end_s)
             parole_end_s = min(start_s + tts_ms / 1000.0, end_s)
 
-            # Entrée parole — juste la durée du TTS
+            # Clip parole
             timeline.append({
                 "type":      "speech",
                 "start_s":   start_s,
@@ -1074,39 +1101,30 @@ def task_export(self, job_id, subtitle_style=None):
                 "tts_ms":    tts_ms,
                 "text":      seg.get("text", ""),
                 "seg_index": seg.get("index", i),
-                "empty":     seg.get("empty", False),
+                "empty":     False,
             })
 
-            # Silence interne — reste du segment après la parole
+            # Silence interne (reste du segment après la parole)
             internal_sil_s = end_s - parole_end_s
             if internal_sil_s >= MIN_CLIP_DURATION:
                 spd = silence_speed(internal_sil_s)
                 timeline.append({
-                    "type":      "silence",
-                    "start_s":   parole_end_s,
-                    "end_s":     end_s,
-                    "speed":     spd,
-                    "tts_path":  None,
-                    "tts_ms":    0.0,
-                    "text":      "",
-                    "seg_index": -1,
+                    "type": "silence", "start_s": parole_end_s, "end_s": end_s,
+                    "speed": spd, "tts_path": None, "tts_ms": 0.0,
+                    "text": "", "seg_index": -1,
                 })
 
-            # Silence entre segments (gap réel si Whisper a laissé un trou)
+            # Gap entre segments
             if i + 1 < len(segs_clean):
                 next_start_s = segs_clean[i+1]["start_ms"] / 1000.0
                 gap_s        = next_start_s - end_s
                 if gap_s >= MIN_CLIP_DURATION:
                     spd = silence_speed(gap_s)
                     timeline.append({
-                        "type":      "silence",
-                        "start_s":   end_s,
-                        "end_s":     next_start_s,
-                        "speed":     spd,
-                        "tts_path":  None,
-                        "tts_ms":    0.0,
-                        "text":      "",
-                        "seg_index": -1,
+                        "type": "silence", "start_s": end_s,
+                        "end_s": next_start_s, "speed": spd,
+                        "tts_path": None, "tts_ms": 0.0,
+                        "text": "", "seg_index": -1,
                     })
 
         # C3 : outro silencieux
@@ -1115,23 +1133,17 @@ def task_export(self, job_id, subtitle_style=None):
         if outro_dur > MIN_CLIP_DURATION:
             spd = silence_speed(outro_dur)
             timeline.append({
-                "type":      "silence",
-                "start_s":   last_end_s,
-                "end_s":     video_dur,
-                "speed":     spd,
-                "tts_path":  None,
-                "tts_ms":    0.0,
-                "text":      "",
-                "seg_index": -1,
+                "type": "silence", "start_s": last_end_s, "end_s": video_dur,
+                "speed": spd, "tts_path": None, "tts_ms": 0.0,
+                "text": "", "seg_index": -1,
             })
-            ws_status(job_id,
-                f"  Outro {outro_dur:.1f}s détecté → x{spd:.0f}")
+            ws_status(job_id, f"  Outro {outro_dur:.1f}s détecté → x{spd:.0f}")
 
         ws_status(job_id,
             f"Timeline : {len(timeline)} entrées "
             f"({sum(1 for t in timeline if t['type']=='speech')} parole + "
             f"{sum(1 for t in timeline if t['type']=='silence')} silence)")
-    
+
         for entry in timeline:
             if entry["type"] == "silence":
                 sil_dur = entry["end_s"] - entry["start_s"]
@@ -1142,74 +1154,77 @@ def task_export(self, job_id, subtitle_style=None):
         # ── 3. Extraction clips + préparation audio ───────────────────────
         ws_progress(job_id, 3, 7, "Extraction des clips vidéo")
 
-        video_clips     = []   # chemins des clips vidéo dans l'ordre
-        audio_segments  = []   # {path, start_ms, dur_ms}
-        subtitle_events = []   # événements ASS
-        audio_cursor_ms = 0.0  # position courante dans la timeline audio finale
-        warnings        = []   # avertissements à afficher à l'user
-
-        nb_total = len(timeline)
+        video_clips     = []
+        audio_segments  = []
+        subtitle_events = []
+        audio_cursor_ms = 0.0
+        warnings        = []
+        nb_total        = len(timeline)
 
         for ti, entry in enumerate(timeline):
-            ws_progress(job_id, ti + 1, nb_total,
-                        f"Clip {ti+1}/{nb_total}")
+            ws_progress(job_id, ti + 1, nb_total, f"Clip {ti+1}/{nb_total}")
 
             clip_path = str(parts_dir / f"clip_{ti:04d}.mp4")
             src_dur   = entry["end_s"] - entry["start_s"]
 
-            # ── Clip vidéo ────────────────────────────────────────────────
             clip_ok = extract_clip(
-                video_path = video_path,
-                start_s    = entry["start_s"],
-                end_s      = entry["end_s"],
-                output_path= clip_path,
-                video_w    = video_w,
-                video_h    = video_h,
-                speed      = entry["speed"],
+                video_path  = video_path,
+                start_s     = entry["start_s"],
+                end_s       = entry["end_s"],
+                output_path = clip_path,
+                video_w     = video_w,
+                video_h     = video_h,
+                speed       = entry["speed"],
             )
+
+            # ── FIX-3 : clip ignoré → curseur avance quand même ──────────
+            clip_dur_ms = (src_dur / entry["speed"]) * 1000.0
+
             if not clip_ok:
                 ws_status(job_id,
-                    f"  Clip {ti+1} ignoré (extraction échouée)", "warn")
-                # On ne casse pas le pipeline : on passe juste à l'entrée suivante
-                # L'audio cursor n'avance pas → les sous-titres restent calés
+                    f"  Clip {ti+1} ignoré (extraction échouée) — "
+                    f"curseur avance de {clip_dur_ms:.0f}ms pour garder la sync", "warn")
+                # Le curseur audio doit avancer même sans clip vidéo
+                # pour que les segments suivants restent synchronisés
+                audio_cursor_ms += clip_dur_ms
                 continue
 
-            clip_dur_ms = (src_dur / entry["speed"]) * 1000.0
             video_clips.append(clip_path)
 
-            # ── Audio + gestion debordement TTS ──────────────────────────
+            # ── Audio + gestion débordement TTS ──────────────────────────
             if entry["type"] == "speech" and entry["tts_path"]:
                 tts_copy_path = str(parts_dir / f"tts_{ti:04d}.wav")
                 parole_ms     = src_dur * 1000.0
-                tts_ms        = float(entry["tts_ms"])
 
-                # Copie exacte — voix JAMAIS modifiee
+                # Copie exacte — voix JAMAIS modifiée
                 actual_ms = copy_tts_exact(entry["tts_path"], tts_copy_path)
 
-                # Debordement : TTS plus long que le clip parole
-                overflow_ms = max(0.0, actual_ms - parole_ms)
+                # ── FIX-1 : freeze_ms_added initialisé à 0 ───────────────
+                freeze_ms_added = 0.0
+                overflow_ms     = max(0.0, actual_ms - parole_ms)
+
                 if overflow_ms >= 50:
-                    freeze_ms  = min(overflow_ms, FREEZE_MAX_MS)
+                    freeze_ms   = min(overflow_ms, FREEZE_MAX_MS)
                     freeze_path = str(parts_dir / f"freeze_{ti:04d}.mp4")
-                    # Chercher le clip suivant comme fallback si le clip parole est trop court
-                    next_clip = str(parts_dir / f"clip_{ti+1:04d}.mp4") if ti + 1 < nb_total else None
-                    freeze_ok = make_freeze_frame(
-                        source_clip  = clip_path,
-                        duration_ms  = freeze_ms,
-                        output_path  = freeze_path,
-                        video_w      = video_w,
-                        video_h      = video_h,
-                        source_video = video_path,        # ← nouveau
-                        source_time_s= entry["end_s"],    # ← nouveau
+                    freeze_ok   = make_freeze_frame(
+                        source_clip   = clip_path,
+                        duration_ms   = freeze_ms,
+                        output_path   = freeze_path,
+                        video_w       = video_w,
+                        video_h       = video_h,
+                        source_video  = video_path,
+                        source_time_s = entry["end_s"],
                     )
                     if freeze_ok:
                         video_clips.append(freeze_path)
+                        freeze_ms_added = freeze_ms  # ← seulement si ajouté
                         ws_status(job_id,
-                            f"  Seg {entry['seg_index']} : voix deborde de "
+                            f"  Seg {entry['seg_index']} : voix déborde de "
                             f"{overflow_ms:.0f}ms → gel image {freeze_ms:.0f}ms", "info")
                     else:
                         ws_status(job_id,
-                            f"  Seg {entry['seg_index']} : freeze echoue, debordement ignore", "warn")
+                            f"  Seg {entry['seg_index']} : freeze échoué, "
+                            f"débordement {overflow_ms:.0f}ms ignoré", "warn")
 
                 audio_segments.append({
                     "path":     tts_copy_path,
@@ -1217,7 +1232,7 @@ def task_export(self, job_id, subtitle_style=None):
                     "dur_ms":   actual_ms,
                 })
 
-                # Sous-titres cales sur le curseur audio
+                # Sous-titres calés sur le curseur audio
                 sub_end_ms = int(audio_cursor_ms + actual_ms)
                 if entry["text"] and not entry.get("empty"):
                     for ev in _split_subtitle_events(
@@ -1227,18 +1242,18 @@ def task_export(self, job_id, subtitle_style=None):
                     ):
                         subtitle_events.append(ev)
 
-                # Curseur audio avance de la duree reelle de la voix
+                # Curseur audio avance de la durée réelle de la voix
                 audio_cursor_ms += actual_ms
-                freeze_ms_used = freeze_ms if overflow_ms >= 50 else 0.0
-                total_video_ms = clip_dur_ms + freeze_ms_used
-                pad_ms = max(0.0, total_video_ms - actual_ms)
+                # Padding : durée totale vidéo (clip + freeze éventuel) - durée voix
+                total_video_ms   = clip_dur_ms + freeze_ms_added
+                pad_ms           = max(0.0, total_video_ms - actual_ms)
                 audio_cursor_ms += pad_ms
 
             else:
                 # Silence — audio muet, on avance le curseur
                 audio_cursor_ms += clip_dur_ms
 
-            # Mini gap entre deux voix consecutives
+            # Mini gap entre deux voix consécutives
             if (entry["type"] == "speech"
                     and entry["tts_path"]
                     and ti + 1 < nb_total
@@ -1320,7 +1335,6 @@ def task_export(self, job_id, subtitle_style=None):
         def _encode(ass=None):
             vf = None
             if ass and os.path.exists(ass):
-                # Échappement du chemin pour le filtre ASS (Windows & Linux)
                 ass_esc = ass.replace("\\", "/").replace(":", "\\:")
                 vf = f"ass='{ass_esc}'"
             cmd = ["ffmpeg", "-y", "-i", assembled, "-i", composite_wav]
@@ -1362,7 +1376,6 @@ def task_export(self, job_id, subtitle_style=None):
         total_dur_s  = audio_cursor_ms / 1000.0
         download_url = f"{settings.MEDIA_URL.rstrip('/')}/exports/{job.pk}/final.mp4"
 
-        # Résumé des warnings
         if warnings:
             w_err  = [w for w in warnings if w["level"] == "err"]
             w_warn = [w for w in warnings if w["level"] == "warn"]
@@ -1373,7 +1386,7 @@ def task_export(self, job_id, subtitle_style=None):
                     "Raccourcissez ces textes pour une meilleure qualité.", "err")
             if w_warn:
                 ws_status(job_id,
-                    f"{len(w_warn)} segment(s) légèrement accélérés : "
+                    f"{len(w_warn)} segment(s) avec gel image : "
                     f"{[w['index'] for w in w_warn]}.", "warn")
 
         job.set_status(Job.Status.DONE)
@@ -1382,7 +1395,7 @@ def task_export(self, job_id, subtitle_style=None):
                 file_size_mb=round(size_mb, 1),
                 warnings=warnings)
         ws_status(job_id,
-            f"Export v12 terminé : {size_mb:.1f} Mo · {total_dur_s:.1f}s · "
+            f"Export v14 terminé : {size_mb:.1f} Mo · {total_dur_s:.1f}s · "
             f"{len(subtitle_events)} sous-titres · {len(video_clips)} clips", "ok")
         send_job_notification(job, "export_done", download_url=download_url)
         return {"status": "success", "download_url": download_url, "warnings": warnings}

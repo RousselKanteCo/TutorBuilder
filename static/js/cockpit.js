@@ -2544,7 +2544,7 @@ document.getElementById('btn-tts')?.addEventListener('click', async () => {
   if (tropLongs.length > 0) {
     const ok = await tbConfirm(
       `${tropLongs.length} segment(s) trop long(s)`,
-      `${tropLongs.length} segment(s) ont un texte estimé trop long pour leur durée vidéo.\nLa voix sera légèrement accélérée.\n\nVous pouvez raccourcir les textes ou continuer quand même.`,
+      `${tropLongs.length} segment(s) ont un texte un peu long pour leur durée vidéo.\nLa vidéo sera gelée quelques secondes le temps que la voix finisse naturellement.\nVous pouvez raccourcir les textes ou continuer quand même.`,
       { confirm: 'Continuer quand même', cancel: 'Corriger d\'abord', type: 'warn' }
     );
     if (!ok) return;
