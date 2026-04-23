@@ -1,8 +1,5 @@
 """
 apps/studio/urls.py — URLs de l'application studio (cockpit).
-
-Toutes les vues HTML (templates Django) sont ici.
-Les endpoints REST sont dans apps/api/urls.py.
 """
 
 from django.urls import path
@@ -13,10 +10,10 @@ from . import views
 app_name = "studio"
 
 urlpatterns = [
-    # ── Dashboard : liste des projets ──
+    # ── Dashboard ──
     path("", views.DashboardView.as_view(), name="dashboard"),
 
-    # ── Cockpit : interface de production ──
+    # ── Cockpit ──
     path("cockpit/", views.CockpitView.as_view(), name="cockpit"),
     path("cockpit/<uuid:job_id>/", views.CockpitView.as_view(), name="cockpit_job"),
 
@@ -28,8 +25,9 @@ urlpatterns = [
 
     # ── Jobs ──
     path("jobs/<uuid:pk>/", views.JobDetailView.as_view(), name="job_detail"),
+    path("jobs/<uuid:job_id>/duplicate/", views.duplicate_job, name="job_duplicate"),  # ← NOUVEAU
 
-    # ── Health check (utilisé par Docker) ──
+    # ── Health check ──
     path("health/", views.health_check, name="health"),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

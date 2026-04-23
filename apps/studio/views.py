@@ -47,10 +47,45 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "studio/dashboard.html"
 
     def get_context_data(self, **kwargs):
+        import json
         ctx = super().get_context_data(**kwargs)
         user_projects = Project.objects.filter(owner=self.request.user)
+
+        # Tous les projets avec leurs jobs préchargés
+        projects = list(
+            user_projects.prefetch_related("jobs").order_by("-updated_at")
+        )
+
+        # Annoter jobs_count et jobs_json sur chaque projet (pour le template)
+        for p in projects:
+            jobs = list(p.jobs.order_by("-created_at"))
+            p.jobs_count = len(jobs)
+            p.jobs_json  = json.dumps([{
+                "id":           str(j.pk),
+                "filename":     j.video_filename,
+                "status":       j.status,
+                "status_label": j.get_status_display(),
+                "language":     j.language or "fr",
+                "tts_ready":    j.status in ("done", "synthesizing"),
+            } for j in jobs], ensure_ascii=False)
+
+        # JSON global pour la modale "Réutiliser" (PROJECTS_DATA dans le JS)
+        projects_json = json.dumps([{
+            "id":   str(p.pk),
+            "name": p.name,
+            "jobs": [{
+                "id":           str(j.pk),
+                "filename":     j.video_filename,
+                "status":       j.status,
+                "status_label": j.get_status_display(),
+                "language":     j.language or "fr",
+                "tts_ready":    j.status in ("done", "synthesizing"),
+            } for j in p.jobs.order_by("-created_at")]
+        } for p in projects], ensure_ascii=False)
+
         ctx.update({
-            "projects":       user_projects.order_by("-updated_at")[:6],
+            "projects":       projects,
+            "projects_json":  projects_json,
             "total_projects": user_projects.count(),
             "total_jobs":     Job.objects.filter(project__owner=self.request.user).count(),
             "total_done":     Job.objects.filter(project__owner=self.request.user, status="done").count(),
@@ -58,16 +93,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 project__owner=self.request.user,
                 status__in=["extracting", "transcribing", "synthesizing", "uploading"]
             ).count(),
-            "recent_jobs":    Job.objects.filter(
-                project__owner=self.request.user
-            ).order_by("-created_at").select_related("project")[:50],
         })
         return ctx
 
 
 # ─────────────────────────────────────────
-#  COCKPIT — never_cache pour forcer
-#  le rechargement chez tous les clients
+#  COCKPIT
 # ─────────────────────────────────────────
 
 from pathlib import Path
@@ -76,16 +107,14 @@ from django.conf import settings
 @method_decorator(never_cache, name='dispatch')
 class CockpitView(LoginRequiredMixin, TemplateView):
     template_name = "studio/cockpit.html"
- 
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
- 
-        # Projets de l'utilisateur (pour le sélecteur)
+
         ctx["user_projects"] = Project.objects.filter(
             owner=self.request.user
         ).order_by("-updated_at")
- 
-        # Langues disponibles
+
         ctx["languages"] = [
             ("fr", "Français"),
             ("en", "Anglais"),
@@ -94,11 +123,10 @@ class CockpitView(LoginRequiredMixin, TemplateView):
             ("it", "Italien"),
             ("pt", "Portugais"),
         ]
- 
-        # Job courant (si job_id dans l'URL)
+
         job_id = self.kwargs.get("job_id")
         job    = None
- 
+
         if job_id:
             try:
                 job = Job.objects.get(
@@ -107,40 +135,39 @@ class CockpitView(LoginRequiredMixin, TemplateView):
                 )
             except Job.DoesNotExist:
                 pass
- 
+
         ctx["job"] = job
- 
+
+        # Mode de reprise depuis le dashboard (video | transcript | voice)
+        ctx["reuse_mode"] = self.request.GET.get("mode", "")
+
         if job:
-            # ── URL vidéo source ─────────────────────────────────────────
-            # On construit l'URL relative depuis MEDIA_URL
             video_url = ""
             if job.video_file:
                 try:
-                    # job.video_file.url retourne /media/jobs/.../video.mp4
                     video_url = job.video_file.url
                 except Exception:
-                    # Fallback : construire manuellement
                     rel = str(job.video_file).replace("\\", "/")
                     video_url = f"{settings.MEDIA_URL.rstrip('/')}/{rel.lstrip('/')}"
- 
+
             ctx["video_url"] = video_url
- 
-            # ── URL vidéo finale ─────────────────────────────────────────
-            final_url = ""
+
+            final_url  = ""
             exports_dir = Path(settings.MEDIA_ROOT) / "exports" / str(job.pk)
             final_path  = exports_dir / "final.mp4"
- 
+
             if final_path.exists() and final_path.stat().st_size > 10000:
                 final_url = f"{settings.MEDIA_URL.rstrip('/')}/exports/{job.pk}/final.mp4"
- 
+
             ctx["final_url"] = final_url
- 
+
         else:
             ctx["video_url"] = ""
             ctx["final_url"] = ""
- 
+
         return ctx
-    
+
+
 # ─────────────────────────────────────────
 #  PROJETS
 # ─────────────────────────────────────────
@@ -209,3 +236,53 @@ class JobDetailView(LoginRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["segments"] = self.object.segments.order_by("index")
         return ctx
+
+
+# ─────────────────────────────────────────
+#  DUPLIQUER UN JOB (Réutiliser la vidéo)
+# ─────────────────────────────────────────
+
+import shutil
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+
+@require_POST
+@login_required
+def duplicate_job(request, job_id):
+    """
+    Crée un nouveau job en copiant la vidéo du job source.
+    Redirige directement vers le cockpit du nouveau job.
+    """
+    import uuid
+
+    source = get_object_or_404(Job, pk=job_id, project__owner=request.user)
+
+    # Créer le nouveau job avec les mêmes paramètres
+    new_job = Job.objects.create(
+        project=source.project,
+        video_filename=source.video_filename,
+        stt_engine=source.stt_engine,
+        tts_engine=source.tts_engine,
+        language=source.language,
+        status=Job.Status.PENDING,
+    )
+
+    # Copier le fichier vidéo physiquement
+    if source.video_file and source.video_file.name:
+        src_path  = Path(source.video_file.path)
+        if src_path.exists():
+            # Construire le nouveau chemin dans le même dossier jobs/<new_pk>/
+            new_dir  = Path(settings.MEDIA_ROOT) / 'jobs' / str(new_job.pk)
+            new_dir.mkdir(parents=True, exist_ok=True)
+            new_path = new_dir / src_path.name
+            shutil.copy2(str(src_path), str(new_path))
+
+            # Mettre à jour le champ FileField
+            rel = str(new_path.relative_to(settings.MEDIA_ROOT))
+            new_job.video_file = rel
+            new_job.save(update_fields=['video_file'])
+
+    new_job.output_dir.mkdir(parents=True, exist_ok=True)
+
+    return redirect('studio:cockpit_job', job_id=new_job.pk)
