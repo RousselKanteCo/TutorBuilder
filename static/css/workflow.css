@@ -1,0 +1,646 @@
+/* ═══════════════════════════════════════════════════
+   workflow.css — Panneau gauche workflow
+═══════════════════════════════════════════════════ */
+
+.panel-workflow {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workflow-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.workflow-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 18px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 2px solid var(--blue);
+  gap: 10px;
+}
+
+.workflow-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #3B82F6, #6340C8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Barre de progression globale ── */
+.workflow-progress-bar {
+  height: 2px;
+  background: var(--surface-3);
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+
+.workflow-progress-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 1px;
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+
+/* ══════════════════════════════════════
+   SECTION ÉTAPE
+══════════════════════════════════════ */
+.wsec {
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+
+.wsec:last-child { border-bottom: none; }
+
+/* ── Header de section ── */
+.wsec-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+/* Badge numéro */
+.wsec-badge-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  color: var(--text-3);
+  transition: var(--transition);
+}
+
+.wsec-badge-num.active {
+  background: var(--blue-bg);
+  border-color: var(--blue-border);
+  color: var(--blue);
+}
+
+.wsec-badge-num.done {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+
+/* Textes */
+.wsec-info { flex: 1; min-width: 0; }
+
+.wsec-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  transition: color .15s;
+}
+
+.wsec-subtitle {
+  font-size: 10.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Statut (côté droit) */
+.wsec-status {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--green);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── États ── */
+.wsec.active {
+  background: rgba(59,130,246,.03);
+}
+
+.wsec.active .wsec-title {
+  color: var(--text-1);
+}
+
+.wsec.done {
+  background: rgba(34,197,94,.025);
+}
+
+.wsec.done .wsec-title {
+  color: var(--green);
+}
+
+.wsec.locked .wsec-header {
+  opacity: .45;
+}
+
+/* ── Corps ── */
+.wsec-body {
+  padding: 0 16px 16px;
+}
+
+.wsec.locked .wsec-body {
+  display: none;
+}
+
+/* ══════════════════════════════════════
+   CHAMPS FORMULAIRE
+══════════════════════════════════════ */
+.field-group {
+  margin-bottom: 12px;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-3);
+  margin-bottom: 5px;
+}
+
+.field-link {
+  font-size: 10px;
+  color: var(--blue);
+  font-weight: 500;
+  transition: opacity .15s;
+}
+
+.field-link:hover { opacity: .75; }
+
+.field-select {
+  width: 100%;
+  padding: 7px 28px 7px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font-size: 12px;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: var(--transition);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235C5C66' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+
+.field-select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+
+/* ══════════════════════════════════════
+   DROP ZONE
+══════════════════════════════════════ */
+.drop-zone {
+  position: relative;
+  border: 1.5px dashed var(--border-md);
+  border-radius: var(--radius-lg);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--surface-2);
+  margin-bottom: 10px;
+}
+
+.drop-zone:hover,
+.drop-zone.dragover {
+  border-color: var(--blue);
+  background: rgba(59,130,246,.05);
+}
+
+.drop-zone.has-file {
+  border-color: var(--green);
+  border-style: solid;
+  background: rgba(34,197,94,.05);
+}
+
+.drop-zone.error {
+  border-color: var(--red);
+  background: rgba(239,68,68,.05);
+}
+
+/* Input file invisible par-dessus la zone */
+#file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.drop-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  transition: var(--transition);
+}
+
+.drop-zone:hover .drop-icon,
+.drop-zone.dragover .drop-icon {
+  color: var(--blue);
+  border-color: var(--blue-border);
+  background: var(--blue-bg);
+}
+
+.drop-zone.has-file .drop-icon {
+  color: var(--green);
+  border-color: var(--green-border);
+  background: var(--green-bg);
+}
+
+.drop-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 3px;
+}
+
+.drop-subtext {
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.drop-filename {
+  margin-top: 8px;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--green);
+  word-break: break-all;
+  display: none;
+}
+
+.drop-zone.has-file .drop-filename {
+  display: block;
+}
+
+/* ══════════════════════════════════════
+   ERREUR UPLOAD
+══════════════════════════════════════ */
+.upload-error {
+  display: none;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  color: var(--red);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.upload-error.show { display: block; }
+
+/* ══════════════════════════════════════
+   PROGRESSION UPLOAD
+══════════════════════════════════════ */
+.upload-progress-wrap {
+  margin-bottom: 10px;
+}
+
+.upload-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.upload-progress-pct {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--blue);
+  font-weight: 500;
+}
+
+.upload-progress-track {
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--blue), #60A5FA);
+  border-radius: 2px;
+  transition: width .3s ease;
+}
+
+/* ══════════════════════════════════════
+   BOUTONS
+══════════════════════════════════════ */
+.btn-upload {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  background: var(--blue);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: var(--transition);
+  margin-bottom: 6px;
+}
+
+.btn-upload:hover:not(:disabled) {
+  background: #2563EB;
+}
+
+.btn-upload:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.btn-upload.uploading {
+  background: var(--surface-3);
+  color: var(--text-2);
+  cursor: not-allowed;
+}
+
+.btn-upload.success {
+  background: var(--green);
+}
+
+.btn-cancel {
+  width: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-md);
+  color: var(--text-3);
+  font-size: 11.5px;
+  transition: var(--transition);
+}
+
+.btn-cancel:hover {
+  border-color: var(--border-md);
+  color: var(--text-2);
+  background: var(--surface-2);
+}
+
+.btn-cancel.show {
+  display: flex;
+}
+
+.btn-new-job {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px;
+  margin-top: 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-md);
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition);
+  background: var(--surface-2);
+}
+
+.btn-new-job:hover {
+  border-color: var(--blue-border);
+  color: var(--blue);
+  background: var(--blue-bg);
+}
+
+/* ── Info box TTS ── */
+.tts-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  background: var(--blue-bg);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--radius);
+  font-size: 11px;
+  color: var(--blue);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.tts-info-box svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ══════════════════════════════════════
+   MODAUX
+══════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  animation: modalIn .18s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1)  translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-icon.blue  { background: var(--blue-bg);  color: var(--blue);  border: 1px solid var(--blue-border); }
+.modal-icon.amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 3px;
+}
+
+.modal-subtitle {
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+.modal-body {
+  padding: 18px 20px;
+}
+
+.modal-field { display: flex; flex-direction: column; gap: 6px; }
+
+.modal-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.modal-required { color: var(--red); }
+
+.modal-input {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border-md);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font-size: 13px;
+  outline: none;
+  transition: var(--transition);
+}
+
+.modal-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+  background: var(--surface);
+}
+
+.modal-input.error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.10);
+}
+
+.modal-input-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 16px;
+}
+
+.modal-error {
+  font-size: 11px;
+  color: var(--red);
+  font-weight: 500;
+}
+
+.modal-char-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+}
+
+/* Doublon info */
+.duplicate-info {
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 11.5px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.duplicate-info strong { color: var(--text-1); font-weight: 600; }
+
+.duplicate-question {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px 18px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.modal-btn.cancel {
+  background: var(--surface-2);
+  border: 1px solid var(--border-md);
+  color: var(--text-2);
+}
+
+.modal-btn.cancel:hover {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+.modal-btn.confirm {
+  background: var(--blue);
+  border: 1px solid var(--blue);
+  color: #fff;
+}
+
+.modal-btn.confirm:hover { background: #2563EB; }
+
+.modal-btn.confirm.amber {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #fff;
+}
+
+.modal-btn.confirm.amber:hover { background: #D97706; }

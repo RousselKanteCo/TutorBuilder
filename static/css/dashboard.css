@@ -1,0 +1,268 @@
+/* ═══════════════════════════════════════════════════
+   dashboard.css — Dashboard TutoBuilder
+═══════════════════════════════════════════════════ */
+
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 24px;
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.page-title {
+  font-size: 20px; font-weight: 800; color: var(--text-1);
+}
+.page-subtitle {
+  font-size: 12px; color: var(--text-3); margin-top: 3px;
+}
+
+/* ── STATS ── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 18px;
+  box-shadow: var(--shadow);
+}
+.stat-value {
+  font-size: 26px; font-weight: 800;
+  font-family: var(--font-mono); line-height: 1;
+}
+.stat-label {
+  font-size: 10px; color: var(--text-3);
+  margin-top: 4px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.stat-card.blue   .stat-value { color: var(--blue); }
+.stat-card.purple .stat-value { color: var(--purple); }
+.stat-card.green  .stat-value { color: var(--green); }
+
+/* ── LAYOUT 2 COLONNES ── */
+.dashboard-cols {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── COLONNE GAUCHE — PROJETS ── */
+.col-projects {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: sticky; top: 72px;
+}
+
+.col-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.col-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-3); text-transform: uppercase; letter-spacing: .6px;
+}
+
+.project-list { padding: 6px 0; }
+
+.project-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.project-item:hover { background: var(--surface-2); }
+.project-item.active {
+  background: var(--blue-bg);
+  border-left-color: var(--blue);
+}
+.project-item.active .project-item-name { color: var(--blue); font-weight: 700; }
+
+.project-item-icon {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--blue-dark), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.project-item-info { flex: 1; min-width: 0; }
+.project-item-name {
+  font-size: 12px; font-weight: 600; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.project-item-meta {
+  font-size: 10px; color: var(--text-3); margin-top: 1px;
+}
+.project-item-actions {
+  display: none; gap: 4px; flex-shrink: 0;
+}
+.project-item:hover .project-item-actions { display: flex; }
+
+.icon-btn {
+  width: 24px; height: 24px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-3); transition: var(--transition);
+}
+.icon-btn:hover.danger { color: var(--red); border-color: #FECACA; background: #FEF2F2; }
+
+/* Pagination projets */
+.projects-pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 4px; padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+.page-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-2); font-size: 11px; font-weight: 600;
+  font-family: var(--font); cursor: pointer;
+  text-decoration: none; transition: var(--transition);
+}
+.page-btn:hover { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-border); }
+.page-btn.active {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: white; border-color: transparent;
+  box-shadow: 0 2px 6px rgba(59,130,246,.3);
+}
+
+/* ── COLONNE DROITE — TUTORIELS ── */
+.col-jobs {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.jobs-col-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.jobs-col-title {
+  font-size: 13px; font-weight: 700; color: var(--text-1);
+}
+.jobs-col-subtitle {
+  font-size: 11px; color: var(--text-3); margin-top: 1px;
+}
+
+/* Grille tutoriels */
+.jobs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.job-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 13px;
+  cursor: pointer; transition: var(--transition);
+  text-decoration: none; display: block;
+}
+.job-card:hover {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-bg);
+  transform: translateY(-1px);
+}
+.job-card-title {
+  font-size: 12px; font-weight: 700; color: var(--text-1);
+  margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.job-card-file {
+  font-size: 10px; color: var(--text-3);
+  font-family: var(--font-mono);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 10px;
+}
+.job-card-footer {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 6px;
+}
+.job-card-date { font-size: 10px; color: var(--text-3); flex-shrink: 0; }
+
+/* Carte nouveau tutoriel */
+.job-card-new {
+  background: transparent;
+  border: 2px dashed var(--border);
+  border-radius: 8px; padding: 13px;
+  min-height: 90px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 6px; cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-3);
+  font-size: 11px; font-weight: 600;
+  font-family: var(--font);
+}
+.job-card-new:hover {
+  border-color: var(--blue); color: var(--blue);
+  background: var(--blue-bg);
+}
+
+/* Pagination tutoriels */
+.jobs-pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 4px; padding: 12px 18px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── BADGE STATUT ── */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 20px;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+}
+.status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.status-badge.done        { background: #D1FAE5; color: #065F46; }
+.status-badge.error       { background: #FEE2E2; color: #991B1B; }
+.status-badge.pending,
+.status-badge.uploading   { background: #F3F4F6; color: #6B7280; }
+.status-badge.transcribed { background: #DBEAFE; color: #1E40AF; }
+.status-badge.synthesizing,
+.status-badge.transcribing,
+.status-badge.extracting  { background: #FEF3C7; color: #92400E; }
+.status-badge.synthesizing .status-dot,
+.status-badge.transcribing .status-dot,
+.status-badge.extracting .status-dot  { animation: pulse-dot 1s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 20px; text-align: center;
+}
+.empty-icon {
+  width: 48px; height: 48px; background: var(--surface-3);
+  border-radius: 12px; display: flex; align-items: center;
+  justify-content: center; margin-bottom: 14px; color: var(--text-3);
+}
+.empty-title { font-size: 14px; font-weight: 700; color: var(--text-1); margin-bottom: 5px; }
+.empty-text  { font-size: 12px; color: var(--text-3); margin-bottom: 18px; }
+
+/* ── NO PROJECT SELECTED ── */
+.no-selection {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 80px 20px; text-align: center; color: var(--text-3);
+}
+.no-selection svg { opacity: .3; margin-bottom: 12px; }
+.no-selection p { font-size: 13px; }

@@ -1,1085 +1,788 @@
-{% extends "base.html" %}
 {% load static %}
-{% block title %}Studio — TutoBuilder Vision{% endblock %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutoBuilder — Cockpit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <link rel="stylesheet" href="{% static 'css/layout.css' %}">
+  <link rel="stylesheet" href="{% static 'css/workflow.css' %}">
+  <link rel="stylesheet" href="{% static 'css/player.css' %}">
+  <link rel="stylesheet" href="{% static 'css/editor.css' %}">
+  <link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+</head>
+<body>
 
-{% block extra_style %}
-:root {
-  --font-ui:      var(--font);
-  --r:            7px;
-  --r-lg:         12px;
-  --t:            all .15s ease;
-  --blue-border:  var(--blue-bd);
-  --green-border: var(--green-bd);
-  --amber-border: var(--amber-bd);
-  --red-border:   var(--red-bd);
-  overflow: hidden;
-}
-html, body { height: 100%; overflow: hidden; font-size: 13px; }
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
-
-/* ── Layout ── */
-.studio {
-  display: grid;
-  grid-template-columns: 260px 1fr 320px;
-  height: 100vh;
-  padding-top: 50px;
-  overflow: hidden;
-}
-
-/* ════════════════════════════════════════
-   PANNEAU GAUCHE — WORKFLOW
-════════════════════════════════════════ */
-.panel-workflow {
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Indicateur de progression */
-.steps-header {
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.steps-label {
-  font-size: 9.5px; font-weight: 600;
-  letter-spacing: .7px; text-transform: uppercase;
-  color: var(--text-3); margin-bottom: 10px;
-}
-.step-strip { display: flex; align-items: center; }
-.step-node  { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
-.step-dot {
-  width: 26px; height: 26px; border-radius: 50%;
-  border: 1.5px solid var(--border-md);
-  background: var(--surface-2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; color: var(--text-3);
-  transition: var(--t); flex-shrink: 0;
-}
-.step-dot.active {
-  border-color: var(--blue); background: var(--blue-bg); color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(26,107,240,.1);
-}
-.step-dot.done {
-  border-color: var(--green); background: var(--green-bg); color: var(--green);
-  /* micro-animation quand une étape passe à done */
-  animation: stepDone .35s ease;
-}
-@keyframes stepDone {
-  0%   { transform: scale(1); }
-  45%  { transform: scale(1.22); }
-  100% { transform: scale(1); }
-}
-.step-lbl { font-size: 9px; color: var(--text-3); text-align: center; white-space: nowrap; }
-.step-node.active .step-lbl { color: var(--blue);  font-weight: 600; }
-.step-node.done   .step-lbl { color: var(--green); }
-.step-line { flex: 0 0 12px; height: 1.5px; background: var(--surface-3); margin-bottom: 14px; transition: background .4s ease; }
-.step-line.done  { background: var(--green); }
-
-/* Corps du workflow */
-.workflow-body { flex: 1; overflow-y: auto; }
-
-/* ─────────────────────────────────────────
-   SECTION ÉTAPE — ACCORDÉON
-   ─────────────────────────────────────────
-   Chaque .wsec a :
-     .wsec-header  → toujours visible (46px environ)
-     .wsec-body    → contenu : visible si active/done, masqué si locked
-   
-   goToStep(n) dans le JS ajoute/enlève les classes active/done/locked
-   Le CSS gère l'affichage sans JS supplémentaire.
-───────────────────────────────────────── */
-.wsec {
-  border-bottom: 1px solid var(--border);
-  transition: background .2s;
-  position: relative; /* pour le ::after sur locked */
-}
-.wsec:last-child { border-bottom: none; }
-
-/* Header — toujours visible */
-.wsec-header {
-  display: flex; align-items: center; gap: 9px;
-  padding: 11px 16px;
-  cursor: default;
-}
-
-/* Badge numéro */
-.wsec-num {
-  width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%;
-  background: var(--surface-2); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700; color: var(--text-3);
-  transition: var(--t);
-}
-.wsec.active .wsec-num { background: var(--blue-bg);  border-color: var(--blue-border);  color: var(--blue);  }
-.wsec.done   .wsec-num { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
-
-/* Titres */
-.wsec-title { font-size: 12px; font-weight: 600; color: var(--text-2); transition: color .15s; }
-.wsec.active .wsec-title { color: var(--text-1); }
-.wsec.done   .wsec-title { color: var(--green); }
-.wsec-sub { font-size: 10.5px; color: var(--text-3); margin-top: 1px; line-height: 1.4; }
-
-/* Indicateur de statut dans le header (côté droit) */
-.wsec-badge {
-  margin-left: auto; flex-shrink: 0;
-  display: none; /* caché par défaut, montré quand done */
-  align-items: center; gap: 3px;
-  font-size: 9px; font-weight: 600; padding: 2px 7px;
-  border-radius: 10px; white-space: nowrap;
-}
-.wsec.done   .wsec-badge { display: inline-flex; background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
-.wsec.active .wsec-badge { display: none; }
-.wsec.locked .wsec-badge { display: none; }
-
-/* ── Corps de section — accordion ── */
-.wsec-body {
-  padding: 0 16px 14px;
-  /* Animation d'ouverture */
-  transition: opacity .18s ease;
-}
-
-/* LOCKED : header seul visible, corps masqué, section à demi-opaque */
-.wsec.locked .wsec-body   { display: none; }
-.wsec.locked .wsec-header { opacity: .42; }
-.wsec.locked .wsec-num    { opacity: .42; }
-
-/* Indicateur discret "déverrouillé après l'étape précédente" */
-.wsec.locked::after {
-  content: 'Disponible après l\'étape précédente';
-  display: block;
-  font-size: 9px; color: var(--text-3); font-style: italic;
-  padding: 0 16px 9px;
-  opacity: .55;
-}
-
-/* DONE : fond très légèrement vert, corps visible (pour les boutons reset) */
-.wsec.done { background: rgba(26,140,80,.025); }
-
-/* ACTIVE : fond légèrement bleu */
-.wsec.active { background: rgba(26,107,240,.018); }
-
-/* ─────────────────────────────
-   Bannière reprise de projet
-───────────────────────────── */
-.resume-banner {
-  display: none; margin-bottom: 12px; padding: 9px 11px;
-  background: #F5F3FF; border: 1px solid rgba(99,76,200,.2); border-radius: var(--r);
-}
-.resume-banner.show { display: flex; align-items: flex-start; gap: 8px; }
-.resume-banner svg  { width: 13px; height: 13px; color: #6340C8; flex-shrink: 0; margin-top: 1px; }
-.resume-banner-title { font-size: 11px; font-weight: 600; color: #3D2580; }
-.resume-banner-sub   { font-size: 10px; color: #7B5FC0; margin-top: 2px; }
-
-/* ─────────────────────────────
-   Drop zone
-───────────────────────────── */
-.drop-zone {
-  position: relative; border: 1.5px dashed var(--border-md); border-radius: var(--r-lg);
-  padding: 16px 12px; text-align: center; cursor: pointer; transition: var(--t);
-  background: var(--surface-2);
-}
-.drop-zone:hover, .drop-zone.dragover { border-color: var(--blue); background: var(--blue-bg); }
-#file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-.drop-ico {
-  width: 32px; height: 32px; margin: 0 auto 8px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-  display: flex; align-items: center; justify-content: center; box-shadow: var(--sh);
-  transition: var(--t);
-}
-.drop-ico svg { width: 14px; height: 14px; color: var(--text-3); transition: var(--t); }
-.drop-zone:hover .drop-ico svg { color: var(--blue); }
-.drop-text { font-size: 12px; font-weight: 600; color: var(--text-2); }
-.drop-sub  { font-size: 10px; color: var(--text-3); margin-top: 2px; }
-#upload-filename { font-size: 10px; color: var(--blue); margin-top: 6px; font-family: var(--font-mono); word-break: break-all; }
-
-/* ─────────────────────────────
-   Champs formulaire
-───────────────────────────── */
-.fgroup { margin-top: 10px; }
-.flabel {
-  font-size: 10px; color: var(--text-3); font-weight: 500; margin-bottom: 4px;
-  display: flex; align-items: center; gap: 4px;
-}
-.flabel a { font-size: 9.5px; color: var(--blue); text-decoration: none; margin-left: auto; }
-.flabel a:hover { text-decoration: underline; }
-.fselect {
-  width: 100%; padding: 6px 24px 6px 9px;
-  background: var(--surface); border: 1px solid var(--border-md); border-radius: var(--r);
-  color: var(--text-1); font-size: 12px; font-family: var(--font-ui);
-  outline: none; cursor: pointer; appearance: none; transition: var(--t);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 8px center;
-}
-.fselect:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,107,240,.1); }
-
-/* ─────────────────────────────
-   Badges moteur vocal
-───────────────────────────── */
-.engine-badge {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 1px 6px; border-radius: 10px; font-size: 9px; font-weight: 600;
-  margin-left: 5px; vertical-align: middle;
-}
-.engine-badge.elevenlabs { background: #FEF9EC; color: #92620A; border: 1px solid rgba(184,106,0,.18); }
-.engine-badge.cartesia   { background: #E8F7FA; color: #0F6E7A; border: 1px solid rgba(15,110,122,.18); }
-
-/* ─────────────────────────────
-   Grille de voix
-───────────────────────────── */
-.voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
-.voice-card {
-  padding: 7px 9px; border-radius: var(--r); border: 1.5px solid var(--border);
-  background: var(--surface); cursor: pointer; transition: var(--t);
-}
-.voice-card:hover { border-color: var(--border-md); background: var(--surface-2); }
-.voice-card.sel   { border-color: var(--green); background: var(--green-bg); }
-.voice-card-name  { font-size: 10.5px; font-weight: 600; color: var(--text-1); }
-.voice-card-desc  { font-size: 9.5px;  color: var(--text-3); margin-top: 1px; }
-
-/* ─────────────────────────────
-   Boutons d'action principaux
-───────────────────────────── */
-.run-btn {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 10px 13px; margin-top: 10px; border-radius: var(--r-lg);
-  font-size: 12.5px; font-weight: 600; font-family: var(--font-ui);
-  cursor: pointer; transition: var(--t); text-align: left; border: 1px solid;
-}
-.run-btn:disabled { opacity: .3; cursor: not-allowed; }
-.run-btn.blue   { background: var(--blue-bg);  border-color: var(--blue-border);  color: var(--blue);  }
-.run-btn.green  { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
-.run-btn.amber  { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
-.run-btn.danger { background: var(--red-bg);   border-color: var(--red-border);   color: var(--red);   }
-.run-btn.blue:hover:not(:disabled)   { background: rgba(26,107,240,.14);  border-color: rgba(26,107,240,.35); }
-.run-btn.green:hover:not(:disabled)  { background: rgba(26,140,80,.13);   border-color: rgba(26,140,80,.32);  }
-.run-btn.amber:hover:not(:disabled)  { background: rgba(184,106,0,.13);   border-color: rgba(184,106,0,.32);  }
-.run-btn.danger:hover:not(:disabled) { background: rgba(196,40,29,.11);   border-color: rgba(196,40,29,.28);  }
-.run-btn:active:not(:disabled) { transform: scale(.99); }
-.run-ico {
-  width: 28px; height: 28px; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; background: rgba(255,255,255,.55);
-}
-.run-ico svg  { width: 12px; height: 12px; }
-.run-label    { font-size: 12.5px; font-weight: 600; line-height: 1.2; }
-.run-desc     { font-size: 10px; margin-top: 2px; font-weight: 400; opacity: .7; }
-
-/* Bouton téléchargement */
-.dl-btn {
-  display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 10px 13px; margin-top: 8px;
-  background: var(--green-bg); border: 1px solid var(--green-border);
-  border-radius: var(--r-lg); color: var(--green);
-  font-size: 12.5px; font-weight: 700; cursor: pointer; transition: var(--t);
-  text-decoration: none;
-}
-.dl-btn:hover { background: rgba(26,140,80,.12); }
-.dl-btn svg   { width: 14px; height: 14px; flex-shrink: 0; }
-
-/* ─────────────────────────────
-   Avertissements contextuels
-   (affichés 5.5s puis masqués par le JS)
-───────────────────────────── */
-.step-warning {
-  display: none; margin-top: 9px; padding: 9px 11px;
-  background: var(--amber-bg); border: 1px solid var(--amber-border);
-  border-radius: var(--r); font-size: 11px; color: var(--amber); line-height: 1.45;
-}
-.step-warning.show { display: block; }
-.step-warning strong { font-weight: 600; display: block; margin-bottom: 2px; }
-
-/* ════════════════════════════════════════
-   SOUS-TITRES — inchangé
-════════════════════════════════════════ */
-.sub-toggle-row {
-  display: flex; align-items: center; gap: 8px; padding: 9px 11px;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--r); margin-bottom: 10px;
-}
-.sub-toggle-label { flex: 1; font-size: 12px; font-weight: 600; color: var(--text-1); display: flex; align-items: center; gap: 7px; }
-.sub-toggle-label svg { width: 12px; height: 12px; color: var(--blue); flex-shrink: 0; }
-.sub-toggle-hint { font-size: 9.5px; color: var(--text-3); font-weight: 400; margin-top: 1px; }
-.sub-editor-wrap { transition: opacity .2s; }
-.sub-editor-wrap.disabled { opacity: .3; pointer-events: none; }
-.sub-editor { border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); }
-.sub-editor-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface-2); }
-.sub-tab {
-  flex: 1; padding: 7px 0; font-size: 10px; font-weight: 600; color: var(--text-3);
-  text-align: center; cursor: pointer; transition: var(--t); border-bottom: 2px solid transparent;
-}
-.sub-tab.active { color: var(--blue); border-bottom-color: var(--blue); background: var(--surface); }
-.sub-tab-panel  { display: none; padding: 12px; }
-.sub-tab-panel.active { display: block; }
-.sub-preview-wrap { position: relative; border-radius: var(--r); overflow: hidden; background: #111; margin-bottom: 9px; }
-#sub-canvas { display: block; width: 100%; height: auto; }
-.sub-preview-label {
-  position: absolute; top: 5px; left: 7px; font-size: 8px;
-  font-family: var(--font-mono); color: rgba(255,255,255,.3);
-  letter-spacing: .5px; text-transform: uppercase;
-}
-.sub-text-input {
-  width: 100%; padding: 6px 9px; background: var(--surface-2);
-  border: 1px solid var(--border); border-radius: var(--r);
-  color: var(--text-1); font-size: 11.5px; font-family: var(--font-ui);
-  outline: none; resize: none; transition: var(--t);
-}
-.sub-text-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,107,240,.1); }
-.sub-presets { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-bottom: 10px; }
-.sub-preset { border-radius: var(--r); border: 1.5px solid var(--border); background: var(--surface-2); cursor: pointer; overflow: hidden; transition: var(--t); }
-.sub-preset:hover { border-color: var(--border-md); }
-.sub-preset.sel   { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(26,107,240,.12); }
-.sub-preset-prev  { height: 34px; display: flex; align-items: center; justify-content: center; background: #111; }
-.sub-preset-name  { font-size: 9px; font-weight: 600; color: var(--text-3); text-align: center; padding: 3px 0; background: var(--surface); }
-.ctrl-section { margin-bottom: 11px; }
-.ctrl-lbl { font-size: 9px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--text-3); margin-bottom: 7px; }
-.ctrl-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
-.ctrl-row label { font-size: 10.5px; color: var(--text-2); min-width: 60px; flex-shrink: 0; }
-.ctrl-row input[type=range] { flex: 1; -webkit-appearance: none; height: 3px; background: var(--surface-3); border-radius: 2px; outline: none; cursor: pointer; }
-.ctrl-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--blue); cursor: pointer; box-shadow: 0 0 0 3px rgba(26,107,240,.18); }
-.ctrl-row .val { font-size: 10px; font-family: var(--font-mono); color: var(--blue); min-width: 30px; text-align: right; }
-.ctrl-row input[type=color] { width: 26px; height: 20px; border: 1px solid var(--border); border-radius: 4px; padding: 1px; background: var(--surface); cursor: pointer; flex-shrink: 0; }
-.ctrl-row select { flex: 1; padding: 4px 20px 4px 7px; background: var(--surface); border: 1px solid var(--border-md); border-radius: var(--r); color: var(--text-1); font-size: 11px; outline: none; appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 6px center; }
-.toggle-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
-.toggle-row label { font-size: 10.5px; color: var(--text-2); flex: 1; }
-.sw { width: 30px; height: 17px; background: var(--surface-3); border-radius: 9px; cursor: pointer; position: relative; transition: background .2s; flex-shrink: 0; border: 1px solid var(--border); }
-.sw.on { background: var(--blue); border-color: transparent; }
-.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
-.sw.on::after { transform: translateX(13px); }
-
-/* ════════════════════════════════════════
-   PANNEAU CENTRAL — inchangé
-════════════════════════════════════════ */
-.panel-monitor { display: flex; flex-direction: column; background: #0D0D0D; overflow: hidden; }
-.monitor { flex: 1; min-height: 0; position: relative; background: #0D0D0D; overflow: hidden; }
-#video-player { width: 100%; height: 100%; object-fit: contain; display: none; }
-.monitor-ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #0D0D0D; }
-.monitor-ph-ico { width: 60px; height: 60px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-.monitor-ph-ico svg { width: 24px; height: 24px; color: rgba(255,255,255,.2); }
-.monitor-ph h3 { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.3); }
-.monitor-ph p  { font-size: 11px; color: rgba(255,255,255,.18); }
-.monitor-hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; }
-.hud-chip { background: rgba(0,0,0,.7); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.09); border-radius: 5px; padding: 2px 8px; font-size: 9px; font-family: var(--font-mono); color: rgba(255,255,255,.45); pointer-events: all; }
-#subtitle-overlay { position: absolute; left: 50%; transform: translateX(-50%); padding: 4px 16px; border-radius: 5px; font-size: 14px; font-weight: 600; text-align: center; max-width: 85%; display: none; pointer-events: none; bottom: 16px; color: #fff; background: rgba(0,0,0,.78); border: 1px solid rgba(255,255,255,.07); }
-.transport { height: 44px; flex-shrink: 0; background: #161616; border-top: 1px solid rgba(255,255,255,.05); display: flex; align-items: center; gap: 9px; padding: 0 12px; }
-.t-btn { width: 28px; height: 28px; border-radius: 6px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); color: rgba(255,255,255,.65); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--t); }
-.t-btn:hover { background: rgba(255,255,255,.1); }
-.t-btn svg { width: 11px; height: 11px; }
-#seek-bar { flex: 1; height: 3px; -webkit-appearance: none; background: rgba(255,255,255,.12); border-radius: 2px; outline: none; cursor: pointer; }
-#seek-bar::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; }
-#time-display { font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,.3); white-space: nowrap; min-width: 80px; text-align: right; }
-.waveform-bar { height: 44px; flex-shrink: 0; background: #0D0D0D; border-top: 1px solid rgba(255,255,255,.04); overflow: hidden; }
-#waveform-canvas { width: 100%; height: 100%; display: block; }
-.progress-bar-fixed { height: 50px; flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; padding: 0 16px; gap: 6px; }
-.progress-top { display: flex; justify-content: space-between; align-items: center; }
-.progress-step-label { font-size: 11px; font-weight: 500; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
-.progress-step-label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--surface-3); flex-shrink: 0; }
-.progress-step-label .dot.pulse { background: var(--blue); animation: pulse 1.4s infinite; }
-.progress-step-label .dot.done  { background: var(--green); }
-.progress-step-label .dot.error { background: var(--red); }
-.progress-pct { font-family: var(--font-mono); font-size: 10px; color: var(--blue); }
-.progress-track { height: 3px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
-.progress-fill { height: 100%; background: linear-gradient(90deg,var(--blue),#40A4FF); border-radius: 2px; width: 0%; transition: width .6s cubic-bezier(.4,0,.2,1); }
-@keyframes pulse { 0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(26,107,240,.4); } 50%{ opacity:.7; box-shadow:0 0 0 4px rgba(26,107,240,0); } }
-
-/* ════════════════════════════════════════
-   PANNEAU DROIT — inchangé (doc4)
-════════════════════════════════════════ */
-.panel-script { background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.script-topbar { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; padding: 6px 12px; border-bottom: 1px solid var(--border); background: var(--surface); }
-.script-topbar-row1 { display: flex; align-items: center; gap: 6px; }
-.script-topbar-row2 { display: none; align-items: center; gap: 4px; flex-wrap: wrap; }
-.script-topbar-row2.visible { display: flex; }
-.script-title { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; color: var(--text-1); }
-.script-title svg { width: 12px; height: 12px; color: var(--text-3); }
-.seg-count { font-size: 10px; color: var(--text-3); font-weight: 400; }
-.saved-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 10px; font-size: 9px; font-weight: 600; background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); opacity: 0; transition: opacity .3s; }
-.saved-badge.show { opacity: 1; }
-.script-action-btn { display: flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: var(--r); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-3); font-size: 10px; font-weight: 500; font-family: var(--font-ui); cursor: pointer; transition: var(--t); white-space: nowrap; }
-.script-action-btn:hover { border-color: var(--border-md); color: var(--text-2); background: var(--surface-3); }
-.script-action-btn.primary { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue); font-weight: 600; }
-.script-action-btn.primary:hover { background: rgba(26,107,240,.14); }
-.script-action-btn.danger  { background: var(--red-bg);  border-color: var(--red-border);  color: var(--red); }
-.script-action-btn:disabled { opacity: .35; cursor: not-allowed; }
-.script-action-btn svg { width: 9px; height: 9px; }
-.script-action-btn.undo-redo { font-family: var(--font-mono); font-size: 11px; padding: 3px 7px; }
-.script-action-btn.undo-redo:disabled { opacity: .25; }
-#script-editor { flex: 1; overflow-y: auto; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
-.script-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text-3); padding: 28px 14px; text-align: center; }
-.script-empty svg { width: 28px; height: 28px; opacity: .15; }
-.script-empty p { font-size: 11.5px; line-height: 1.5; }
-.script-empty p.hint { font-size: 10px; margin-top: 2px; }
-.seg-row { display: flex; border-radius: var(--r); border: 1px solid transparent; transition: var(--t); }
-.seg-row:hover { background: var(--surface-2); border-color: var(--border); }
-.seg-row.active { background: var(--blue-bg); border-color: var(--blue-border); box-shadow: inset 2px 0 0 var(--blue); }
-.seg-num { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); min-width: 20px; padding: 9px 2px 9px 7px; flex-shrink: 0; user-select: none; }
-.seg-row.active .seg-num { color: var(--blue); }
-.seg-tc { font-family: var(--font-mono); font-size: 9px; color: var(--text-3); min-width: 38px; flex-shrink: 0; padding: 9px 5px; cursor: pointer; transition: var(--t); }
-.seg-tc:hover { color: var(--blue); }
-.seg-row.active .seg-tc { color: var(--blue); }
-.seg-txt { flex: 1; font-size: 12px; color: var(--text-2); outline: none; line-height: 1.6; cursor: text; word-break: break-word; padding: 7px 5px 7px 2px; min-height: 20px; }
-.seg-row.active .seg-txt, .seg-txt:focus { color: var(--text-1); }
-.console-wrap { height: 100px; flex-shrink: 0; background: var(--bg); border-top: 1px solid var(--border); display: flex; flex-direction: column; }
-.console-head { height: 24px; flex-shrink: 0; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid var(--border); gap: 6px; background: var(--surface); }
-.console-lbl { font-size: 9px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--text-3); }
-.console-clear { margin-left: auto; font-size: 9px; color: var(--text-3); cursor: pointer; background: none; border: none; font-family: var(--font-ui); transition: var(--t); }
-.console-clear:hover { color: var(--text-2); }
-#log-monitor { flex: 1; overflow-y: auto; padding: 5px 12px; font-family: var(--font-mono); font-size: 10px; line-height: 1.7; color: var(--text-2); white-space: pre-wrap; word-break: break-all; }
-.ll-err  { color: var(--red); }
-.ll-warn { color: var(--amber); }
-.ll-ok   { color: var(--green); }
-.ll-info { color: var(--text-3); }
-.ws-dot  { width: 6px; height: 6px; border-radius: 50%; background: var(--surface-3); flex-shrink: 0; transition: var(--t); }
-.ws-dot.connected { background: var(--green); box-shadow: 0 0 4px rgba(26,140,80,.4); }
-.ws-dot.error     { background: var(--red); }
-#full-editor-modal { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); flex-direction: column; padding: 28px; }
-#full-editor-modal.open { display: flex; }
-#full-editor-textarea { flex: 1; width: 100%; background: var(--surface); border: 1px solid var(--border-md); border-radius: var(--r-lg); color: var(--text-1); font-family: var(--font-ui); font-size: 13.5px; line-height: 1.85; padding: 20px; outline: none; resize: none; box-shadow: var(--sh-md); }
-#full-editor-textarea:focus { border-color: var(--blue); }
-{% endblock %}
-
-{% block content %}
-<style>.app-shell { overflow: hidden; }</style>
-
-<div class="studio">
-
-  <!-- ════════════════════════════════════════
-       PANNEAU GAUCHE — WORKFLOW
-  ════════════════════════════════════════ -->
-  <aside class="panel-workflow">
-
-    <!-- Indicateur de progression -->
-    <div class="steps-header">
-      <div class="steps-label">Votre progression</div>
-      <div class="step-strip">
-        <div class="step-node active" id="sdw-1">
-          <div class="step-dot active" id="sd-1">1</div>
-          <div class="step-lbl">Importer</div>
-        </div>
-        <div class="step-line" id="sc-1-2"></div>
-        <div class="step-node" id="sdw-2">
-          <div class="step-dot" id="sd-2">2</div>
-          <div class="step-lbl">Transcrire</div>
-        </div>
-        <div class="step-line" id="sc-2-3"></div>
-        <div class="step-node" id="sdw-3">
-          <div class="step-dot" id="sd-3">3</div>
-          <div class="step-lbl">Voix</div>
-        </div>
-        <div class="step-line" id="sc-3-4"></div>
-        <div class="step-node" id="sdw-4">
-          <div class="step-dot" id="sd-4">4</div>
-          <div class="step-lbl">Exporter</div>
-        </div>
-      </div>
+  <!-- ═══════════════════════════════════════
+       TOPBAR
+  ═══════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="/" class="topbar-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="23 7 16 12 23 17 23 7"/>
+          <rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+        TutoBuilder
+      </a>
+      <span class="topbar-sep">|</span>
+      <span class="topbar-project" id="topbar-project-name">Aucun projet</span>
     </div>
+    <div class="topbar-right">
+      <div class="topbar-step-indicator">
+        <span class="step-pill active" id="pill-1">1 · Import</span>
+        <span class="step-pill" id="pill-2">2 · Transcrire</span>
+        <span class="step-pill" id="pill-3">3 · Voix</span>
+        <span class="step-pill" id="pill-4">4 · Export</span>
+      </div>
+      <a href="/" class="topbar-back-btn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="/logout/" class="topbar-back-btn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Déconnexion
+      </a>
+    </div>
+  </header>
 
-    <div class="workflow-body">
+  <!-- ═══════════════════════════════════════
+       COCKPIT — 3 PANNEAUX
+  ═══════════════════════════════════════ -->
+  <div class="cockpit">
 
-      <!-- ══════════════════════════
-           ÉTAPE 1 — IMPORT
-      ══════════════════════════ -->
+    <!-- ════════════════
+         PANNEAU GAUCHE — WORKFLOW
+    ════════════════ -->
+    <aside class="panel-workflow">
+
+      <div class="workflow-header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="url(#wf-grad)" stroke-width="2.5">
+          <defs>
+            <linearGradient id="wf-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3B82F6"/>
+              <stop offset="100%" stop-color="#6340C8"/>
+            </linearGradient>
+          </defs>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="workflow-title">Workflow</span>
+      </div>
+
+      <div class="workflow-body">
       <div class="wsec active" id="wsec-1">
+
         <div class="wsec-header">
-          <div class="wsec-num">1</div>
-          <div style="flex:1;min-width:0">
+          <div class="wsec-badge-num active">1</div>
+          <div class="wsec-info">
             <div class="wsec-title">Importer la vidéo</div>
-            <div class="wsec-sub">Glissez votre fichier ou cliquez pour choisir</div>
+            <div class="wsec-subtitle">MP4, MKV, AVI, MOV, WMV, WebM · 200 Mo max</div>
           </div>
-          <!-- Badge "Fait ✓" visible quand done — géré par goToStep() -->
-          <span class="wsec-badge">✓ Fait</span>
+          <div class="wsec-status" id="wsec-1-status"></div>
         </div>
 
         <div class="wsec-body">
-          <!-- Bannière reprise de projet -->
-          <div class="resume-banner" id="resume-banner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            <div>
-              <div class="resume-banner-title" id="resume-banner-text">Projet détecté</div>
-              <div class="resume-banner-sub"   id="resume-banner-step">Reprise en cours…</div>
-            </div>
+
+          <!-- Sélection projet -->
+          <div class="field-group">
+            <label class="field-label">
+              Projet
+              <a href="/projects/new/" class="field-link">+ Nouveau</a>
+            </label>
+            <select class="field-select" id="select-project">
+              <option value="">— Choisir un projet —</option>
+              {% for p in user_projects %}
+                <option value="{{ p.pk }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
           </div>
 
-          <!-- Zone de dépôt vidéo -->
-          <div class="drop-zone" id="upload-zone">
-            <input type="file" id="file-input" accept="video/*">
-            <div class="drop-ico">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- Zone drop -->
+          <div class="drop-zone" id="drop-zone">
+            <input type="file" id="file-input" accept="video/mp4,video/x-msvideo,video/quicktime,video/x-matroska,video/webm,video/x-ms-wmv,.mp4,.mkv,.avi,.mov,.wmv,.webm">
+
+            <div class="drop-icon" id="drop-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <polyline points="16 16 12 12 8 16"/>
                 <line x1="12" y1="12" x2="12" y2="21"/>
                 <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
               </svg>
             </div>
-            <div class="drop-text">Déposer la vidéo ici</div>
-            <div class="drop-sub">MP4 · MKV · AVI · MOV · WMV · WebM</div>
-            <div id="upload-filename"></div>
+            <div class="drop-text" id="drop-text">Déposez votre vidéo ici</div>
+            <div class="drop-subtext" id="drop-subtext">ou cliquez pour parcourir</div>
+            <div class="drop-filename" id="drop-filename"></div>
           </div>
 
-          <!-- Sélection projet -->
-          <div class="fgroup">
-            <div class="flabel">
-              Projet
-              <a href="{% url 'studio:project_create' %}">+ Nouveau</a>
+          <!-- Erreur upload -->
+          <div class="upload-error" id="upload-error"></div>
+
+          <!-- Progression upload -->
+          <div class="upload-progress-wrap" id="upload-progress-wrap" style="display:none">
+            <div class="upload-progress-header">
+              <span id="upload-progress-label">Upload en cours…</span>
+              <span class="upload-progress-pct" id="upload-progress-pct">0%</span>
             </div>
-            <select class="fselect" id="select-project">
-              <option value="">— Choisir un projet —</option>
-              {% for p in user_projects %}
-                <option value="{{ p.pk }}" {% if job and job.project.pk == p.pk %}selected{% endif %}>{{ p.name }}</option>
-              {% endfor %}
-            </select>
+            <div class="upload-progress-track">
+              <div class="upload-progress-fill" id="upload-progress-fill"></div>
+            </div>
           </div>
 
-          <!-- Avertissement étape 1 -->
-          <div class="step-warning" id="warn-step1">
-            <strong>Deux choses à faire ici</strong>
-            Choisissez un projet et importez une vidéo pour continuer.
-          </div>
-        </div><!-- /wsec-body -->
-      </div><!-- /wsec-1 -->
+          <!-- Bouton upload -->
+          <button class="btn-upload" id="btn-upload" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 16 12 12 8 16"/>
+              <line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+            Envoyer la vidéo
+          </button>
 
-      <!-- ══════════════════════════
-           ÉTAPE 2 — TRANSCRIPTION
-      ══════════════════════════ -->
+          <!-- Bouton annuler (visible après sélection) -->
+          <button class="btn-cancel" id="btn-cancel" style="display:none">
+            Choisir une autre vidéo
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ── ÉTAPE 2 — TRANSCRIPTION ── -->
       <div class="wsec locked" id="wsec-2">
         <div class="wsec-header">
-          <div class="wsec-num">2</div>
-          <div style="flex:1;min-width:0">
+          <div class="wsec-badge-num" id="wsec-2-num">2</div>
+          <div class="wsec-info">
             <div class="wsec-title">Transcrire la parole</div>
-            <div class="wsec-sub">Faster-Whisper analyse votre audio automatiquement</div>
+            <div class="wsec-subtitle">Choisissez la voix puis lancez</div>
           </div>
-          <span class="wsec-badge">✓ Fait</span>
+          <div class="wsec-status" id="wsec-2-status"></div>
         </div>
 
         <div class="wsec-body">
-          <!-- Langue -->
-          <div class="fgroup">
-            <div class="flabel">Langue parlée dans la vidéo</div>
-            <select class="fselect" id="select-lang">
-              {% for val, label in languages %}
-                <option value="{{ val }}" {% if job and job.language == val %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
+
+          <!-- Moteur TTS -->
+          <div class="field-group">
+            <div class="field-label">Moteur vocal</div>
+            <select class="field-select" id="select-tts-engine">
+              <option value="elevenlabs">ElevenLabs — Qualité premium</option>
+              <option value="cartesia">Cartesia Sonic — Ultra-rapide</option>
             </select>
           </div>
-          <input type="hidden" id="select-stt" value="faster_whisper">
 
-          <!-- Bouton lancer transcription -->
-          <button class="run-btn blue" id="btn-transcribe" disabled>
-            <div class="run-ico">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-            </div>
-            <div class="run-info">
-              <div class="run-label">Lancer la transcription</div>
-              <div class="run-desc">30 s à 2 min selon la durée de la vidéo</div>
-            </div>
+          <!-- Grille voix -->
+          <div class="field-group">
+            <div class="field-label">Voix <span style="color:var(--text-3);font-weight:400">— base du calcul de vitesse</span></div>
+            <div class="voice-grid" id="voice-grid"></div>
+          </div>
+
+          <!-- Langue -->
+          <div class="field-group">
+            <div class="field-label">Langue parlée</div>
+            <select class="field-select" id="select-language">
+              <option value="fr">Français</option>
+              <option value="en">Anglais</option>
+              <option value="es">Espagnol</option>
+              <option value="de">Allemand</option>
+              <option value="it">Italien</option>
+              <option value="pt">Portugais</option>
+            </select>
+          </div>
+
+          <!-- Erreur transcription -->
+          <div class="upload-error" id="transcribe-error"></div>
+
+          <!-- Bouton lancer -->
+          <button class="btn-upload" id="btn-transcribe" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            Lancer la transcription
           </button>
 
-          <!-- Avertissement étape 2 -->
-          <div class="step-warning" id="warn-step2">
-            <strong>Transcription déjà effectuée</strong>
-            Relancer va effacer le script actuel. Sauvegardez d'abord vos modifications.
+          <!-- Progression transcription -->
+          <div class="upload-progress-wrap" id="transcribe-progress-wrap" style="display:none">
+            <div class="upload-progress-header">
+              <span id="transcribe-progress-label">Transcription en cours…</span>
+              <span class="upload-progress-pct" id="transcribe-progress-pct"></span>
+            </div>
+            <div class="upload-progress-track">
+              <div class="upload-progress-fill" id="transcribe-progress-fill"></div>
+            </div>
           </div>
-        </div><!-- /wsec-body -->
-      </div><!-- /wsec-2 -->
 
-      <!-- ══════════════════════════
-           ÉTAPE 3 — VOIX OFF
-      ══════════════════════════ -->
+        </div>
+      </div>
+
+      <!-- ── ÉTAPE 3 — VOIX OFF ── -->
       <div class="wsec locked" id="wsec-3">
         <div class="wsec-header">
-          <div class="wsec-num">3</div>
-          <div style="flex:1;min-width:0">
+          <div class="wsec-badge-num" id="wsec-3-num">3</div>
+          <div class="wsec-info">
             <div class="wsec-title">Générer la voix off</div>
-            <div class="wsec-sub">Corrigez le script à droite avant de continuer</div>
+            <div class="wsec-subtitle">La voix est posée sur la vidéo ajustée</div>
           </div>
-          <span class="wsec-badge">✓ Fait</span>
+          <div class="wsec-status" id="wsec-3-status"></div>
         </div>
 
         <div class="wsec-body">
-          <!-- Moteur TTS -->
-          <div class="fgroup">
-            <div class="flabel">Moteur vocal</div>
-            <select class="fselect" id="select-tts" onchange="onTtsEngineChange()">
-              <option value="elevenlabs" {% if job and job.tts_engine == 'elevenlabs' %}selected{% endif %}>ElevenLabs — Qualité premium</option>
-              <option value="cartesia"   {% if job and job.tts_engine == 'cartesia'   %}selected{% endif %}>Cartesia Sonic — Ultra-rapide</option>
-            </select>
+
+          <!-- Info -->
+          <div class="tts-info-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            La voix est générée sur la base des segments sauvegardés. Les ajustements de vitesse sont appliqués à la vidéo.
           </div>
 
-          <!-- Grille voix ElevenLabs -->
-          <div id="voices-elevenlabs" class="fgroup">
-            <div class="flabel">
-              Choisissez une voix
-              <span class="engine-badge elevenlabs">ElevenLabs</span>
+          <!-- Progression -->
+          <div class="upload-progress-wrap" id="tts-progress-wrap" style="display:none">
+            <div class="upload-progress-header">
+              <span id="tts-progress-label">Génération en cours…</span>
+              <span class="upload-progress-pct" id="tts-progress-pct"></span>
             </div>
-            <div class="voice-grid" id="voice-grid-el"></div>
+            <div class="upload-progress-track">
+              <div class="upload-progress-fill" id="tts-progress-fill"></div>
+            </div>
           </div>
 
-          <!-- Grille voix Cartesia -->
-          <div id="voices-cartesia" class="fgroup" style="display:none">
-            <div class="flabel">
-              Choisissez une voix
-              <span class="engine-badge cartesia">Cartesia</span>
-            </div>
-            <div class="voice-grid" id="voice-grid-ca"></div>
-          </div>
-
-          <input type="hidden" id="select-voice" value="narrateur_pro">
-
-          <!-- Avertissement étape 3 -->
-          <div class="step-warning" id="warn-step3">
-            <strong>Script modifié mais non sauvegardé</strong>
-            Cliquez sur "Sauvegarder" dans le panneau Script avant de générer la voix.
-          </div>
-
-          <!-- Bouton générer voix -->
-          <button class="run-btn green" id="btn-tts" disabled>
-            <div class="run-ico">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8"  y1="23" x2="16" y2="23"/>
-              </svg>
-            </div>
-            <div class="run-info">
-              <div class="run-label">Générer la voix off</div>
-              <div class="run-desc">Segment par segment · durée variable</div>
-            </div>
+          <!-- Bouton -->
+          <button class="btn-upload" id="btn-synthesize" disabled
+            style="background: linear-gradient(135deg, #6340C8, #3B82F6);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8"  y1="23" x2="16" y2="23"/>
+            </svg>
+            Générer la voix off
           </button>
 
-          <!-- Bouton annuler voix (visible après TTS réussi) -->
-          <button class="run-btn danger" id="btn-reset-to-transcribed"
-            style="margin-top:6px;display:none"
-            onclick="resetToStep(2)">
-            <div class="run-ico">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        </div>
+      </div>
+
+      <!-- ── ÉTAPE 4 — verrouillée ── -->
+      <!-- ── ÉTAPE 4 — EXPORT ── -->
+      <div class="wsec locked" id="wsec-4">
+        <div class="wsec-header">
+          <div class="wsec-badge-num" id="wsec-4-num">4</div>
+          <div class="wsec-info">
+            <div class="wsec-title">Assembler et exporter</div>
+            <div class="wsec-subtitle">Vidéo finale avec voix off</div>
+          </div>
+          <div class="wsec-status" id="wsec-4-status"></div>
+        </div>
+
+        <div class="wsec-body">
+
+          <!-- Info -->
+          <div class="tts-info-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Les sous-titres s'affichent automatiquement dans le player. Choisissez votre option de téléchargement.
+          </div>
+          <button class="btn-upload" id="btn-export" disabled
+            style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+            Assembler la vidéo
+          </button>
+
+          <!-- Progression -->
+          <div class="upload-progress-wrap" id="export-progress-wrap" style="display:none">
+            <div class="upload-progress-header">
+              <span id="export-progress-label">Assemblage en cours…</span>
+              <span class="upload-progress-pct" id="export-progress-pct"></span>
+            </div>
+            <div class="upload-progress-track">
+              <div class="upload-progress-fill" id="export-progress-fill"></div>
+            </div>
+          </div>
+
+          <!-- Erreur export -->
+          <div class="upload-error" id="export-error"></div>
+
+          <!-- Boutons téléchargement -->
+          <div id="download-btns" style="display:none; flex-direction:column; gap:8px; margin-top:4px">
+            <!-- Sans sous-titres -->
+            <a class="btn-upload" id="btn-download" href="#"
+              style="background:linear-gradient(135deg,#10b981,#059669);text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Télécharger sans sous-titres
+            </a>
+
+            <!-- Avec sous-titres intégrés -->
+            <button class="btn-upload" id="btn-download-subs" onclick="downloadWithSubs()"
+              style="background:linear-gradient(135deg,#6340C8,#3B82F6);border:none;cursor:pointer">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8M12 17v4"/>
+                <line x1="6" y1="10" x2="14" y2="10"/>
+                <line x1="6" y1="13" x2="11" y2="13"/>
+              </svg>
+              Télécharger avec sous-titres intégrés
+            </button>
+
+            <!-- Progression burn -->
+            <div id="burn-progress-wrap" style="display:none">
+              <div class="upload-progress-track">
+                <div class="upload-progress-fill" id="burn-progress-fill" style="width:0%"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:4px">Intégration des sous-titres…</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      </div><!-- /workflow-body -->
+
+    </aside>
+
+    <!-- ════════════════
+         PANNEAU CENTRAL — PLAYER + TIMELINE
+    ════════════════ -->
+    <main class="panel-player">
+
+      <!-- Écran vidéo -->
+      <div class="player-screen" id="player-screen">
+        <div class="player-placeholder" id="player-placeholder">
+          <div class="placeholder-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <rect x="2" y="7" width="20" height="15" rx="2"/>
+              <polyline points="17 2 12 7 7 2"/>
+            </svg>
+          </div>
+          <p class="placeholder-title">Aucune vidéo chargée</p>
+          <p class="placeholder-hint">Importez une vidéo à l'étape 1</p>
+        </div>
+        <video id="video-player" style="display:none"></video>
+        <div class="player-hud" id="player-hud" style="display:none">
+          <span class="hud-chip" id="hud-filename"></span>
+          <span class="hud-chip" id="hud-size"></span>
+        </div>
+      </div>
+
+      <!-- Transport -->
+      <div class="player-transport" id="player-transport" style="display:none">
+        <button class="transport-btn" id="btn-play" onclick="togglePlay()">
+          <svg id="play-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21"/>
+          </svg>
+        </button>
+        <input type="range" class="seek-bar" id="seek-bar" min="0" max="100" value="0" step="0.1">
+        <span class="time-display" id="time-display">00:00 / 00:00</span>
+      </div>
+
+      <!-- Timeline -->
+      <div class="timeline-wrap" id="timeline-wrap" style="display:none">
+
+        <!-- Contrôles timeline -->
+        <div class="timeline-toolbar">
+          <div class="tl-toolbar-left">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+            <span>Timeline</span>
+          </div>
+
+          <div class="tl-toolbar-center">
+
+            <!-- Undo -->
+            <button class="tl-btn tl-btn-ghost" title="Annuler (Ctrl+Z)" onclick="undoSegment()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="1 4 1 10 7 10"/>
                 <path d="M3.51 15a9 9 0 1 0 .49-3.85"/>
               </svg>
-            </div>
-            <div class="run-info">
-              <div class="run-label">Annuler la voix</div>
-              <div class="run-desc">Revenir à la correction du script</div>
-            </div>
-          </button>
-        </div><!-- /wsec-body -->
-      </div><!-- /wsec-3 -->
+            </button>
 
-      <!-- ══════════════════════════
-           ÉTAPE 4 — EXPORT
-      ══════════════════════════ -->
-      <div class="wsec locked" id="wsec-4">
-        <div class="wsec-header">
-          <div class="wsec-num">4</div>
-          <div style="flex:1;min-width:0">
-            <div class="wsec-title">Assembler et exporter</div>
-            <div class="wsec-sub">Synchronisation image/voix et sous-titres</div>
+            <!-- Redo -->
+            <button class="tl-btn tl-btn-ghost" title="Rétablir (Ctrl+Y)" onclick="redoSegment()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-.49-3.85"/>
+              </svg>
+            </button>
+
+            <div class="tl-btn-sep"></div>
+
+            <!-- Import -->
+            <input type="file" id="import-script-input" accept=".txt,.srt" style="display:none" onchange="importScript(this)">
+            <button class="tl-btn tl-btn-purple" title="Importer un script"
+              onclick="document.getElementById('import-script-input').click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Importer
+            </button>
+
+            <!-- Sauvegarder -->
+            <button class="tl-btn tl-btn-green" title="Tout sauvegarder (Ctrl+S)" onclick="saveAllSegments()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+              </svg>
+              Sauvegarder
+            </button>
+
           </div>
-          <span class="wsec-badge">✓ Fait</span>
+
+          <div class="tl-toolbar-right">
+            <!-- Zoom -->
+            <button class="tl-btn tl-btn-ghost tl-btn-icon" title="Dézoomer" onclick="zoomTimeline(-1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
+            </button>
+            <span class="tl-zoom-pill" id="tl-zoom-label">100%</span>
+            <button class="tl-btn tl-btn-ghost tl-btn-icon" title="Zoomer" onclick="zoomTimeline(1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <line x1="11" y1="8" x2="11" y2="14"/>
+                <line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
+            </button>
+          </div>
+
         </div>
 
-        <div class="wsec-body">
-          <!-- Toggle sous-titres -->
-          <div class="sub-toggle-row">
-            <div class="sub-toggle-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <path d="M8 21h8M12 17v4"/>
-              </svg>
-              <div>
-                Incruster les sous-titres
-                <div class="sub-toggle-hint">Format ASS — qualité broadcast</div>
-              </div>
-            </div>
-            <div class="sw on" id="subtitles-sw" onclick="toggleSw('subtitles-sw');toggleSubEditor()"></div>
+        <!-- Waveform -->
+        <div class="timeline-waveform">
+          <canvas id="waveform-canvas"></canvas>
+          <div class="timeline-cursor" id="timeline-cursor"></div>
+        </div>
+
+        <!-- Règle temporelle -->
+        <div class="timeline-ruler" id="timeline-ruler"></div>
+
+        <!-- Segments -->
+        <div class="timeline-segments" id="timeline-segments">
+          <div class="timeline-empty" id="timeline-empty">
+            <p>La timeline apparaît après la transcription</p>
           </div>
+        </div>
 
-          <!-- Éditeur sous-titres -->
-          <div id="sub-editor-wrap" class="sub-editor-wrap">
-            <div class="sub-editor">
-              <div class="sub-editor-tabs">
-                <div class="sub-tab active" onclick="switchSubTab('preview',this)">Aperçu</div>
-                <div class="sub-tab" onclick="switchSubTab('style',this)">Style</div>
-                <div class="sub-tab" onclick="switchSubTab('advanced',this)">Avancé</div>
-              </div>
+        <!-- Légende raccourcis -->
+        <div class="timeline-legend">
+          <span>Clic = sélectionner</span>
+          <span>Double-clic = couper</span>
+          <span>Suppr = supprimer</span>
+          <span>M = fusionner</span>
+        </div>
 
-              <!-- Onglet Aperçu -->
-              <div class="sub-tab-panel active" id="subtab-preview">
-                <div class="sub-preview-wrap">
-                  <canvas id="sub-canvas"></canvas>
-                  <span class="sub-preview-label">Aperçu temps réel</span>
-                </div>
-                <textarea class="sub-text-input" id="sub-preview-text" rows="2"
-                  oninput="drawSubPreview()"
-                  placeholder="Tapez un texte pour prévisualiser…">Bienvenue dans ce tutoriel.</textarea>
-              </div>
+      </div>
 
-              <!-- Onglet Style -->
-              <div class="sub-tab-panel" id="subtab-style">
-                <div class="sub-presets" id="sub-presets-grid"></div>
-                <div class="ctrl-section">
-                  <div class="ctrl-lbl">Texte</div>
-                  <div class="ctrl-row">
-                    <label>Taille</label>
-                    <input type="range" id="s-size" min="20" max="80" value="48"
-                      oninput="syncVal('s-size','s-size-v','px');drawSubPreview()">
-                    <span class="val" id="s-size-v">48px</span>
-                  </div>
-                  <div class="ctrl-row">
-                    <label>Couleur</label>
-                    <input type="color" id="s-color" value="#ffffff" oninput="drawSubPreview()">
-                    <select id="s-font" oninput="drawSubPreview()" style="flex:1;margin-left:4px">
-                      <option value="calibri">Calibri</option>
-                      <option value="arial">Arial</option>
-                      <option value="segoe">Segoe UI</option>
-                      <option value="georgia">Georgia</option>
-                      <option value="impact">Impact</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="ctrl-section">
-                  <div class="ctrl-lbl">Contour</div>
-                  <div class="ctrl-row">
-                    <label>Épaisseur</label>
-                    <input type="range" id="s-ow" min="0" max="8" value="2"
-                      oninput="syncVal('s-ow','s-ow-v','px');drawSubPreview()">
-                    <span class="val" id="s-ow-v">2px</span>
-                    <input type="color" id="s-oc" value="#000000" oninput="drawSubPreview()">
-                  </div>
-                </div>
-              </div>
+    </main>
 
-              <!-- Onglet Avancé -->
-              <div class="sub-tab-panel" id="subtab-advanced">
-                <div class="ctrl-section">
-                  <div class="ctrl-lbl">Fond</div>
-                  <div class="toggle-row">
-                    <label>Fond activé</label>
-                    <div class="sw on" id="s-bg-sw" onclick="toggleSw('s-bg-sw');drawSubPreview()"></div>
-                  </div>
-                  <div class="ctrl-row">
-                    <label>Couleur</label>
-                    <input type="color" id="s-bgc" value="#000000" oninput="drawSubPreview()">
-                  </div>
-                  <div class="ctrl-row">
-                    <label>Opacité</label>
-                    <input type="range" id="s-bga" min="0" max="100" value="75"
-                      oninput="syncVal('s-bga','s-bga-v','%');drawSubPreview()">
-                    <span class="val" id="s-bga-v">75%</span>
-                  </div>
-                  <div class="ctrl-row">
-                    <label>Arrondi</label>
-                    <input type="range" id="s-br" min="0" max="30" value="10"
-                      oninput="syncVal('s-br','s-br-v','px');drawSubPreview()">
-                    <span class="val" id="s-br-v">10px</span>
-                  </div>
-                </div>
-                <div class="ctrl-section">
-                  <div class="ctrl-lbl">Ombre</div>
-                  <div class="toggle-row">
-                    <label>Ombre activée</label>
-                    <div class="sw on" id="s-sh-sw" onclick="toggleSw('s-sh-sw');drawSubPreview()"></div>
-                  </div>
-                  <div class="ctrl-row">
-                    <label>Opacité</label>
-                    <input type="range" id="s-sha" min="0" max="100" value="60"
-                      oninput="syncVal('s-sha','s-sha-v','%');drawSubPreview()">
-                    <span class="val" id="s-sha-v">60%</span>
-                  </div>
-                </div>
-                <div class="ctrl-section">
-                  <div class="ctrl-lbl">Position</div>
-                  <div class="ctrl-row">
-                    <label>Verticale</label>
-                    <select id="s-pos" oninput="drawSubPreview()">
-                      <option value="bottom">En bas</option>
-                      <option value="center">Au centre</option>
-                      <option value="top">En haut</option>
-                    </select>
-                  </div>
-                  <div class="ctrl-row">
-                    <label>Marge</label>
-                    <input type="range" id="s-mg" min="10" max="120" value="60"
-                      oninput="syncVal('s-mg','s-mg-v','px');drawSubPreview()">
-                    <span class="val" id="s-mg-v">60px</span>
-                  </div>
-                </div>
-              </div>
-            </div><!-- /sub-editor -->
+    <!-- ════════════════
+         PANNEAU DROIT — ÉDITEUR SEGMENT + LOGS
+    ════════════════ -->
+    <aside class="panel-editor">
 
-            <!-- Bouton annuler export (visible après export) -->
-            <button class="run-btn danger" id="btn-reset-to-tts"
-              style="margin-top:6px;display:none"
-              onclick="resetToStep(3)">
-              <div class="run-ico">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="1 4 1 10 7 10"/>
-                  <path d="M3.51 15a9 9 0 1 0 .49-3.85"/>
-                </svg>
-              </div>
-              <div class="run-info">
-                <div class="run-label">Annuler l'export</div>
-                <div class="run-desc">Revenir à la synthèse vocale</div>
-              </div>
-            </button>
-          </div><!-- /sub-editor-wrap -->
+      <!-- Éditeur segment — visible après transcription -->
+      <div class="segment-editor" id="segment-editor" style="display:none">
 
-          <!-- Avertissement étape 4 -->
-          <div class="step-warning" id="warn-step4">
-            <strong>Voix off requise</strong>
-            Générez la voix off à l'étape 3 avant d'assembler la vidéo.
-          </div>
+        <div class="editor-header">
+          <span class="editor-title">Segment</span>
+          <span class="seg-editor-index" id="seg-editor-index"></span>
+          <span class="seg-editor-tc" id="seg-editor-tc"></span>
+        </div>
 
-          <!-- Bouton assembler -->
-          <button class="run-btn amber" id="btn-export" disabled style="margin-top:10px">
-            <div class="run-ico">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="seg-editor-body">
+
+          <!-- Miniature -->
+          <div class="seg-thumb-wrap">
+            <img class="seg-thumb" id="seg-thumb" src="" alt="">
+            <div class="seg-thumb-placeholder" id="seg-thumb-placeholder">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <rect x="2" y="7" width="20" height="15" rx="2"/>
                 <polyline points="17 2 12 7 7 2"/>
               </svg>
             </div>
-            <div class="run-info">
-              <div class="run-label">Assembler la vidéo finale</div>
-              <div class="run-desc">Image + voix synchronisés · sous-titres gravés</div>
+            <!-- Bouton écouter la voix -->
+            <button class="seg-audio-btn" id="seg-audio-btn" onclick="playSegmentAudio()" style="display:none" title="Écouter la voix off">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Texte éditable -->
+          <div class="field-group">
+            <div class="field-label">Texte de la voix off</div>
+            <textarea
+              class="seg-text-input"
+              id="seg-text-input"
+              placeholder="Texte vide — silence sur ce segment"
+              rows="4"
+            ></textarea>
+            <div id="seg-word-budget"></div>
+          </div>
+
+          <!-- Indicateur vitesse -->
+          <div class="speed-indicator" id="speed-indicator">
+            <div class="speed-indicator-header">
+              <span class="speed-label">Vitesse vidéo</span>
+              <span class="speed-value" id="speed-value">x1.0</span>
             </div>
+            <div class="speed-bar-wrap">
+              <div class="speed-bar" id="speed-bar"></div>
+            </div>
+            <div class="speed-hint" id="speed-hint"></div>
+          </div>
+
+          <!-- Forcer vitesse manuellement -->
+          <div class="field-group">
+            <div class="field-label">
+              Forcer la vitesse
+              <span class="field-hint">Désactive le calcul auto</span>
+            </div>
+            <div class="speed-force-row">
+              <input type="range" class="speed-slider" id="speed-slider"
+                min="0.25" max="4.0" step="0.05" value="1.0">
+              <span class="speed-slider-val" id="speed-slider-val">x1.0</span>
+              <button class="speed-reset-btn" id="speed-reset-btn" onclick="resetSpeedFactor()">
+                Auto
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions segment -->
+          <div class="seg-actions-panel">
+            <button class="seg-action-btn blue" onclick="splitSegmentAtCursor()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="2" x2="12" y2="22"/>
+                <path d="M2 12h4M18 12h4"/>
+              </svg>
+              Couper ici
+            </button>
+            <button class="seg-action-btn green" onclick="mergeWithNext()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 6h13M8 12h13M8 18h13"/>
+              </svg>
+              Fusionner
+            </button>
+            <button class="seg-action-btn red" onclick="deleteSegment()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+              Supprimer
+            </button>
+          </div>
+
+          <!-- Sauvegarder ce segment -->
+          <button class="btn-upload" style="margin-top:8px;font-size:11.5px;padding:7px"
+            onclick="saveCurrentSegment()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+            </svg>
+            Sauvegarder ce segment
           </button>
 
-          <!-- Bouton télécharger (visible après export réussi) -->
-          <a id="btn-download" style="display:none" class="dl-btn" href="#" download="tutoriel_final.mp4">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Télécharger la vidéo finale
-          </a>
-        </div><!-- /wsec-body -->
-      </div><!-- /wsec-4 -->
-
-    </div><!-- /workflow-body -->
-  </aside>
-
-  <!-- ════════════════════════════════════════
-       PANNEAU CENTRAL — MONITEUR VIDÉO
-  ════════════════════════════════════════ -->
-  <main class="panel-monitor">
-    <div class="monitor" id="video-monitor">
-      <video id="video-player" controls></video>
-      <div class="monitor-ph" id="video-placeholder">
-        <div class="monitor-ph-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="2" y="7" width="20" height="15" rx="2"/>
-            <polyline points="17 2 12 7 7 2"/>
-          </svg>
         </div>
-        <h3>Aucune vidéo chargée</h3>
-        <p>Importez une vidéo à l'étape 1 pour commencer</p>
       </div>
-      <div class="monitor-hud">
-        <span class="hud-chip" id="hud-mode">SOURCE</span>
-        <span class="hud-chip" id="hud-res" style="display:none"></span>
+
+      <!-- Journal — toujours visible -->
+      <div class="editor-header" id="log-header">
+        <span class="editor-title">Journal</span>
       </div>
-      <div id="subtitle-overlay"></div>
-    </div>
-
-    <div class="transport">
-      <button class="t-btn" onclick="togglePlay()">
-        <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-          <polygon points="5 3 19 12 5 21"/>
-        </svg>
-      </button>
-      <input type="range" id="seek-bar" min="0" max="100" value="0" step="0.1">
-      <span id="time-display">00:00 / 00:00</span>
-    </div>
-
-    <div class="waveform-bar"><canvas id="waveform-canvas"></canvas></div>
-
-    <div class="progress-bar-fixed">
-      <div class="progress-top">
-        <div class="progress-step-label">
-          <span class="dot" id="progress-dot"></span>
-          <span id="progress-label">Prêt — importez une vidéo pour commencer</span>
-        </div>
-        <span class="progress-pct" id="progress-pct"></span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-bar"></div>
-      </div>
-    </div>
-  </main>
-
-  <!-- ════════════════════════════════════════
-       PANNEAU DROIT — SCRIPT
-       Identique au doc4 — rien ne change ici
-  ════════════════════════════════════════ -->
-  <aside class="panel-script">
-    <div class="script-topbar">
-
-      <!-- Rangée 1 : titre + undo/redo + sauvegarde -->
-      <div class="script-topbar-row1">
-        <div class="script-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="log-area" id="log-area">
+        <div class="log-empty">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
-          Script
-          <span class="seg-count" id="seg-count"></span>
+          <p>Les logs apparaîtront ici</p>
         </div>
-        <span class="saved-badge" id="saved-badge">Sauvegardé</span>
-
-        <!-- Undo / Redo — cachés jusqu'à showScriptUI() -->
-        <div id="undo-redo-btns" style="display:none;gap:2px;align-items:center;margin-left:4px">
-          <button class="script-action-btn undo-redo" id="btn-undo"
-            title="Annuler (Ctrl+Z)" onclick="undo()" disabled>↩</button>
-          <button class="script-action-btn undo-redo" id="btn-redo"
-            title="Rétablir (Ctrl+Y)" onclick="redo()" disabled>↪</button>
-        </div>
-
-        <!-- Sauvegarder — caché jusqu'à showScriptUI() -->
-        <button class="script-action-btn primary" id="btn-save-script"
-          title="Sauvegarder le script (Ctrl+S)"
-          onclick="saveScript()"
-          style="margin-left:auto;display:none">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-          </svg>
-          Sauvegarder
-        </button>
       </div>
 
-      <!-- Rangée 2 : outils — cachés jusqu'à showScriptUI() via classList.add('visible') -->
-      <div class="script-topbar-row2" id="script-buttons">
-        <!-- Import -->
-        <input type="file" id="import-script-input" accept=".txt,.srt"
-          style="display:none" onchange="importScript(this)">
-        <button class="script-action-btn"
-          title="Importer un script .txt ou .srt"
-          onclick="document.getElementById('import-script-input').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    </aside>
+
+  </div><!-- /cockpit -->
+
+  <input type="hidden" id="csrf-token"     value="{{ csrf_token }}">
+  <input type="hidden" id="current-job-id" value="{{ job.pk|default:'' }}">
+  <script>window.JOB_DATA = {{ job_data|safe }};</script>
+
+  <script>
+  // Initialisation immédiate basée sur le statut du job
+  // S'exécute avant les autres scripts pour éviter les flash
+  (function() {
+    const job    = window.JOB_DATA;
+    if (!job || !job.id) return;
+
+    const status = job.status || '';
+
+    // Flags lus par transcribe.js et tts.js au DOMContentLoaded
+    if (['transcribed', 'synthesizing', 'done', 'error'].includes(status)) {
+      window._pendingLoadSegments  = job.id;
+      window._pendingMarkStep2Done = true;
+    }
+    if (['done', 'error'].includes(status)) {
+      window._pendingMarkStep3Done = true;
+      window._pendingUnlockStep4   = true;
+      window._pendingCheckExport   = true;
+    }
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════
+       MODAL — TITRE DU JOB
+  ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-title" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-icon blue">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="modal-title">Nommer ce tutoriel</div>
+          <div class="modal-subtitle">Donnez un titre clair pour retrouver cette vidéo facilement</div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-field">
+          <label class="modal-label">Titre <span class="modal-required">*</span></label>
+          <input
+            type="text"
+            class="modal-input"
+            id="input-job-title"
+            placeholder="Ex : Introduction à Python — Partie 1"
+            maxlength="255"
+            autocomplete="off"
+          >
+          <div class="modal-input-hint">
+            <span class="modal-error" id="modal-title-error"></span>
+            <span class="modal-char-count" id="modal-char-count">0 / 255</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="modal-btn cancel" id="modal-title-cancel">Annuler</button>
+        <button class="modal-btn confirm" id="modal-title-confirm">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 16 12 12 8 16"/>
+            <line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+          </svg>
+          Envoyer la vidéo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       MODAL — DOUBLON DÉTECTÉ
+  ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-duplicate" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-icon amber">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <div class="modal-title">Vidéo déjà importée</div>
+          <div class="modal-subtitle">Cette vidéo semble identique à une vidéo existante</div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="duplicate-info" id="duplicate-info">
+          <!-- Rempli dynamiquement par JS -->
+        </div>
+        <p class="duplicate-question">S'agit-il de la même vidéo ?</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="modal-btn cancel" id="modal-dup-new">
+          Non, c'est une autre vidéo
+        </button>
+        <button class="modal-btn confirm amber" id="modal-dup-reuse">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-3.85"/>
+          </svg>
+          Réutiliser cette vidéo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       MODAL — IMPORT SCRIPT PRÉVISUALISATION
+  ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-import" style="display:none">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-icon blue">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
+        </div>
+        <div>
+          <div class="modal-title">Prévisualisation de l'import</div>
+          <div class="modal-subtitle" id="import-preview-subtitle">Vérifiez et corrigez avant d'importer</div>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding:0;max-height:60vh;overflow-y:auto">
+        <div id="import-preview-table"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick="closeImportModal()">Annuler</button>
+        <button class="modal-btn confirm" id="btn-confirm-import" disabled onclick="confirmImport()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
           Importer
         </button>
-        <!-- Export -->
-        <button class="script-action-btn"
-          title="Exporter le script en .txt"
-          onclick="exportScript()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          Exporter
-        </button>
-        <!-- Chercher -->
-        <button class="script-action-btn"
-          title="Rechercher et remplacer dans le script (Ctrl+F)"
-          onclick="toggleSearch()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          Chercher
-        </button>
-        <!-- Outils — toggle la toolbar injectée par injectScriptToolbar() -->
-        <button class="script-action-btn"
-          title="Outils de nettoyage automatique (mots parasites, capitalisation…)"
-          onclick="toggleScriptToolbar()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-          Outils
-        </button>
-        <!-- Plein écran -->
-        <button class="script-action-btn"
-          title="Éditeur plein écran"
-          onclick="openFullEditor()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-          </svg>
-          Plein écran
-        </button>
-        <!-- Réinitialiser -->
-        <button class="script-action-btn danger"
-          title="Revenir au texte original de Whisper"
-          onclick="resetScript()"
-          id="btn-reset-script">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="1 4 1 10 7 10"/>
-            <path d="M3.51 15a9 9 0 1 0 .49-3.85"/>
-          </svg>
-          Réinitialiser
-        </button>
       </div>
-    </div><!-- /script-topbar -->
-
-    <!-- Zone éditeur de segments — la search bar et toolbar outils
-         sont injectées dynamiquement par injectScriptToolbar() dans le JS -->
-    <div id="script-editor"
-      style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px">
-      <div class="script-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-        <p>Le script apparaît ici après la transcription.</p>
-        <p class="hint">Modifiez librement le texte de chaque segment.<br>Les timecodes sont préservés automatiquement.</p>
-      </div>
-    </div>
-
-    <!-- Journal — #log-monitor écrit directement par le JS -->
-    <div class="console-wrap">
-      <div class="console-head">
-        <span class="ws-dot" id="ws-dot"></span>
-        <span id="ws-status" style="font-size:9.5px;color:var(--text-3)">Non connecté</span>
-        <span class="console-lbl" style="margin-left:7px">Journal</span>
-        <button class="console-clear" onclick="clearLog()">Effacer</button>
-      </div>
-      <div id="log-monitor">Prêt. Importez une vidéo pour commencer.
-</div>
-    </div>
-  </aside>
-
-</div><!-- /studio -->
-
-<!-- ════ MODALE PLEIN ÉCRAN ════ -->
-<div id="full-editor-modal">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-shrink:0">
-    <h2 style="font-size:15px;font-weight:600;color:var(--text-1)">Éditeur plein écran</h2>
-    <span style="font-size:10.5px;color:var(--text-3)">Un segment par paragraphe — ligne vide entre chaque</span>
-    <div style="margin-left:auto;display:flex;gap:7px">
-      <button class="script-action-btn primary" onclick="applyFullEditor()">Appliquer les modifications</button>
-      <button class="script-action-btn" onclick="closeFullEditor()">Fermer</button>
     </div>
   </div>
-  <textarea id="full-editor-textarea" placeholder="Un segment par paragraphe…"></textarea>
-</div>
 
-<!-- ════ DONNÉES CACHÉES ════ -->
-<input type="hidden" id="current-job-id"     value="{{ job.pk|default:'' }}">
-<input type="hidden" id="current-job-status"  value="{{ job.status|default:'' }}">
-<input type="hidden" id="current-job-tts"     value="{{ job.tts_engine|default:'elevenlabs' }}">
-<input type="hidden" id="current-job-voice"   value="{{ job.tts_voice|default:'narrateur_pro' }}">
-<input type="hidden" id="current-job-lang"    value="{{ job.language|default:'fr' }}">
-<input type="hidden" id="csrf-token"          value="{{ csrf_token }}">
-<input type="hidden" id="video-url"           value="{{ video_url }}">
-<input type="hidden" id="final-url"           value="{{ final_url }}">
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/cockpit.js' %}"></script>
-{% endblock %}
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <script src="{% static 'js/toast.js' %}"></script>
+  <script src="{% static 'js/upload.js' %}"></script>
+  <script src="{% static 'js/transcribe.js' %}"></script>
+  <script src="{% static 'js/tts.js' %}"></script>
+  <script src="{% static 'js/export.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+/* ═══════════════════════════════════════════════════
+   layout.css — Variables globales + grille cockpit
+═══════════════════════════════════════════════════ */
+
+/* ── Variables ── */
+:root {
+  /* Fonts */
+  --font:      'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+
+  /* Couleurs principales */
+  --bg:         #F0F2F5;
+  --surface:    #FFFFFF;
+  --surface-2:  #F5F7FA;
+  --surface-3:  #E8ECF2;
+  --border:     #DDE1E9;
+  --border-md:  #C8CDD8;
+
+  /* Texte */
+  --text-1: #111318;
+  --text-2: #4A5062;
+  --text-3: #8B92A5;
+
+  /* Accents */
+  --blue:        #3B82F6;
+  --blue-bg:     rgba(59,130,246,.10);
+  --blue-border: rgba(59,130,246,.25);
+
+  --green:        #22C55E;
+  --green-bg:     rgba(34,197,94,.10);
+  --green-border: rgba(34,197,94,.25);
+
+  --amber:        #F59E0B;
+  --amber-bg:     rgba(245,158,11,.10);
+  --amber-border: rgba(245,158,11,.25);
+
+  --red:        #EF4444;
+  --red-bg:     rgba(239,68,68,.10);
+  --red-border: rgba(239,68,68,.25);
+
+  /* Layout */
+  --topbar-h:     48px;
+  --panel-left-w: 280px;
+  --panel-right-w: 300px;
+
+  /* Misc */
+  --radius:    8px;
+  --radius-lg: 12px;
+  --transition: all .15s ease;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font);
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { cursor: pointer; font-family: var(--font); border: none; background: none; }
+input, select, textarea { font-family: var(--font); }
+a { text-decoration: none; color: inherit; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 2px; }
+
+/* ── Topbar ── */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -.3px;
+}
+
+.logo svg { color: var(--blue); }
+
+/* Lien logo cliquable */
+.topbar-logo {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 800;
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--blue), #6340C8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -.3px;
+}
+.topbar-logo svg { color: var(--blue); -webkit-text-fill-color: initial; }
+
+/* Bouton retour dashboard */
+.topbar-back-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 500;
+  color: var(--text-3);
+  text-decoration: none;
+  padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+  margin-left: 8px;
+}
+.topbar-back-btn:hover { color: var(--text-1); background: var(--surface-2); }
+
+.topbar-sep {
+  color: var(--border-md);
+  font-size: 16px;
+}
+
+.topbar-project {
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.step-pill {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  border: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.step-pill.active {
+  color: var(--blue);
+  background: var(--blue-bg);
+  border-color: var(--blue-border);
+}
+
+.step-pill.done {
+  color: var(--green);
+  background: var(--green-bg);
+  border-color: var(--green-border);
+}
+
+/* ── Cockpit — grille 3 colonnes ── */
+.cockpit {
+  display: grid;
+  grid-template-columns: var(--panel-left-w) 1fr var(--panel-right-w);
+  height: 100vh;
+  padding-top: var(--topbar-h);
+  overflow: hidden;
+}

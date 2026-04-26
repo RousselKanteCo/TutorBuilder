@@ -1,0 +1,2 @@
+from .task_transcribe import task_transcribe
+from .task_synthesize import task_synthesize

@@ -1,33 +1,48 @@
-"""
-apps/studio/urls.py — URLs de l'application studio (cockpit).
-"""
-
+"""apps/studio/urls.py"""
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from . import views
+from django.contrib.auth.views import LoginView
+from .views import (
+    JobUploadView, JobCheckDuplicateView, JobReuseView, JobDetailView,
+    CockpitView, ProjectListAPIView, ProjectCreateView,
+    TranscribeView, SynthesizeView, ExportView, ExportStatusView, BurnSubtitlesView,
+    SegmentListView, SegmentSaveView, SegmentSaveAllView, SegmentImportScriptView, SegmentAudioView,
+    dashboard_view, logout_view, ProjectCreateAPIView, ProjectDeleteAPIView, JobDeleteAPIView,
+)
 
 app_name = "studio"
 
 urlpatterns = [
     # ── Dashboard ──
-    path("", views.DashboardView.as_view(), name="dashboard"),
+    path("",          dashboard_view, name="dashboard"),
+    path("logout/",   logout_view,    name="logout"),
 
     # ── Cockpit ──
-    path("cockpit/", views.CockpitView.as_view(), name="cockpit"),
-    path("cockpit/<uuid:job_id>/", views.CockpitView.as_view(), name="cockpit_job"),
+    path("cockpit/",               CockpitView.as_view(), name="cockpit"),
+    path("cockpit/<uuid:job_id>/", CockpitView.as_view(), name="cockpit_job"),
 
     # ── Projets ──
-    path("projects/", views.ProjectListView.as_view(), name="project_list"),
-    path("projects/new/", views.ProjectCreateView.as_view(), name="project_create"),
-    path("projects/<uuid:pk>/", views.ProjectDetailView.as_view(), name="project_detail"),
-    path("projects/<uuid:pk>/delete/", views.ProjectDeleteView.as_view(), name="project_delete"),
+    path("projects/new/",                      ProjectCreateView.as_view(),       name="project_create"),
+    path("api/projects/",                      ProjectListAPIView.as_view(),      name="project_list_api"),
+    path("api/projects/create/",               ProjectCreateAPIView.as_view(),    name="project_create_api"),
+    path("api/projects/<uuid:project_id>/delete/", ProjectDeleteAPIView.as_view(), name="project_delete_api"),
 
     # ── Jobs ──
-    path("jobs/<uuid:pk>/", views.JobDetailView.as_view(), name="job_detail"),
-    path("jobs/<uuid:job_id>/duplicate/", views.duplicate_job, name="job_duplicate"),  # ← NOUVEAU
-
-    # ── Health check ──
-    path("health/", views.health_check, name="health"),
-
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("api/jobs/",                           JobUploadView.as_view(),         name="job_upload"),
+    path("api/jobs/check-duplicate/",           JobCheckDuplicateView.as_view(), name="job_check_duplicate"),
+    path("api/jobs/reuse/",                     JobReuseView.as_view(),          name="job_reuse"),
+    path("api/jobs/<uuid:job_id>/",             JobDetailView.as_view(),         name="job_detail"),
+    path("api/jobs/<uuid:job_id>/delete/",      JobDeleteAPIView.as_view(),      name="job_delete_api"),
+    path("api/jobs/<uuid:job_id>/transcribe/",  TranscribeView.as_view(),        name="job_transcribe"),
+    path("api/jobs/<uuid:job_id>/synthesize/",  SynthesizeView.as_view(),        name="job_synthesize"),
+    path("api/jobs/<uuid:job_id>/export/",              ExportView.as_view(),        name="job_export"),
+    path("api/jobs/<uuid:job_id>/export/status/",       ExportStatusView.as_view(),  name="job_export_status"),
+    path("api/jobs/<uuid:job_id>/export/burn/",         BurnSubtitlesView.as_view(), name="job_burn"),
+    path("api/jobs/<uuid:job_id>/segments/",                    SegmentListView.as_view(),         name="segment_list"),
+    path("api/jobs/<uuid:job_id>/segments/save-all/",           SegmentSaveAllView.as_view(),      name="segment_save_all"),
+    path("api/jobs/<uuid:job_id>/segments/import-script/",      SegmentImportScriptView.as_view(), name="segment_import_script"),
+    path("api/jobs/<uuid:job_id>/segments/<int:seg_id>/save/",  SegmentSaveView.as_view(),         name="segment_save"),
+    path("api/jobs/<uuid:job_id>/segments/<int:seg_id>/audio/", SegmentAudioView.as_view(),        name="segment_audio"),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
+  + static("/outputs/", document_root=settings.OUTPUTS_ROOT)

@@ -29,12 +29,12 @@ urlpatterns = [
     path("", include("apps.studio.urls", namespace="studio")),
 
     # ── API REST ──
-    path("api/", include("apps.api.urls", namespace="api")),
+    # path("api/", include("apps.api.urls", namespace="api")),
 
     # ── Documentation OpenAPI ──
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    # path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    # path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    # path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
     # ── Authentification ──
     path("accounts/", include("django.contrib.auth.urls")),
