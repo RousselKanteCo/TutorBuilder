@@ -72,6 +72,8 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
         if not provider.est_disponible():
             raise RuntimeError(f"Moteur TTS '{tts_engine}' non disponible.")
 
+        logger.info(f"Synthèse avec voix='{voice}' engine='{tts_engine}'")
+
         # ── Dossier TTS ───────────────────────────────────────────────────
         tts_dir = job.output_dir / "tts"
         tts_dir.mkdir(parents=True, exist_ok=True)
