@@ -343,8 +343,16 @@ function clearModifiedSegments() {
 function restoreModifiedSegments() {
   const jobId = document.getElementById('current-job-id')?.value;
   if (!jobId) return;
-  const key     = `modified_segs_${jobId}`;
-  const stored  = sessionStorage.getItem(key);
+
+  // Ne pas restaurer si voix déjà générée — on repart de zéro
+  const status = window.JOB_DATA?.status;
+  if (status === 'done') {
+    sessionStorage.removeItem(`modified_segs_${jobId}`);
+    return;
+  }
+
+  const key    = `modified_segs_${jobId}`;
+  const stored = sessionStorage.getItem(key);
   if (stored) {
     try {
       const ids = JSON.parse(stored);
