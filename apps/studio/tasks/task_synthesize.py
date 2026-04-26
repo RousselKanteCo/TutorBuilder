@@ -10,6 +10,7 @@ PRINCIPE :
 """
 
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -86,22 +87,40 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
             if s.text and s.text.strip() and len(s.text.strip()) >= 3
         ]
 
-        # Si segment_ids fournis → ne régénérer que ceux-là
+        # Déterminer les segments à synthétiser :
+        # - Si segment_ids fournis → exactement ceux-là (régénération manuelle)
+        # - Sinon → union de : segments sans audio + segments modifiés
         if segment_ids:
             to_synthesize = [s for s in all_segments if str(s.pk) in [str(sid) for sid in segment_ids]]
             ws_send(job_id, "status",
                     message=f"Regénération de {len(to_synthesize)} segment(s) modifié(s)…",
                     level="info")
         else:
-            to_synthesize = all_segments
+            segment_ids_set = set(str(sid) for sid in (segment_ids or []))
+            to_synthesize   = []
+            already_ok      = []
+
+            for s in all_segments:
+                audio_existe = s.audio_file and os.path.exists(str(s.audio_file))
+                if not audio_existe:
+                    to_synthesize.append(s)
+                else:
+                    already_ok.append(s.index)
+
+            nb_sans_audio = len(to_synthesize)
+            nb_deja_ok    = len(already_ok)
+
+            if nb_deja_ok:
+                logger.info(f"{nb_deja_ok} segments déjà générés — ignorés")
+
+            ws_send(job_id, "status",
+                    message=f"{len(to_synthesize)} segment(s) à générer ({nb_deja_ok} déjà OK)…",
+                    level="info")
 
         total   = len(to_synthesize)
         nb_ok   = 0
         nb_fail = 0
         echecs  = []
-
-        ws_send(job_id, "status",
-                message=f"{total} segments à synthétiser…", level="info")
 
         for i, seg in enumerate(to_synthesize):
             ws_send(job_id, "tts_progress", current=i + 1, total=total)

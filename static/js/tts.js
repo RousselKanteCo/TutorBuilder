@@ -38,9 +38,12 @@ async function startSynthesis() {
     return;
   }
 
-  // ── 2. Segments modifiés uniquement ───────────────────────────────────
-  const modifiedIds    = window.getModifiedSegmentIds ? window.getModifiedSegmentIds() : [];
-  const isRegeneration = modifiedIds.length > 0;
+  // ── 2. Déterminer le mode de synthèse ────────────────────────────────
+  const modifiedIds = window.getModifiedSegmentIds ? window.getModifiedSegmentIds() : [];
+  const hasAudio    = window.transcribeState?.segments?.some(s => s.has_audio) || false;
+
+  // Régénération partielle = segments modifiés ET audio déjà existant
+  const isRegeneration = modifiedIds.length > 0 && hasAudio;
 
   const ttsEngine = document.getElementById('select-tts-engine')?.value || 'elevenlabs';
   const voice     = document.querySelector('.voice-card.selected')?.dataset.voiceId || 'narrateur_pro';
@@ -50,18 +53,19 @@ async function startSynthesis() {
   const btn = document.getElementById('btn-synthesize');
   if (btn) { btn.disabled = true; }
 
-  setTtsProgress(5, isRegeneration
+  const progressMsg = isRegeneration
     ? `Regénération de ${modifiedIds.length} segment(s) modifié(s)…`
-    : 'Génération en cours…'
-  );
+    : hasAudio
+      ? 'Complétion des segments manquants…'
+      : 'Génération de la voix en cours…';
+
+  setTtsProgress(5, progressMsg);
   showTtsProgress();
-  window.Toast?.info(isRegeneration
-    ? `Regénération de ${modifiedIds.length} segment(s)…`
-    : 'Génération de la voix lancée…'
-  );
+  window.Toast?.info(progressMsg);
 
   try {
     const body = { tts_engine: ttsEngine, voice, language: langue };
+    // Envoyer segment_ids seulement pour une régénération partielle
     if (isRegeneration) body.segment_ids = modifiedIds;
 
     const res = await fetch(`/api/jobs/${jobId}/synthesize/`, {
@@ -125,6 +129,7 @@ function startTtsPolling(jobId) {
             </svg>
             Regénérer la voix off`;
           btn.style.opacity = '0.75';
+          btn.title = 'Relancer uniquement les segments modifiés ou manquants';
         }
 
         // Recharger segments avec has_audio
