@@ -90,9 +90,16 @@ function buildVoiceGrid() {
   if (!TDOM.voiceGrid) return;
   TDOM.voiceGrid.innerHTML = '';
 
-  VOICES.forEach((v, i) => {
+  // Voix sauvegardée en base ou première voix par défaut
+  const savedVoiceId = window.JOB_DATA?.tts_voice || VOICES[0].id;
+  const savedVoice   = VOICES.find(v => v.id === savedVoiceId) || VOICES[0];
+  transcribeState.selectedVoice = savedVoice;
+  transcribeState.wpm           = savedVoice.wpm;
+
+  VOICES.forEach((v) => {
     const card = document.createElement('div');
-    card.className = 'voice-card' + (i === 0 ? ' selected' : '');
+    const isSelected = v.id === savedVoice.id;
+    card.className = 'voice-card' + (isSelected ? ' selected' : '');
     card.dataset.voiceId = v.id;
     card.innerHTML = `
       <div class="voice-card-name">${v.name}</div>
