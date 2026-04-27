@@ -44,7 +44,8 @@ const transcribeState = {
   wpm:              DEFAULT_WPM,
   videoDuration:    0,
   waveformData:     [],
-  modifiedSegments: new Set(), // IDs des segments modifiés depuis dernière synthèse
+  modifiedSegments: new Set(), // IDs des segments modifiés depuis dernière synthèse TTS
+  unsavedSegments:  new Set(), // IDs des segments modifiés non encore sauvegardés en base
 };
 
 /* ═══════════════════════════════════════════════════
@@ -321,23 +322,39 @@ function showTimeline() {
   if (TDOM.segmentEditor) TDOM.segmentEditor.style.display = 'block';
 }
 
+function updateUnsavedBadge() {
+  const count   = transcribeState.unsavedSegments.size;
+  const badge   = document.getElementById('unsaved-badge');
+  const countEl = document.getElementById('unsaved-count');
+  const btn     = document.getElementById('btn-save-all');
+
+  if (badge)   badge.style.display = count > 0 ? 'flex' : 'none';
+  if (countEl) countEl.textContent = count;
+  if (btn) {
+    if (count > 0) btn.classList.add('btn-save-pulse');
+    else           btn.classList.remove('btn-save-pulse');
+  }
+}
+
 function markSegmentModified(idx) {
   const seg = transcribeState.segments[idx];
   if (seg?.id) {
     transcribeState.modifiedSegments.add(String(seg.id));
-    // Persister dans sessionStorage pour survivre au reload
+    transcribeState.unsavedSegments.add(String(seg.id));
     const jobId = document.getElementById('current-job-id')?.value;
     if (jobId) {
-      const key = `modified_segs_${jobId}`;
-      sessionStorage.setItem(key, JSON.stringify([...transcribeState.modifiedSegments]));
+      sessionStorage.setItem(`modified_segs_${jobId}`, JSON.stringify([...transcribeState.modifiedSegments]));
     }
+    updateUnsavedBadge();
   }
 }
 
 function clearModifiedSegments() {
   transcribeState.modifiedSegments.clear();
+  transcribeState.unsavedSegments.clear();
   const jobId = document.getElementById('current-job-id')?.value;
   if (jobId) sessionStorage.removeItem(`modified_segs_${jobId}`);
+  updateUnsavedBadge();
 }
 
 function restoreModifiedSegments() {
@@ -364,6 +381,8 @@ function restoreModifiedSegments() {
 window.getModifiedSegmentIds  = () => [...transcribeState.modifiedSegments];
 window.clearModifiedSegments  = clearModifiedSegments;
 window.restoreModifiedSegments = restoreModifiedSegments;
+window.transcribeState        = transcribeState;
+window.updateUnsavedBadge     = updateUnsavedBadge;
 
 /* ═══════════════════════════════════════════════════
    CALCUL VITESSE
@@ -1041,8 +1060,12 @@ function mergeWithNext(idx) {
   reindexSegments();
   renderTimeline();
   selectSegment(idx);
-  window.Toast?.success('Segments fusionnés.');
   transcribeState.dirty = true;
+
+  // Sauvegarder automatiquement pour que la fusion soit effective en base
+  saveAllSegments().then(() => {
+    window.Toast?.success('Segments fusionnés et sauvegardés.');
+  });
 }
 
 /* ═══════════════════════════════════════════════════
@@ -1066,18 +1089,105 @@ function deleteSegment(idx) {
   if (idx === undefined) idx = transcribeState.selectedIdx;
   if (idx === null) return;
 
-  pushUndo('Supprimer segment');
-  transcribeState.segments[idx].deleted = true;
-  transcribeState.segments[idx].text    = '';
-  renderTimeline();
-  transcribeState.selectedIdx = null;
-  window.Toast?.warn('Segment supprimé — il sera muet dans la vidéo finale.');
-  transcribeState.dirty = true;
+  const seg = transcribeState.segments[idx];
+  const apercu = seg?.text ? `"${seg.text.slice(0, 60)}${seg.text.length > 60 ? '...' : ''}"` : '(segment vide)';
+
+  showConfirmModal({
+    title: 'Supprimer ce segment ?',
+    message: `Vous allez supprimer le segment ${idx + 1} : ${apercu}. Cette action est irréversible — le segment sera définitivement retiré de la vidéo.`,
+    confirmLabel: 'Supprimer',
+    confirmClass: 'danger',
+    onConfirm: () => {
+      pushUndo('Supprimer segment');
+      transcribeState.segments[idx].deleted = true;
+      transcribeState.segments[idx].text    = '';
+      reindexSegments();
+      renderTimeline();
+      transcribeState.selectedIdx = null;
+      transcribeState.dirty = true;
+      saveAllSegments().then(() => {
+        window.Toast?.warn('Segment supprimé définitivement.');
+      });
+    }
+  });
 }
 
 /* ═══════════════════════════════════════════════════
-   UNDO / REDO
+   MODALE DE CONFIRMATION
 ═══════════════════════════════════════════════════ */
+
+function showConfirmModal({ title, message, confirmLabel, confirmClass, onConfirm }) {
+  // Supprimer modale existante
+  const existing = document.getElementById('confirm-modal-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'confirm-modal-overlay';
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:99999;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.5); backdrop-filter:blur(4px);
+  `;
+
+  const isDanger = confirmClass === 'danger';
+
+  overlay.innerHTML = `
+    <div style="
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; padding:28px; width:min(440px,92vw);
+      box-shadow:0 24px 48px rgba(0,0,0,.2);
+      animation: confirm-pop .18s cubic-bezier(.22,1,.36,1);
+    ">
+      <style>@keyframes confirm-pop { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }</style>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="
+          width:38px;height:38px;border-radius:10px;flex-shrink:0;
+          background:${isDanger ? '#FEE2E2' : '#DBEAFE'};
+          display:flex;align-items:center;justify-content:center;
+          color:${isDanger ? '#DC2626' : '#2563EB'};
+        ">
+          ${isDanger
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+               </svg>`
+            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+               </svg>`
+          }
+        </div>
+        <div style="font-size:15px;font-weight:800;color:var(--text-1)">${title}</div>
+      </div>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin:0 0 22px">${message}</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="confirm-modal-cancel" style="
+          padding:9px 18px;border-radius:8px;border:1px solid var(--border);
+          background:var(--surface);color:var(--text-2);font-size:12px;
+          font-weight:600;font-family:var(--font);cursor:pointer;
+        ">Annuler</button>
+        <button id="confirm-modal-ok" style="
+          padding:9px 20px;border-radius:8px;border:none;
+          background:${isDanger ? '#DC2626' : '#2563EB'};
+          color:white;font-size:12px;font-weight:700;
+          font-family:var(--font);cursor:pointer;
+          box-shadow:0 4px 12px rgba(${isDanger ? '220,38,38' : '37,99,235'},.3);
+        ">${confirmLabel}</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#confirm-modal-cancel').onclick = () => overlay.remove();
+  overlay.querySelector('#confirm-modal-ok').onclick = () => {
+    overlay.remove();
+    onConfirm();
+  };
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+window.showConfirmModal = showConfirmModal;
 
 function pushUndo(label) {
   const snapshot = JSON.parse(JSON.stringify(transcribeState.segments));
@@ -1338,8 +1448,12 @@ async function saveCurrentSegment() {
       }),
     });
     if (res.ok) {
+      markSegmentModified(idx);
+      // Segment sauvegardé en base — retirer du badge
+      transcribeState.unsavedSegments.delete(String(transcribeState.segments[idx]?.id));
       window.Toast?.success(`Segment ${idx + 1} sauvegardé.`);
       markSegmentSaved(idx);
+      updateUnsavedBadge();
     } else {
       const d = await res.json();
       window.Toast?.error(d.error || 'Erreur sauvegarde.');
@@ -1381,6 +1495,8 @@ async function saveAllSegments() {
     const data = await res.json();
     if (res.ok) {
       transcribeState.dirty = false;
+      transcribeState.unsavedSegments.clear();
+      updateUnsavedBadge();
       window.Toast?.success(`${data.updated} segment(s) sauvegardés.`);
       if (data.errors?.length) {
         window.Toast?.warn(`${data.errors.length} erreur(s) : ${data.errors[0]}`);

@@ -12,8 +12,9 @@
 const POLL_TTS_INTERVAL = 2500;
 
 const ttsState = {
-  pollTimer: null,
-  isRunning: false,
+  pollTimer:   null,
+  isRunning:   false,
+  doneHandled: false,
 };
 
 /* ═══════════════════════════════════════════════════
@@ -39,27 +40,27 @@ async function startSynthesis() {
   }
 
   // ── 2. Déterminer le mode de synthèse ────────────────────────────────
-  const modifiedIds = window.getModifiedSegmentIds ? window.getModifiedSegmentIds() : [];
-  const hasAudio    = window.transcribeState?.segments?.some(s => s.has_audio) || false;
+  const modifiedIds    = window.getModifiedSegmentIds ? window.getModifiedSegmentIds() : [];
+  const isRegeneration = modifiedIds.length > 0;
 
-  // Régénération partielle = segments modifiés ET audio déjà existant
-  const isRegeneration = modifiedIds.length > 0 && hasAudio;
+  // Avertir si modifs non sauvegardées
+  if (isRegeneration) {
+    window.Toast?.info(`${modifiedIds.length} segment(s) modifié(s) vont être regénérés.`);
+  }
 
   const ttsEngine = document.getElementById('select-tts-engine')?.value || 'elevenlabs';
   const voice = window.transcribeState?.selectedVoice?.id
     || document.querySelector('.voice-card.selected')?.dataset.voiceId
     || 'narrateur_pro';
-  const langue    = document.getElementById('select-language')?.value || 'fr';
-  const csrf      = document.getElementById('csrf-token')?.value || '';
+  const langue = document.getElementById('select-language')?.value || 'fr';
+  const csrf   = document.getElementById('csrf-token')?.value || '';
 
   const btn = document.getElementById('btn-synthesize');
   if (btn) { btn.disabled = true; }
 
   const progressMsg = isRegeneration
-    ? `Regénération de ${modifiedIds.length} segment(s) modifié(s)…`
-    : hasAudio
-      ? 'Complétion des segments manquants…'
-      : 'Génération de la voix en cours…';
+    ? `Regénération de ${modifiedIds.length} segment(s) modifié(s)...`
+    : 'Génération de la voix en cours...';
 
   setTtsProgress(5, progressMsg);
   showTtsProgress();
@@ -67,7 +68,6 @@ async function startSynthesis() {
 
   try {
     const body = { tts_engine: ttsEngine, voice, language: langue };
-    // Envoyer segment_ids seulement pour une régénération partielle
     if (isRegeneration) body.segment_ids = modifiedIds;
 
     const res = await fetch(`/api/jobs/${jobId}/synthesize/`, {
@@ -100,14 +100,16 @@ async function startSynthesis() {
 
 function startTtsPolling(jobId) {
   if (ttsState.pollTimer) clearInterval(ttsState.pollTimer);
-  ttsState.isRunning = true;
+  ttsState.isRunning   = true;
+  ttsState.doneHandled = false;
 
   ttsState.pollTimer = setInterval(async () => {
     try {
       const res = await fetch(`/api/jobs/${jobId}/`);
       const job = await res.json();
 
-      if (job.status === 'done') {
+      if (job.status === 'done' && !ttsState.doneHandled) {
+        ttsState.doneHandled = true;
         clearInterval(ttsState.pollTimer);
         ttsState.isRunning = false;
         setTtsProgress(100, 'Voix générée avec succès !');
@@ -115,7 +117,7 @@ function startTtsPolling(jobId) {
         markStep3Done();
         unlockStep4();
 
-        // Vider les segments modifiés
+        // Vider les segments modifiés — une seule fois
         if (typeof window.clearModifiedSegments === 'function') {
           window.clearModifiedSegments();
         }
