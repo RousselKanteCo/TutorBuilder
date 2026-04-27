@@ -45,6 +45,9 @@ class CockpitView(LoginRequiredMixin, TemplateView):
                     "project_id":     str(job.project.pk),
                     "project_name":   job.project.name,
                     "waveform_data":  job.waveform_data or [],
+                    "tts_voice":      job.tts_voice or "narrateur_pro",
+                    "tts_engine":     job.tts_engine or "elevenlabs",
+                    "language":       job.language or "fr",
                 })
 
             except Job.DoesNotExist:
