@@ -150,8 +150,8 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
             for attempt in range(3):
                 wait = RETRY_DELAYS[attempt]
                 if wait > 0:
-                ws_send(job_id, "status",
-                        message=f"Attente {wait}s avant nouvelle tentative pour le segment {seg.index}...", level="warn")
+                    ws_send(job_id, "status",
+                            message=f"Attente {wait}s avant nouvelle tentative pour le segment {seg.index}...", level="warn")
                     time.sleep(wait)
 
                 try:
