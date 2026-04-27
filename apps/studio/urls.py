@@ -6,7 +6,7 @@ from django.contrib.auth.views import LoginView
 from .views import (
     JobUploadView, JobCheckDuplicateView, JobReuseView, JobDetailView,
     CockpitView, ProjectListAPIView, ProjectCreateView,
-    TranscribeView, SynthesizeView, ExportView, ExportStatusView, BurnSubtitlesView,
+    TranscribeView, SynthesizeView, SetVoiceView, ExportView, ExportStatusView, BurnSubtitlesView,
     SegmentListView, SegmentSaveView, SegmentSaveAllView, SegmentImportScriptView, SegmentAudioView,
     dashboard_view, logout_view, ProjectCreateAPIView, ProjectDeleteAPIView, JobDeleteAPIView,
 )
@@ -36,6 +36,7 @@ urlpatterns = [
     path("api/jobs/<uuid:job_id>/delete/",      JobDeleteAPIView.as_view(),      name="job_delete_api"),
     path("api/jobs/<uuid:job_id>/transcribe/",  TranscribeView.as_view(),        name="job_transcribe"),
     path("api/jobs/<uuid:job_id>/synthesize/",  SynthesizeView.as_view(),        name="job_synthesize"),
+    path("api/jobs/<uuid:job_id>/set-voice/",   SetVoiceView.as_view(),          name="job_set_voice"),
     path("api/jobs/<uuid:job_id>/export/",              ExportView.as_view(),        name="job_export"),
     path("api/jobs/<uuid:job_id>/export/status/",       ExportStatusView.as_view(),  name="job_export_status"),
     path("api/jobs/<uuid:job_id>/export/burn/",         BurnSubtitlesView.as_view(), name="job_burn"),

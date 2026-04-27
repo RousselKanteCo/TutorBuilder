@@ -49,3 +49,19 @@ class SynthesizeView(APIView):
         threading.Thread(target=_run, daemon=True).start()
         logger.info(f"Synthèse lancée : job={job.pk} segments={segment_ids or 'tous'}")
         return Response({"task_id": "thread", "status": "started", "message": "Synthèse vocale lancée."})
+
+
+class SetVoiceView(APIView):
+    """POST /api/jobs/<job_id>/set-voice/ — Sauvegarde la voix choisie en base."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, job_id):
+        try:
+            job = Job.objects.get(pk=job_id, project__owner=request.user)
+        except Job.DoesNotExist:
+            return Response({"error": "Job introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        voice = request.data.get("voice", "narrateur_pro")
+        job.tts_voice = voice
+        job.save(update_fields=["tts_voice"])
+        return Response({"status": "ok", "tts_voice": voice})

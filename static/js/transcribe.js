@@ -115,6 +115,17 @@ function selectVoice(voice, cardEl) {
   document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
   cardEl.classList.add('selected');
 
+  // Sauvegarder en base immédiatement
+  const jobId = document.getElementById('current-job-id')?.value;
+  const csrf  = document.getElementById('csrf-token')?.value || '';
+  if (jobId) {
+    fetch(`/api/jobs/${jobId}/set-voice/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body:    JSON.stringify({ voice: voice.id }),
+    }).catch(() => {});
+  }
+
   // Recalculer les speed_factor si des segments existent
   if (transcribeState.segments.length > 0) {
     recalcAllSpeeds();
