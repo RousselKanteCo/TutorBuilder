@@ -26,15 +26,16 @@ async function startSynthesis() {
   if (!jobId) { window.Toast?.error('Aucun job actif.'); return; }
 
   // ── 1. Vérifier sauvegarde ────────────────────────────────────────────
-  if (window.transcribeState?.dirty) {
+  const unsavedCount = window.transcribeState?.unsavedSegments?.size || 0;
+  if (unsavedCount > 0) {
     window.Toast?.error(
-      'Des modifications ne sont pas sauvegardées. ' +
-      'Cliquez sur "Sauvegarder" dans la timeline avant de générer la voix.'
+      `${unsavedCount} segment(s) non sauvegardé(s). ` +
+      'Cliquez sur "Sauvegarder" avant de générer la voix.'
     );
-    const btnSave = document.querySelector('.tl-btn-green');
+    const btnSave = document.getElementById('btn-save-all');
     if (btnSave) {
-      btnSave.style.animation = 'pulse-save 0.5s ease 3';
-      setTimeout(() => { btnSave.style.animation = ''; }, 1500);
+      btnSave.style.animation = 'none';
+      setTimeout(() => btnSave.classList.add('btn-save-pulse'), 10);
     }
     return;
   }

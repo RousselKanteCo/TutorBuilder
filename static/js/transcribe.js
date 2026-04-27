@@ -1448,9 +1448,11 @@ async function saveCurrentSegment() {
       }),
     });
     if (res.ok) {
-      markSegmentModified(idx);
-      // Segment sauvegardé en base — retirer du badge
-      transcribeState.unsavedSegments.delete(String(transcribeState.segments[idx]?.id));
+      // Retirer du badge unsaved — sauvegardé en base
+      // Garder dans modifiedSegments pour la prochaine régénération TTS
+      const segId = String(transcribeState.segments[idx]?.id);
+      transcribeState.modifiedSegments.add(segId);
+      transcribeState.unsavedSegments.delete(segId);
       window.Toast?.success(`Segment ${idx + 1} sauvegardé.`);
       markSegmentSaved(idx);
       updateUnsavedBadge();
