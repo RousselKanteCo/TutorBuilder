@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="{% static 'css/player.css' %}">
   <link rel="stylesheet" href="{% static 'css/editor.css' %}">
   <link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+  <link rel="stylesheet" href="{% static 'css/import-modal.css' %}">
 </head>
 <body>
 
@@ -425,6 +426,16 @@
 
             <div class="tl-btn-sep"></div>
 
+            <!-- Export template -->
+            <button class="tl-btn tl-btn-ghost" title="Exporter le template pour le modifier" onclick="exportTemplate()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Template
+            </button>
+
             <!-- Import -->
             <input type="file" id="import-script-input" accept=".txt,.srt" style="display:none" onchange="importScript(this)">
             <button class="tl-btn tl-btn-purple" title="Importer un script"
@@ -746,37 +757,8 @@
   <!-- ═══════════════════════════════════════
        MODAL — IMPORT SCRIPT PRÉVISUALISATION
   ═══════════════════════════════════════ -->
-  <div class="modal-overlay" id="modal-import" style="display:none">
-    <div class="modal modal-lg">
-      <div class="modal-header">
-        <div class="modal-icon blue">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-        </div>
-        <div>
-          <div class="modal-title">Prévisualisation de l'import</div>
-          <div class="modal-subtitle" id="import-preview-subtitle">Vérifiez et corrigez avant d'importer</div>
-        </div>
-      </div>
-
-      <div class="modal-body" style="padding:0;max-height:60vh;overflow-y:auto">
-        <div id="import-preview-table"></div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="modal-btn cancel" onclick="closeImportModal()">Annuler</button>
-        <button class="modal-btn confirm" id="btn-confirm-import" disabled onclick="confirmImport()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          Importer
-        </button>
-      </div>
-    </div>
-  </div>
+  <!-- modal-import — contenu injecté dynamiquement par openImportModal() -->
+  <div id="modal-import" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <script src="{% static 'js/toast.js' %}"></script>

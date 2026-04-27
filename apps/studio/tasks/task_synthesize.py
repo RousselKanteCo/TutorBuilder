@@ -46,7 +46,7 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
         return {"status": "error", "message": "Job introuvable"}
 
     job.set_status(Job.Status.SYNTHESIZING)
-    ws_send(job_id, "status", message=f"Synthèse vocale ({tts_engine}) démarrée…", level="info")
+    ws_send(job_id, "status", message=f"Génération de la voix avec {tts_engine}...", level="info")
 
     try:
         # ── Vérifier clé API ──────────────────────────────────────────────
@@ -95,7 +95,7 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
         if segment_ids:
             to_synthesize = [s for s in all_segments if str(s.pk) in [str(sid) for sid in segment_ids]]
             ws_send(job_id, "status",
-                    message=f"Regénération de {len(to_synthesize)} segment(s) modifié(s)…",
+                    message=f"{len(to_synthesize)} segment(s) modifié(s) à regénérer...",
                     level="info")
         else:
             segment_ids_set = set(str(sid) for sid in (segment_ids or []))
@@ -116,13 +116,28 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
                 logger.info(f"{nb_deja_ok} segments déjà générés — ignorés")
 
             ws_send(job_id, "status",
-                    message=f"{len(to_synthesize)} segment(s) à générer ({nb_deja_ok} déjà OK)…",
+                    message=f"{len(to_synthesize)} segment(s) à générer, {nb_deja_ok} déjà prêts.",
                     level="info")
 
         total   = len(to_synthesize)
         nb_ok   = 0
         nb_fail = 0
         echecs  = []
+
+        if total == 0:
+            job.set_status(Job.Status.DONE)
+            msg = (
+                f"Les {len(all_segments)} segments ont déjà une voix. "
+                f"Si vous voulez regénérer un segment, modifiez son texte et relancez. "
+                f"Sinon vous pouvez passer à l'étape 4 pour assembler la vidéo."
+            )
+            ws_send(job_id, "status", message=msg, level="ok")
+            ws_send(job_id, "tts_done",
+                    nb_ok=len(all_segments), nb_total=len(all_segments),
+                    nb_echecs=0, echecs=[])
+            logger.info(f"Synthèse ignorée, tous les segments ont déjà une voix : job={job_id}")
+            return {"status": "success", "nb_ok": len(all_segments),
+                    "nb_total": len(all_segments), "nb_echecs": 0}
 
         for i, seg in enumerate(to_synthesize):
             ws_send(job_id, "tts_progress", current=i + 1, total=total)
@@ -135,8 +150,8 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
             for attempt in range(3):
                 wait = RETRY_DELAYS[attempt]
                 if wait > 0:
-                    ws_send(job_id, "status",
-                            message=f"Seg {seg.index} — attente {wait}s…", level="warn")
+                ws_send(job_id, "status",
+                        message=f"Attente {wait}s avant nouvelle tentative pour le segment {seg.index}...", level="warn")
                     time.sleep(wait)
 
                 try:
@@ -178,27 +193,29 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
 
                 nb_ok += 1
                 ws_send(job_id, "status",
-                        message=f"Seg {seg.index} OK — {actual_ms:.0f}ms", level="ok")
+                        message=f"Segment {seg.index} généré en {actual_ms:.0f}ms.", level="ok")
             else:
                 nb_fail += 1
                 echecs.append(seg.index)
                 logger.error(f"Seg {seg.index} échoué : {last_err}")
                 ws_send(job_id, "status",
-                        message=f"Seg {seg.index} échoué : {last_err}", level="err")
+                        message=f"Le segment {seg.index} a échoué : {last_err}", level="err")
 
         # ── Résultat ──────────────────────────────────────────────────────
         if nb_ok == 0:
             raise RuntimeError(
-                f"Aucun segment généré ({nb_fail} échec(s)). "
-                "Vérifiez votre clé API et votre connexion."
+                f"La génération a échoué sur {nb_fail} segment(s). "
+                "Vérifiez votre clé API et votre connexion internet."
             )
 
         job.set_status(Job.Status.DONE)
         ws_send(job_id, "tts_done",
                 nb_ok=nb_ok, nb_total=total, nb_echecs=nb_fail,
                 echecs=echecs)
-        ws_send(job_id, "status",
-                message=f"Voix générée : {nb_ok}/{total} segments.",
+        msg = f"{nb_ok} segment(s) générés sur {total}."
+        if nb_fail > 0:
+            msg += f" {nb_fail} ont échoué, vous pouvez relancer pour les compléter."
+        ws_send(job_id, "status", message=msg,
                 level="ok" if nb_fail == 0 else "warn")
 
         return {

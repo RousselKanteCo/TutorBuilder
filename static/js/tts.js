@@ -46,7 +46,9 @@ async function startSynthesis() {
   const isRegeneration = modifiedIds.length > 0 && hasAudio;
 
   const ttsEngine = document.getElementById('select-tts-engine')?.value || 'elevenlabs';
-  const voice     = document.querySelector('.voice-card.selected')?.dataset.voiceId || 'narrateur_pro';
+  const voice = window.transcribeState?.selectedVoice?.id
+    || document.querySelector('.voice-card.selected')?.dataset.voiceId
+    || 'narrateur_pro';
   const langue    = document.getElementById('select-language')?.value || 'fr';
   const csrf      = document.getElementById('csrf-token')?.value || '';
 

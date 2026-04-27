@@ -1411,201 +1411,396 @@ function importScript(input) {
   const reader = new FileReader();
   reader.onload = e => {
     const content = e.target.result;
-    const blocs   = parseScriptFile(content);
+    const blocs = parseScriptFile(content);
+
+    if (blocs === null) {
+      // Format non reconnu — ouvrir une modale d'erreur claire
+      openFormatErrorModal();
+      input.value = '';
+      return;
+    }
 
     if (!blocs.length) {
-      window.Toast?.error('Aucun texte détecté dans ce fichier.');
+      window.Toast?.error('Aucun texte détecté dans ce fichier. Exportez le template pour voir le bon format.');
       input.value = '';
       return;
     }
 
-    const nbSegs = transcribeState.segments.length;
-    if (blocs.length !== nbSegs) {
-      window.Toast?.error(
-        `Le fichier contient ${blocs.length} blocs mais le projet a ${nbSegs} segments. ` +
-        `Le nombre doit être identique.`
-      );
-      input.value = '';
-      return;
+    const segs    = transcribeState.segments;
+    const nbSegs  = segs.length;
+    const nbBlocs = blocs.length;
+
+    // Préparer les données avec coupe auto et silences
+    const preview = [];
+    const warnings = [];
+
+    for (let i = 0; i < nbSegs; i++) {
+      const seg     = segs[i];
+      const durMs   = seg.end_ms - seg.start_ms;
+      const maxMots = calcMaxMots(durMs, transcribeState.wpm, 0.25);
+
+      if (i >= nbBlocs) {
+        // Pas de texte → silence
+        preview.push({ seg, texte: '', texteOriginal: '', coupe: false, silence: true, maxMots });
+        warnings.push(`Segment ${i + 1} sera mis en silence (pas de texte dans le fichier).`);
+      } else {
+        let texte = blocs[i].trim();
+        const mots = texte.split(/\s+/).filter(Boolean);
+
+        if (mots.length > maxMots) {
+          // Couper automatiquement
+          const texteCoupé = mots.slice(0, maxMots).join(' ');
+          const texteSupprimé = mots.slice(maxMots).join(' ');
+          preview.push({ seg, texte: texteCoupé, texteOriginal: texte, coupe: true, silence: false, maxMots, texteSupprimé });
+          warnings.push(`Segment ${i + 1} : "${texteSupprimé}" a été retiré (dépassait le budget de ${maxMots} mots).`);
+        } else {
+          preview.push({ seg, texte, texteOriginal: texte, coupe: false, silence: false, maxMots });
+        }
+      }
     }
 
-    _importBlocs = blocs;
-    openImportModal(blocs);
+    if (nbBlocs > nbSegs) {
+      warnings.push(`${nbBlocs - nbSegs} ligne(s) ignorée(s) car le projet n'a que ${nbSegs} segments.`);
+    }
+
+    _importBlocs   = preview.map(p => p.texte);
+    _importPreview = preview;
+    openImportModal(preview, warnings);
     input.value = '';
   };
   reader.readAsText(file, 'utf-8');
 }
 
+let _importPreview = [];
+
+/* ═══════════════════════════════════════════════════
+   EXPORT TEMPLATE
+═══════════════════════════════════════════════════ */
+
+function exportTemplate() {
+  const segs = transcribeState.segments;
+  if (!segs.length) {
+    window.Toast?.error('Pas de segments à exporter. Transcrivez d\'abord la vidéo.');
+    return;
+  }
+
+  const lines = segs.map((seg, i) => {
+    const durMs   = seg.end_ms - seg.start_ms;
+    const maxMots = calcMaxMots(durMs, transcribeState.wpm, 0.25);
+    const tc      = `${msToTC(seg.start_ms)} → ${msToTC(seg.end_ms)}`;
+    const texte   = seg.text || '';
+    return `[${i + 1}] (max ${maxMots} mots | ${tc})\n${texte || '(silence)'}`;
+  });
+
+  const content = lines.join('\n\n');
+  const blob    = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url     = URL.createObjectURL(blob);
+  const a       = document.createElement('a');
+  a.href        = url;
+  a.download    = 'script_template.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  window.Toast?.success('Template exporté. Modifiez-le et réimportez-le.');
+}
+
+window.exportTemplate = exportTemplate;
+
 function parseScriptFile(content) {
   content = content.trim();
-  if ('-->' in content || content.includes('-->')) {
-    // SRT
+
+  // Format template TutoBuilder : [N] (max X mots | TC)\ntexte
+  if (content.match(/^\[(\d+)\]\s*\(max \d+ mots/m)) {
+    const blocs = [];
+    const sections = content.split(/\n\n+/);
+    for (const section of sections) {
+      const lignes = section.trim().split('\n');
+      const texte = lignes
+        .filter(l => !l.match(/^\[\d+\]\s*\(max \d+ mots/))
+        .join(' ')
+        .trim();
+      blocs.push(texte === '(silence)' ? '' : texte);
+    }
+    return blocs;
+  }
+
+  // Format SRT/VTT avec timecodes -->
+  if (content.includes('-->')) {
     const blocs = [];
     for (const bloc of content.split(/\n\n+/)) {
       const lignes = bloc.trim().split('\n').filter(l => l.trim());
-      const texte  = lignes.filter(l => !l.match(/^\d+$/) && !l.includes('-->')).join(' ').trim();
+      const texte  = lignes
+        .filter(l => !l.match(/^\d+$/) && !l.includes('-->'))
+        .join(' ').trim();
       if (texte) blocs.push(texte);
     }
     return blocs;
   }
-  // Paragraphes
-  const blocs = content.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
-  if (blocs.length > 1) return blocs;
-  // Lignes
-  return content.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Format inconnu — retourner null pour bloquer
+  return null;
 }
 
-function openImportModal(blocs) {
-  const segs    = transcribeState.segments;
-  const modal   = document.getElementById('modal-import');
-  const table   = document.getElementById('import-preview-table');
-  const subtitle = document.getElementById('import-preview-subtitle');
-  const btnOk   = document.getElementById('btn-confirm-import');
-  if (!modal || !table) return;
+function openFormatErrorModal() {
+  const modal = document.getElementById('modal-import');
+  if (!modal) return;
 
-  let allOk = true;
-  let html  = `
-    <table class="import-preview-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Timing</th>
-          <th>Texte importé</th>
-          <th>Mots</th>
-          <th>Max</th>
-          <th>Statut</th>
-        </tr>
-      </thead>
-      <tbody>`;
+  modal.innerHTML = `
+    <div class="im-backdrop" onclick="closeImportModal()"></div>
+    <div class="im-panel" style="max-width:480px">
+      <div class="im-header">
+        <div class="im-header-left">
+          <div class="im-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <div>
+            <div class="im-title">Format non reconnu</div>
+            <div class="im-subtitle">Ce fichier ne peut pas être importé</div>
+          </div>
+        </div>
+        <button class="im-close" onclick="closeImportModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
 
-  blocs.forEach((texte, i) => {
-    const seg     = segs[i];
-    const maxMots = calcMaxMots(seg.end_ms - seg.start_ms, transcribeState.wpm);
-    const nbMots  = texte.trim().split(/\s+/).filter(Boolean).length;
-    const ok      = nbMots <= maxMots;
-    if (!ok) allOk = false;
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+        <p style="font-size:13px;color:var(--text-1);line-height:1.6;margin:0">
+          TutoBuilder accepte uniquement les fichiers exportés depuis le bouton <strong>Template</strong>.
+          Votre fichier a un format différent et ne peut pas être traité automatiquement.
+        </p>
 
-    html += `
-      <tr class="${ok ? '' : 'import-row-error'}" id="import-row-${i}">
-        <td class="import-cell-num">${i + 1}</td>
-        <td class="import-cell-tc">${msToTC(seg.start_ms)}→${msToTC(seg.end_ms)}</td>
-        <td class="import-cell-text">
-          <textarea class="import-text-edit" data-idx="${i}"
-            data-max="${maxMots}"
-            rows="2">${texte}</textarea>
-        </td>
-        <td class="import-cell-count" id="import-count-${i}">${nbMots}</td>
-        <td class="import-cell-max">${maxMots}</td>
-        <td class="import-cell-status" id="import-status-${i}">
-          ${ok
-            ? `<span class="import-ok">✓</span>`
-            : `<span class="import-err">Trop long</span>`}
-        </td>
-      </tr>`;
-  });
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:11px;font-family:var(--font-mono);color:var(--text-2);line-height:1.8">
+          <div style="color:var(--text-3);margin-bottom:6px;font-family:var(--font);font-weight:600;font-size:11px">Format attendu :</div>
+          [1] (max 12 mots | 00:00 → 00:10)<br>
+          Votre texte ici sur cette ligne<br>
+          <br>
+          [2] (max 18 mots | 00:10 → 00:20)<br>
+          Votre texte ici sur cette ligne
+        </div>
 
-  html += '</tbody></table>';
-  table.innerHTML = html;
+        <p style="font-size:12px;color:var(--text-3);margin:0;line-height:1.5">
+          Cliquez sur <strong>Exporter le template</strong> dans la timeline pour obtenir le bon fichier,
+          modifiez-le avec votre texte en respectant les budgets de mots, puis réimportez-le.
+        </p>
+      </div>
 
-  subtitle.textContent = allOk
-    ? `${blocs.length} segments — tout est OK`
-    : `${blocs.filter((t,i) => {
-        const maxMots = calcMaxMots(segs[i].end_ms - segs[i].start_ms, transcribeState.wpm);
-        return t.trim().split(/\s+/).filter(Boolean).length > maxMots;
-      }).length} segment(s) trop long(s) — corrigez avant d'importer`;
-
-  btnOk.disabled = !allOk;
-
-  // Écouter les modifs dans le tableau
-  table.querySelectorAll('.import-text-edit').forEach(ta => {
-    ta.addEventListener('input', () => onImportTextEdit(ta, btnOk, subtitle, segs));
-  });
+      <div class="im-footer">
+        <button class="im-btn-cancel" onclick="closeImportModal()">Fermer</button>
+        <button class="im-btn-confirm" onclick="closeImportModal();exportTemplate()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Exporter le template
+        </button>
+      </div>
+    </div>`;
 
   modal.style.display = 'flex';
 }
 
-function onImportTextEdit(ta, btnOk, subtitle, segs) {
-  const idx     = parseInt(ta.dataset.idx);
-  const maxMots = parseInt(ta.dataset.max);
-  const nbMots  = ta.value.trim().split(/\s+/).filter(Boolean).length;
-  const ok      = nbMots <= maxMots;
+window.openFormatErrorModal = openFormatErrorModal;
 
-  // Mettre à jour le blob en mémoire
-  _importBlocs[idx] = ta.value;
+function openImportModal(preview, warnings) {
+  const modal = document.getElementById('modal-import');
+  if (!modal) return;
 
-  // Mettre à jour la ligne
-  const row    = document.getElementById(`import-row-${idx}`);
-  const count  = document.getElementById(`import-count-${idx}`);
-  const status = document.getElementById(`import-status-${idx}`);
-  if (row)    row.className    = ok ? '' : 'import-row-error';
-  if (count)  count.textContent = nbMots;
-  if (status) status.innerHTML  = ok
-    ? `<span class="import-ok">✓</span>`
-    : `<span class="import-err">Trop long</span>`;
+  const nbCoupés  = preview.filter(p => p.coupe).length;
+  const nbSilences = preview.filter(p => p.silence).length;
+  const nbOk      = preview.filter(p => !p.coupe && !p.silence).length;
 
-  // Vérifier si tout est OK
-  const allOk = _importBlocs.every((texte, i) => {
-    const seg     = segs[i];
-    const max     = calcMaxMots(seg.end_ms - seg.start_ms, transcribeState.wpm);
-    return texte.trim().split(/\s+/).filter(Boolean).length <= max;
+  // Header statut
+  let statusHtml = '';
+  if (nbCoupés === 0 && nbSilences === 0) {
+    statusHtml = `<div class="im-status im-status-ok">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      ${nbOk} segments prêts à importer
+    </div>`;
+  } else {
+    statusHtml = `<div class="im-status im-status-warn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      ${nbOk} OK &nbsp;·&nbsp; ${nbCoupés} coupé(s) &nbsp;·&nbsp; ${nbSilences} silence(s)
+    </div>`;
+  }
+
+  // Avertissements
+  let warningsHtml = '';
+  if (warnings.length) {
+    warningsHtml = `<div class="im-warnings">
+      ${warnings.map(w => `<div class="im-warning-item">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        ${w}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Tableau des segments
+  const rowsHtml = preview.map((p, i) => {
+    const pct  = Math.min(100, Math.round((p.texte.split(/\s+/).filter(Boolean).length / p.maxMots) * 100));
+    const barColor = p.silence ? '#94a3b8' : p.coupe ? '#f59e0b' : pct > 85 ? '#f59e0b' : '#10b981';
+
+    let statusBadge = '';
+    if (p.silence) statusBadge = `<span class="im-badge im-badge-silence">Silence</span>`;
+    else if (p.coupe) statusBadge = `<span class="im-badge im-badge-warn">Coupé</span>`;
+    else statusBadge = `<span class="im-badge im-badge-ok">OK</span>`;
+
+    const nbMots = p.texte.split(/\s+/).filter(Boolean).length;
+
+    return `<div class="im-row ${p.silence ? 'im-row-silence' : p.coupe ? 'im-row-warn' : ''}">
+      <div class="im-row-header">
+        <span class="im-seg-num">${i + 1}</span>
+        <span class="im-seg-tc">${msToTC(p.seg.start_ms)} → ${msToTC(p.seg.end_ms)}</span>
+        <span id="im-badge-${i}" class="im-badge ${p.silence ? 'im-badge-silence' : p.coupe ? 'im-badge-warn' : 'im-badge-ok'}">${p.silence ? 'Silence' : p.coupe ? 'Coupé' : 'OK'}</span>
+        <span class="im-seg-budget" id="im-budget-${i}">${nbMots} / ${p.maxMots} mots</span>
+      </div>
+      <div class="im-bar-wrap">
+        <div class="im-bar-fill" id="im-bar-${i}" style="width:${pct}%;background:${barColor}"></div>
+      </div>
+      <textarea class="im-seg-textarea" id="im-text-${i}" data-idx="${i}" data-max="${p.maxMots}"
+        rows="2" placeholder="${p.silence ? '(silence — laissez vide)' : ''}">${p.texte}</textarea>
+      ${p.coupe ? `<div class="im-seg-cut" id="im-cut-${i}">Retiré : "${p.texteSupprimé}"</div>` : ''}
+    </div>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div class="im-backdrop" onclick="closeImportModal()"></div>
+    <div class="im-panel">
+
+      <div class="im-header">
+        <div class="im-header-left">
+          <div class="im-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div>
+            <div class="im-title">Prévisualisation de l'import</div>
+            <div class="im-subtitle">${preview.length} segments analysés</div>
+          </div>
+        </div>
+        <button class="im-close" onclick="closeImportModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      ${statusHtml}
+      ${warningsHtml}
+
+      <div class="im-body">
+        ${rowsHtml}
+      </div>
+
+      <div class="im-footer">
+        <button class="im-btn-cancel" onclick="closeImportModal()">Annuler</button>
+        <button class="im-btn-export" onclick="exportTemplate()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exporter le template
+        </button>
+        <button class="im-btn-confirm" onclick="confirmImport()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Confirmer l'import
+        </button>
+      </div>
+    </div>`;
+
+  modal.style.display = 'flex';
+
+  // Event listeners sur les textareas éditables
+  modal.querySelectorAll('.im-seg-textarea').forEach(ta => {
+    ta.addEventListener('input', () => {
+      const idx     = parseInt(ta.dataset.idx);
+      const maxMots = parseInt(ta.dataset.max);
+      const words   = ta.value.trim().split(/\s+/).filter(Boolean);
+      const nbMots  = words.length;
+
+      // Couper automatiquement si dépasse
+      if (nbMots > maxMots) {
+        ta.value = words.slice(0, maxMots).join(' ');
+      }
+
+      // Mettre à jour preview en mémoire
+      _importPreview[idx].texte = ta.value;
+
+      // Mettre à jour barre, badge et budget
+      const realMots = Math.min(nbMots, maxMots);
+      const pct      = Math.min(100, Math.round((realMots / maxMots) * 100));
+      const barColor = pct > 95 ? '#f59e0b' : '#10b981';
+
+      const bar    = document.getElementById(`im-bar-${idx}`);
+      const badge  = document.getElementById(`im-badge-${idx}`);
+      const budget = document.getElementById(`im-budget-${idx}`);
+
+      if (bar)    { bar.style.width = `${pct}%`; bar.style.background = barColor; }
+      if (budget) budget.textContent = `${realMots} / ${maxMots} mots`;
+      if (badge) {
+        if (realMots === 0) {
+          badge.className = 'im-badge im-badge-silence';
+          badge.textContent = 'Silence';
+        } else {
+          badge.className = 'im-badge im-badge-ok';
+          badge.textContent = 'OK';
+        }
+      }
+    });
   });
-
-  btnOk.disabled = !allOk;
-  const nbErr = _importBlocs.filter((texte, i) => {
-    const seg = segs[i];
-    const max = calcMaxMots(seg.end_ms - seg.start_ms, transcribeState.wpm);
-    return texte.trim().split(/\s+/).filter(Boolean).length > max;
-  }).length;
-  subtitle.textContent = allOk
-    ? `${_importBlocs.length} segments — tout est OK`
-    : `${nbErr} segment(s) trop long(s) — corrigez avant d'importer`;
 }
+
+
 
 function closeImportModal() {
   const modal = document.getElementById('modal-import');
   if (modal) modal.style.display = 'none';
-  _importBlocs = [];
+  _importBlocs   = [];
+  _importPreview = [];
 }
 
 async function confirmImport() {
   const jobId = document.getElementById('current-job-id')?.value;
   const csrf  = document.getElementById('csrf-token')?.value || '';
-  if (!jobId || !_importBlocs.length) return;
+  if (!jobId || !_importPreview.length) return;
 
-  const btnOk = document.getElementById('btn-confirm-import');
-  if (btnOk) btnOk.disabled = true;
+  const btn = document.querySelector('.im-btn-confirm');
+  if (btn) { btn.disabled = true; btn.textContent = 'Import en cours...'; }
 
-  // Envoyer via FormData avec le texte corrigé
-  const content  = _importBlocs.join('\n\n');
-  const blob     = new Blob([content], { type: 'text/plain' });
-  const formData = new FormData();
-  formData.append('script_file', blob, 'script.txt');
+  const segs = transcribeState.segments;
 
-  try {
-    const res  = await fetch(`/api/jobs/${jobId}/segments/import-script/`, {
-      method:  'POST',
-      headers: { 'X-CSRFToken': csrf },
-      body:    formData,
-    });
-    const data = await res.json();
+  // Appliquer les textes depuis _importPreview
+  _importPreview.forEach((p, i) => {
+    const seg = segs[i];
+    if (!seg) return;
+    seg.text         = p.texte;
+    seg.speed_factor = calcSpeedFactor(p.texte, seg.end_ms - seg.start_ms, transcribeState.wpm);
+    seg.speed_forced = false;
+    markSegmentModified(i);
+  });
 
-    if (data.status === 'ok') {
-      data.segments.forEach(s => {
-        const seg = transcribeState.segments.find(x => x.id == s.id || x.index === s.index);
-        if (seg) { seg.text = s.text; seg.speed_factor = s.speed_factor; }
-      });
-      renderTimeline();
-      closeImportModal();
-      window.Toast?.success(`Script importé — ${data.updated} segments mis à jour.`);
-      transcribeState.dirty = true;
-    } else {
-      window.Toast?.error(data.error || 'Import refusé.');
-      if (btnOk) btnOk.disabled = false;
-    }
-  } catch {
-    window.Toast?.error('Erreur réseau lors de l\'import.');
-    if (btnOk) btnOk.disabled = false;
-  }
+  renderTimeline();
+  closeImportModal();
+
+  const nbCoupés  = _importPreview.filter(p => p.coupe).length;
+  const nbSilences = _importPreview.filter(p => p.silence).length;
+
+  let msg = `Script importé sur ${_importPreview.length} segments.`;
+  if (nbCoupés)   msg += ` ${nbCoupés} coupé(s).`;
+  if (nbSilences) msg += ` ${nbSilences} mis en silence.`;
+
+  window.Toast?.success(msg);
+  transcribeState.dirty = true;
 }
 
 window.closeImportModal = closeImportModal;
