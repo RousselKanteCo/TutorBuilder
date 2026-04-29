@@ -103,11 +103,21 @@ class ExportStatusView(APIView):
             except ValueError:
                 pass
 
+        subbed_path  = job.output_dir / "final_subtitled.mp4"
+        subtitled_url = ""
+        if subbed_path.exists() and subbed_path.stat().st_size > 10_000:
+            try:
+                rel = subbed_path.relative_to(settings.OUTPUTS_ROOT)
+                subtitled_url = f"/outputs/{str(rel).replace(chr(92), '/')}"
+            except ValueError:
+                pass
+
         return Response({
             "status":        job.status,
             "has_video":     final_path.exists(),
             "has_subtitles": vtt_path.exists(),
             "download_url":  download_url,
             "vtt_url":       vtt_url,
+            "subtitled_url": subtitled_url,
             "error":         job.error_message if hasattr(job, 'error_message') else "",
         })

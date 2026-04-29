@@ -329,25 +329,36 @@
               Télécharger sans sous-titres
             </a>
 
-            <!-- Avec sous-titres intégrés -->
-            <button class="btn-upload" id="btn-download-subs" onclick="downloadWithSubs()"
-              style="background:linear-gradient(135deg,#6340C8,#3B82F6);border:none;cursor:pointer">
+            <!-- Générer sous-titres ElevenLabs -->
+            <button class="btn-upload" id="btn-generate-subs" onclick="generateSubtitles()"
+              style="background:linear-gradient(135deg,#7c3aed,#6340C8);border:none;cursor:pointer">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              Générer sous-titres (ElevenLabs)
+            </button>
+
+            <!-- Progression génération sous-titres -->
+            <div id="subs-progress-wrap" style="display:none">
+              <div class="upload-progress-track">
+                <div class="upload-progress-fill" id="subs-progress-fill" style="width:0%"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:4px" id="subs-progress-label">Transcription ElevenLabs en cours…</div>
+            </div>
+
+            <!-- Télécharger avec sous-titres (après génération) -->
+            <a class="btn-upload" id="btn-download-subs" href="#" 
+              style="display:none;background:linear-gradient(135deg,#6340C8,#3B82F6);text-align:center;text-decoration:none;align-items:center;justify-content:center;gap:6px;pointer-events:none;opacity:0.5"
+              onclick="return false;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                 <path d="M8 21h8M12 17v4"/>
                 <line x1="6" y1="10" x2="14" y2="10"/>
                 <line x1="6" y1="13" x2="11" y2="13"/>
               </svg>
-              Télécharger avec sous-titres intégrés
-            </button>
+              Télécharger avec sous-titres
+            </a>
 
-            <!-- Progression burn -->
-            <div id="burn-progress-wrap" style="display:none">
-              <div class="upload-progress-track">
-                <div class="upload-progress-fill" id="burn-progress-fill" style="width:0%"></div>
-              </div>
-              <div style="font-size:11px;color:var(--text-3);margin-top:4px">Intégration des sous-titres…</div>
-            </div>
           </div>
 
         </div>
@@ -535,21 +546,71 @@
 
         <div class="seg-editor-body">
 
-          <!-- Miniature -->
-          <div class="seg-thumb-wrap">
-            <img class="seg-thumb" id="seg-thumb" src="" alt="">
-            <div class="seg-thumb-placeholder" id="seg-thumb-placeholder">
+          <!-- Mini player avec trim IN/OUT -->
+          <div class="seg-mini-player" id="seg-mini-player">
+            <img class="seg-mini-video" id="seg-mini-thumb" src="" alt=""
+              style="width:100%;max-height:140px;object-fit:cover;display:none;background:#000;">
+            <div class="seg-mini-placeholder" id="seg-mini-placeholder">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <rect x="2" y="7" width="20" height="15" rx="2"/>
                 <polyline points="17 2 12 7 7 2"/>
               </svg>
             </div>
-            <!-- Bouton écouter la voix -->
-            <button class="seg-audio-btn" id="seg-audio-btn" onclick="playSegmentAudio()" style="display:none" title="Écouter la voix off">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21"/>
-              </svg>
-            </button>
+
+            <!-- Contrôles play/pause -->
+            <div class="seg-mini-controls">
+              <button class="seg-mini-btn" id="seg-mini-play" onclick="toggleMiniPlay()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21"/>
+                </svg>
+              </button>
+              <span class="seg-mini-tc" id="seg-mini-tc">00:00 / 00:00</span>
+              <button class="seg-mini-btn seg-mini-cut" onclick="cutAtMiniPlayer()" title="Couper ici">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                  <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                  <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                  <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                </svg>
+              </button>
+              <button class="seg-mini-btn" id="seg-audio-btn" onclick="playSegmentAudio()" style="display:none" title="Écouter la voix off">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Barre de progression avec poignées IN/OUT -->
+            <div class="seg-trim-bar-wrap" id="seg-trim-bar-wrap">
+              <!-- Zone coupée gauche -->
+              <div class="seg-trim-cut seg-trim-cut-left" id="seg-trim-cut-left"></div>
+              <!-- Zone active -->
+              <div class="seg-trim-active" id="seg-trim-active"></div>
+              <!-- Zone coupée droite -->
+              <div class="seg-trim-cut seg-trim-cut-right" id="seg-trim-cut-right"></div>
+              <!-- Curseur lecture -->
+              <div class="seg-trim-cursor" id="seg-trim-cursor"></div>
+              <!-- Poignée IN -->
+              <div class="seg-trim-handle seg-trim-in" id="seg-trim-in" title="Point IN">
+                <div class="seg-trim-handle-bar"></div>
+              </div>
+              <!-- Poignée OUT -->
+              <div class="seg-trim-handle seg-trim-out" id="seg-trim-out" title="Point OUT">
+                <div class="seg-trim-handle-bar"></div>
+              </div>
+            </div>
+
+            <!-- Timecodes IN/OUT -->
+            <div class="seg-trim-tc-row">
+              <span class="seg-trim-tc-label">IN <span id="seg-trim-in-tc">00:00</span></span>
+              <button class="seg-trim-reset" onclick="resetTrim()" title="Réinitialiser le trim">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+                </svg>
+                Reset
+              </button>
+              <span class="seg-trim-tc-label">OUT <span id="seg-trim-out-tc">00:00</span></span>
+            </div>
           </div>
 
           <!-- Texte éditable -->
@@ -592,32 +653,8 @@
             </div>
           </div>
 
-          <!-- Actions segment -->
-          <div class="seg-actions-panel">
-            <button class="seg-action-btn blue" onclick="splitSegmentAtCursor()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="2" x2="12" y2="22"/>
-                <path d="M2 12h4M18 12h4"/>
-              </svg>
-              Couper ici
-            </button>
-            <button class="seg-action-btn green" onclick="mergeWithNext()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M8 6h13M8 12h13M8 18h13"/>
-              </svg>
-              Fusionner
-            </button>
-            <button class="seg-action-btn red" onclick="deleteSegment()">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>
-              Supprimer
-            </button>
-          </div>
-
           <!-- Sauvegarder ce segment -->
-          <button class="btn-upload" style="margin-top:8px;font-size:11.5px;padding:7px"
+          <button class="btn-upload" id="btn-save-segment" style="font-size:11.5px;padding:9px;display:none"
             onclick="saveCurrentSegment()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -625,6 +662,23 @@
             </svg>
             Sauvegarder ce segment
           </button>
+
+          <!-- Actions segment -->
+          <div class="seg-actions-panel" id="seg-actions-panel" style="display:none">
+            <button class="seg-action-btn green" id="btn-merge-segment" onclick="mergeWithNext()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 6h13M8 12h13M8 18h13"/>
+              </svg>
+              Fusionner
+            </button>
+            <button class="seg-action-btn red" id="btn-delete-segment" onclick="deleteSegment()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+              Supprimer
+            </button>
+          </div>
 
         </div>
       </div>

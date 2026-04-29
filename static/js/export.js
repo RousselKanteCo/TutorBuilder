@@ -112,54 +112,72 @@ async function downloadWithSubs() {
   const csrf  = document.getElementById('csrf-token')?.value || '';
   if (!jobId) return;
 
-  const btn       = document.getElementById('btn-download-subs');
-  const progWrap  = document.getElementById('burn-progress-wrap');
-  const progFill  = document.getElementById('burn-progress-fill');
+  const btn      = document.getElementById('btn-download-subs');
+  const progWrap = document.getElementById('burn-progress-wrap');
+  const progFill = document.getElementById('burn-progress-fill');
 
-  if (btn) btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Génération en cours…'; }
   if (progWrap) progWrap.style.display = 'block';
+  if (progFill) progFill.style.width = '10%';
 
-  // Animation de progression
-  let pct = 0;
-  const timer = setInterval(() => {
-    pct = Math.min(pct + 2, 90);
-    if (progFill) progFill.style.width = `${pct}%`;
-  }, 300);
+  window.Toast?.info('Transcription ElevenLabs en cours — cela peut prendre 1 à 2 minutes…');
 
   try {
-    const res = await fetch(`/api/jobs/${jobId}/export/burn/`, {
-      method: 'POST',
+    // Lancer la génération sous-titres via ElevenLabs
+    const res = await fetch(`/api/jobs/${jobId}/generate-subtitles/`, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-      body: JSON.stringify({ font_size: 28, position: 2 }),
     });
-
-    clearInterval(timer);
-    if (progFill) progFill.style.width = '100%';
 
     if (!res.ok) {
       const data = await res.json();
-      window.Toast?.error(data.error || 'Intégration échouée.');
+      window.Toast?.error(data.error || 'Erreur lancement sous-titres.');
       return;
     }
 
-    // Télécharger le blob
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'tutorbuilder_avec_sous_titres.mp4';
-    a.click();
-    URL.revokeObjectURL(url);
-    window.Toast?.success('Téléchargement avec sous-titres intégrés !');
+    // Polling jusqu'à ce que final_subtitled.mp4 soit prêt
+    if (progFill) progFill.style.width = '30%';
+    let attempts = 0;
+    const maxAttempts = 60; // 2 min max
+
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const statusRes  = await fetch(`/api/jobs/${jobId}/subtitles/status/`);
+        const statusData = await statusRes.json();
+
+        // Avancer la barre de progression
+        const pct = Math.min(30 + attempts * 1.5, 90);
+        if (progFill) progFill.style.width = `${pct}%`;
+
+        if (statusData.done) {
+          clearInterval(poll);
+          if (progFill) progFill.style.width = '100%';
+
+          // Télécharger
+          const a    = document.createElement('a');
+          a.href     = `${statusData.subtitled_url}?t=${Date.now()}`;
+          a.download = 'tutorbuilder_avec_sous_titres.mp4';
+          a.click();
+
+          window.Toast?.success('Vidéo avec sous-titres prête !');
+          if (btn) { btn.disabled = false; btn.textContent = '📥 Avec sous-titres (ElevenLabs)'; }
+          setTimeout(() => { if (progWrap) progWrap.style.display = 'none'; }, 2000);
+        }
+
+        if (attempts >= maxAttempts) {
+          clearInterval(poll);
+          window.Toast?.error('Délai dépassé — réessayez.');
+          if (btn) { btn.disabled = false; btn.textContent = '📥 Avec sous-titres (ElevenLabs)'; }
+          if (progWrap) progWrap.style.display = 'none';
+        }
+      } catch (_) {}
+    }, 2000);
 
   } catch (e) {
-    clearInterval(timer);
     window.Toast?.error(`Erreur : ${e.message}`);
-  } finally {
-    setTimeout(() => {
-      if (progWrap) progWrap.style.display = 'none';
-      if (btn) btn.disabled = false;
-    }, 1000);
+    if (btn) { btn.disabled = false; btn.textContent = '📥 Avec sous-titres (ElevenLabs)'; }
+    if (progWrap) progWrap.style.display = 'none';
   }
 }
 
@@ -360,7 +378,138 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.has_video && data.download_url) {
         _showDownloadBtns(data.download_url, data.vtt_url);
         _loadFinalVideo(data.download_url, data.vtt_url);
+
+        // Si sous-titres déjà générés → afficher bouton téléchargement
+        if (data.subtitled_url) {
+          const btnDlSubs = document.getElementById('btn-download-subs');
+          if (btnDlSubs) {
+            btnDlSubs.href = `${data.subtitled_url}?t=${Date.now()}`;
+            btnDlSubs.download = 'video_avec_sous_titres.mp4';
+            btnDlSubs.style.display = 'flex';
+            btnDlSubs.style.pointerEvents = 'auto';
+            btnDlSubs.style.opacity = '1';
+          }
+          const btnGen = document.getElementById('btn-generate-subs');
+          if (btnGen) btnGen.textContent = 'Regénérer sous-titres';
+        }
+        // Pas encore généré → bouton reste caché (display:none par défaut)
       }
     } catch (_) {}
   }, 700);
 });
+
+/* ═══════════════════════════════════════════════════
+   GÉNÉRER SOUS-TITRES VIA ELEVENLABS
+═══════════════════════════════════════════════════ */
+
+async function generateSubtitles() {
+  const jobId = document.getElementById('current-job-id')?.value;
+  const csrf  = document.getElementById('csrf-token')?.value || '';
+  if (!jobId) return;
+
+  const btn       = document.getElementById('btn-generate-subs');
+  const progWrap  = document.getElementById('subs-progress-wrap');
+  const progFill  = document.getElementById('subs-progress-fill');
+  const progLabel = document.getElementById('subs-progress-label');
+  const btnDl     = document.getElementById('btn-download-subs');
+
+  // Désactiver le bouton téléchargement pendant la génération
+  if (btnDl) {
+    btnDl.style.pointerEvents = 'none';
+    btnDl.style.opacity = '0.5';
+    btnDl.removeAttribute('onclick');
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Génération en cours…'; }
+  if (progWrap) progWrap.style.display = 'block';
+  if (progFill) progFill.style.width = '10%';
+  if (progLabel) progLabel.textContent = 'Envoi à ElevenLabs…';
+
+  try {
+    const res = await fetch(`/api/jobs/${jobId}/generate-subtitles/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+    });
+
+    if (!res.ok) {
+      const d = await res.json();
+      throw new Error(d.error || 'Erreur lors du lancement.');
+    }
+
+    // Polling
+    if (progFill) progFill.style.width = '30%';
+    if (progLabel) progLabel.textContent = 'Transcription ElevenLabs en cours…';
+
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const r = await fetch(`/api/jobs/${jobId}/subtitles/status/`);
+        const d = await r.json();
+
+        // Animer la barre
+        const pct = Math.min(90, 30 + attempts * 5);
+        if (progFill) progFill.style.width = `${pct}%`;
+
+        if (d.error) {
+          clearInterval(poll);
+          if (progWrap) progWrap.style.display = 'none';
+          if (btn) { btn.disabled = false; btn.textContent = 'Générer sous-titres (ElevenLabs)'; }
+          window.Toast?.error(`Erreur : ${d.error}`);
+          return;
+        }
+
+        if (d.done) {
+          clearInterval(poll);
+          if (progFill) progFill.style.width = '100%';
+          if (progLabel) progLabel.textContent = 'Finalisation…';
+
+          // Animation waiting pendant 30s
+          if (progLabel) progLabel.textContent = 'Finalisation en cours…';
+          if (progFill) {
+            progFill.style.transition = 'width 30s linear';
+            progFill.style.width = '99%';
+          }
+
+          setTimeout(() => {
+            if (progFill) { progFill.style.transition = 'width 0.3s'; progFill.style.width = '100%'; }
+            if (progLabel) progLabel.textContent = 'Sous-titres prêts !';
+            setTimeout(() => {
+              if (progWrap) progWrap.style.display = 'none';
+              if (btn) { btn.disabled = false; btn.textContent = 'Regénérer sous-titres'; }
+
+              if (btnDl && d.subtitled_url) {
+                btnDl.href = `${d.subtitled_url}?t=${Date.now()}`;
+                btnDl.download = 'video_avec_sous_titres.mp4';
+                btnDl.style.display = 'flex';
+                btnDl.style.pointerEvents = 'auto';
+                btnDl.style.opacity = '1';
+              }
+
+              window.Toast?.success('Sous-titres générés et intégrés !');
+            }, 1000);
+          }, 30000);
+        }
+
+        // Timeout après 5 min
+        if (attempts > 120) {
+          clearInterval(poll);
+          throw new Error('Timeout — la génération prend trop de temps.');
+        }
+
+      } catch (err) {
+        clearInterval(poll);
+        window.Toast?.error(`Erreur polling : ${err.message}`);
+        if (btn) { btn.disabled = false; btn.textContent = 'Générer sous-titres (ElevenLabs)'; }
+        if (progWrap) progWrap.style.display = 'none';
+      }
+    }, 3000);
+
+  } catch (e) {
+    window.Toast?.error(`Erreur : ${e.message}`);
+    if (btn) { btn.disabled = false; btn.textContent = 'Générer sous-titres (ElevenLabs)'; }
+    if (progWrap) progWrap.style.display = 'none';
+  }
+}
+
+window.generateSubtitles = generateSubtitles;

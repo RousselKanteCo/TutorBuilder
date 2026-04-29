@@ -136,6 +136,7 @@ class Job(models.Model):
     # ── Données dérivées ──────────────────────────────────────────────────
     waveform_data   = models.JSONField(_("waveform"), default=list, blank=True)
     thumbnail_paths = models.JSONField(_("vignettes"), default=list, blank=True)
+    subtitled_url   = models.CharField(_("URL vidéo sous-titrée"), max_length=500, blank=True, default="")
 
     # ── Horodatages ───────────────────────────────────────────────────────
     created_at   = models.DateTimeField(auto_now_add=True)
@@ -265,6 +266,10 @@ class Segment(models.Model):
                                         help_text="< 1.0 = ralenti, > 1.0 = accéléré, 1.0 = normal")
     speed_forced   = models.BooleanField(_("vitesse forcée par l'user"), default=False,
                                           help_text="Si True, on ne recalcule pas automatiquement")
+    trim_start_ms  = models.IntegerField(default=0,
+                                          help_text="Point IN dans la vidéo source (ms)")
+    trim_end_ms    = models.IntegerField(default=0,
+                                          help_text="Point OUT dans la vidéo source (ms). 0 = utiliser end_ms")
 
     class Meta:
         verbose_name        = _("segment")
@@ -278,6 +283,21 @@ class Segment(models.Model):
     @property
     def duration_ms(self):
         return self.end_ms - self.start_ms
+
+    @property
+    def effective_start_ms(self):
+        """Point IN réel dans la vidéo source."""
+        return self.trim_start_ms if self.trim_start_ms > 0 else self.start_ms
+
+    @property
+    def effective_end_ms(self):
+        """Point OUT réel dans la vidéo source."""
+        return self.trim_end_ms if self.trim_end_ms > 0 else self.end_ms
+
+    @property
+    def effective_duration_ms(self):
+        """Durée effective après trim."""
+        return self.effective_end_ms - self.effective_start_ms
 
     @property
     def start_timecode(self):

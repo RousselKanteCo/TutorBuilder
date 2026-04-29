@@ -40,14 +40,9 @@ async function startSynthesis() {
     return;
   }
 
-  // ── 2. Déterminer le mode de synthèse ────────────────────────────────
-  const modifiedIds    = window.getModifiedSegmentIds ? window.getModifiedSegmentIds() : [];
-  const isRegeneration = modifiedIds.length > 0;
-
-  // Avertir si modifs non sauvegardées
-  if (isRegeneration) {
-    window.Toast?.info(`${modifiedIds.length} segment(s) modifié(s) vont être regénérés.`);
-  }
+  // ── 2. Déterminer les segments modifiés ──────────────────────────────
+  const modifiedIds = window.getModifiedSegmentIds ? window.getModifiedSegmentIds() : [];
+  // Le back se charge de fusionner avec les segments sans audio
 
   const ttsEngine = document.getElementById('select-tts-engine')?.value || 'elevenlabs';
   const voice = window.transcribeState?.selectedVoice?.id
@@ -59,8 +54,8 @@ async function startSynthesis() {
   const btn = document.getElementById('btn-synthesize');
   if (btn) { btn.disabled = true; }
 
-  const progressMsg = isRegeneration
-    ? `Regénération de ${modifiedIds.length} segment(s) modifié(s)...`
+  const progressMsg = modifiedIds.length > 0
+    ? `Regénération de ${modifiedIds.length} segment(s) modifié(s) + segments sans audio...`
     : 'Génération de la voix en cours...';
 
   setTtsProgress(5, progressMsg);
@@ -69,7 +64,7 @@ async function startSynthesis() {
 
   try {
     const body = { tts_engine: ttsEngine, voice, language: langue };
-    if (isRegeneration) body.segment_ids = modifiedIds;
+    if (modifiedIds.length > 0) body.segment_ids = modifiedIds;
 
     const res = await fetch(`/api/jobs/${jobId}/synthesize/`, {
       method:  'POST',

@@ -149,8 +149,11 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
         for i, seg in enumerate(segments_actifs):
             ws_send(job_id, "export_progress", current=i + 1, total=len(segments_actifs))
 
-            clip_path = str(work_dir / f"clip_{i:04d}.mp4")
-            dur_ms    = seg.end_ms - seg.start_ms
+            clip_path  = str(work_dir / f"clip_{i:04d}.mp4")
+            # Utiliser les points IN/OUT effectifs (trim)
+            eff_start  = seg.effective_start_ms
+            eff_end    = seg.effective_end_ms
+            dur_ms     = eff_end - eff_start
 
             # ── Calculer le speed_factor réel ─────────────────────────────
             speed = float(seg.speed_factor or 1.0)
@@ -180,7 +183,7 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
             # ── Extraire et ajuster le clip vidéo ─────────────────────────
             ok = _extraire_clip(
                 video_path = video_path,
-                start_ms   = seg.start_ms,
+                start_ms   = eff_start,
                 dur_ms     = dur_ms,
                 speed      = speed,
                 has_audio  = has_audio,

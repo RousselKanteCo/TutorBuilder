@@ -6,4 +6,5 @@ from .transcribe import TranscribeView
 from .synthesize import SynthesizeView, SetVoiceView
 from .export import ExportView, ExportStatusView
 from .burn import BurnSubtitlesView
-from .segments import SegmentListView, SegmentSaveView, SegmentSaveAllView, SegmentImportScriptView, SegmentAudioView
+from .segments import SegmentListView, SegmentSaveView, SegmentSaveAllView, SegmentImportScriptView, SegmentAudioView, SegmentSetTrimView
+from .subtitles import GenerateSubtitlesView, SubtitlesStatusView

@@ -90,34 +90,30 @@ def task_synthesize(job_id: str, tts_engine: str = "elevenlabs",
         ]
 
         # Déterminer les segments à synthétiser :
-        # - Si segment_ids fournis → exactement ceux-là (régénération manuelle)
-        # - Sinon → union de : segments sans audio + segments modifiés
-        if segment_ids:
-            to_synthesize = [s for s in all_segments if str(s.pk) in [str(sid) for sid in segment_ids]]
-            ws_send(job_id, "status",
-                    message=f"{len(to_synthesize)} segment(s) modifié(s) à regénérer...",
-                    level="info")
-        else:
-            segment_ids_set = set(str(sid) for sid in (segment_ids or []))
-            to_synthesize   = []
-            already_ok      = []
+        # Règle : générer si (pas d'audio) OU (dans segment_ids = modifié)
+        segment_ids_set = set(str(sid) for sid in (segment_ids or []))
+        to_synthesize   = []
+        already_ok      = []
 
-            for s in all_segments:
-                audio_existe = s.audio_file and os.path.exists(str(s.audio_file))
-                if not audio_existe:
-                    to_synthesize.append(s)
-                else:
-                    already_ok.append(s.index)
+        for s in all_segments:
+            audio_existe = s.audio_file and os.path.exists(str(s.audio_file))
+            is_modified  = str(s.pk) in segment_ids_set
 
-            nb_sans_audio = len(to_synthesize)
-            nb_deja_ok    = len(already_ok)
+            if not audio_existe or is_modified:
+                to_synthesize.append(s)
+            else:
+                already_ok.append(s.index)
 
-            if nb_deja_ok:
-                logger.info(f"{nb_deja_ok} segments déjà générés — ignorés")
+        nb_sans_audio = len([s for s in to_synthesize if not (s.audio_file and os.path.exists(str(s.audio_file)))])
+        nb_modifies   = len([s for s in to_synthesize if str(s.pk) in segment_ids_set])
+        nb_deja_ok    = len(already_ok)
 
-            ws_send(job_id, "status",
-                    message=f"{len(to_synthesize)} segment(s) à générer, {nb_deja_ok} déjà prêts.",
-                    level="info")
+        if nb_deja_ok:
+            logger.info(f"{nb_deja_ok} segments déjà générés et non modifiés — ignorés")
+
+        ws_send(job_id, "status",
+                message=f"{len(to_synthesize)} segment(s) à générer ({nb_sans_audio} sans audio, {nb_modifies} modifiés), {nb_deja_ok} déjà prêts.",
+                level="info")
 
         total   = len(to_synthesize)
         nb_ok   = 0

@@ -45,16 +45,19 @@ class SegmentListView(APIView):
                 thumb_url = f"/media/jobs/{job.pk}/miniatures/seg_{seg.index:04d}.jpg"
 
             data.append({
-                "id":           seg.pk,
-                "index":        seg.index,
-                "start_ms":     seg.start_ms,
-                "end_ms":       seg.end_ms,
-                "text":         seg.text,
-                "speed_factor": seg.speed_factor,
-                "speed_forced": seg.speed_forced,
-                "thumb_url":    thumb_url,
-                "duration_ms":  seg.end_ms - seg.start_ms,
-                "has_audio":    bool(seg.audio_file and os.path.exists(str(seg.audio_file))),
+                "id":              seg.pk,
+                "index":           seg.index,
+                "start_ms":        seg.start_ms,
+                "end_ms":          seg.end_ms,
+                "trim_start_ms":   seg.trim_start_ms,
+                "trim_end_ms":     seg.trim_end_ms if seg.trim_end_ms > 0 else seg.end_ms,
+                "text":            seg.text,
+                "speed_factor":    seg.speed_factor,
+                "speed_forced":    seg.speed_forced,
+                "thumb_url":       thumb_url,
+                "duration_ms":     seg.end_ms - seg.start_ms,
+                "effective_duration_ms": seg.effective_duration_ms,
+                "has_audio":       bool(seg.audio_file and os.path.exists(str(seg.audio_file))),
             })
 
         return Response(data)
@@ -312,3 +315,45 @@ class SegmentAudioView(APIView):
             as_attachment=False,
             filename=os.path.basename(str(seg.audio_file)),
         )
+
+
+# ─────────────────────────────────────────
+#  SET TRIM — IN/OUT d'un segment
+# ─────────────────────────────────────────
+
+class SegmentSetTrimView(APIView):
+    """POST /api/jobs/<job_id>/segments/<idx>/set-trim/"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, job_id, segment_idx):
+        try:
+            job = Job.objects.get(pk=job_id, project__owner=request.user)
+            seg = Segment.objects.get(job=job, index=segment_idx)
+        except (Job.DoesNotExist, Segment.DoesNotExist):
+            return Response({"error": "Introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        trim_start = int(request.data.get("trim_start_ms", seg.trim_start_ms))
+        trim_end   = int(request.data.get("trim_end_ms",   seg.trim_end_ms))
+
+        # Validation
+        src_start = seg.start_ms
+        src_end   = seg.end_ms
+
+        trim_start = max(src_start, min(trim_start, src_end))
+        trim_end   = max(src_start, min(trim_end,   src_end))
+
+        if trim_start >= trim_end:
+            return Response({"error": "trim_start doit être avant trim_end."}, status=400)
+
+        seg.trim_start_ms = trim_start
+        seg.trim_end_ms   = trim_end
+        seg.save(update_fields=["trim_start_ms", "trim_end_ms"])
+
+        logger.info(f"Trim seg {segment_idx} : {trim_start}ms → {trim_end}ms — job={job_id}")
+
+        return Response({
+            "status":          "ok",
+            "trim_start_ms":   seg.trim_start_ms,
+            "trim_end_ms":     seg.trim_end_ms,
+            "effective_duration_ms": seg.effective_duration_ms,
+        })

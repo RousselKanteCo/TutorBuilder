@@ -7,7 +7,9 @@ from .views import (
     JobUploadView, JobCheckDuplicateView, JobReuseView, JobDetailView,
     CockpitView, ProjectListAPIView, ProjectCreateView,
     TranscribeView, SynthesizeView, SetVoiceView, ExportView, ExportStatusView, BurnSubtitlesView,
+    GenerateSubtitlesView, SubtitlesStatusView,
     SegmentListView, SegmentSaveView, SegmentSaveAllView, SegmentImportScriptView, SegmentAudioView,
+    SegmentSetTrimView,
     dashboard_view, logout_view, ProjectCreateAPIView, ProjectDeleteAPIView, JobDeleteAPIView,
 )
 
@@ -39,11 +41,14 @@ urlpatterns = [
     path("api/jobs/<uuid:job_id>/set-voice/",   SetVoiceView.as_view(),          name="job_set_voice"),
     path("api/jobs/<uuid:job_id>/export/",              ExportView.as_view(),        name="job_export"),
     path("api/jobs/<uuid:job_id>/export/status/",       ExportStatusView.as_view(),  name="job_export_status"),
-    path("api/jobs/<uuid:job_id>/export/burn/",         BurnSubtitlesView.as_view(), name="job_burn"),
+    path("api/jobs/<uuid:job_id>/export/burn/",         BurnSubtitlesView.as_view(),       name="job_burn"),
+    path("api/jobs/<uuid:job_id>/generate-subtitles/",  GenerateSubtitlesView.as_view(),    name="job_generate_subtitles"),
+    path("api/jobs/<uuid:job_id>/subtitles/status/",    SubtitlesStatusView.as_view(),      name="job_subtitles_status"),
     path("api/jobs/<uuid:job_id>/segments/",                    SegmentListView.as_view(),         name="segment_list"),
     path("api/jobs/<uuid:job_id>/segments/save-all/",           SegmentSaveAllView.as_view(),      name="segment_save_all"),
     path("api/jobs/<uuid:job_id>/segments/import-script/",      SegmentImportScriptView.as_view(), name="segment_import_script"),
     path("api/jobs/<uuid:job_id>/segments/<int:seg_id>/save/",  SegmentSaveView.as_view(),         name="segment_save"),
+    path("api/jobs/<uuid:job_id>/segments/<int:segment_idx>/set-trim/", SegmentSetTrimView.as_view(), name="segment_set_trim"),
     path("api/jobs/<uuid:job_id>/segments/<int:seg_id>/audio/", SegmentAudioView.as_view(),        name="segment_audio"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static("/outputs/", document_root=settings.OUTPUTS_ROOT)

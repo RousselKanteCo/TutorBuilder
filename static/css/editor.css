@@ -82,3 +82,126 @@
 .log-entry.error .log-msg { color: var(--red); }
 .log-entry.warn  .log-msg { color: var(--amber); }
 .log-entry.info  .log-msg { color: var(--text-3); }
+
+/* ═══════════════════════════════════════════════════
+   MINI PLAYER AVEC TRIM IN/OUT
+═══════════════════════════════════════════════════ */
+
+.seg-mini-player {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.seg-mini-video {
+  width: 100%; display: block;
+  max-height: 140px; object-fit: cover;
+  background: #000;
+}
+
+.seg-mini-placeholder {
+  width: 100%; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-3); color: var(--text-3);
+}
+
+/* Contrôles */
+.seg-mini-controls {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  background: rgba(0,0,0,.7);
+}
+
+.seg-mini-btn {
+  width: 24px; height: 24px; border-radius: 5px;
+  border: none; background: rgba(255,255,255,.15);
+  color: white; display: flex; align-items: center;
+  justify-content: center; cursor: pointer;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.seg-mini-btn:hover { background: rgba(255,255,255,.3); }
+
+.seg-mini-btn.seg-mini-cut {
+  background: rgba(220,38,38,.3);
+  margin-left: auto;
+}
+.seg-mini-btn.seg-mini-cut:hover { background: rgba(220,38,38,.6); }
+
+.seg-mini-tc {
+  font-size: 10px; color: rgba(255,255,255,.7);
+  font-family: var(--font-mono); flex: 1;
+}
+
+/* Barre de trim */
+.seg-trim-bar-wrap {
+  position: relative; height: 20px;
+  background: var(--surface-3);
+  margin: 0; cursor: pointer;
+  user-select: none;
+}
+
+.seg-trim-cut {
+  position: absolute; top: 0; height: 100%;
+  background: repeating-linear-gradient(
+    45deg, rgba(0,0,0,.3), rgba(0,0,0,.3) 4px,
+    rgba(0,0,0,.1) 4px, rgba(0,0,0,.1) 8px
+  );
+  pointer-events: none;
+}
+.seg-trim-cut-left  { left: 0; }
+.seg-trim-cut-right { right: 0; }
+
+.seg-trim-active {
+  position: absolute; top: 0; height: 100%;
+  background: rgba(59,130,246,.35);
+  pointer-events: none;
+}
+
+.seg-trim-cursor {
+  position: absolute; top: 0; width: 2px; height: 100%;
+  background: white; pointer-events: none;
+  box-shadow: 0 0 4px rgba(0,0,0,.5);
+}
+
+/* Poignées IN/OUT */
+.seg-trim-handle {
+  position: absolute; top: 0; width: 10px; height: 100%;
+  cursor: ew-resize; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+}
+.seg-trim-in  { transform: translateX(-50%); }
+.seg-trim-out { transform: translateX(50%); }
+
+.seg-trim-handle-bar {
+  width: 3px; height: 70%; border-radius: 2px;
+  background: #3B82F6;
+  box-shadow: 0 0 6px rgba(59,130,246,.6);
+}
+.seg-trim-handle:hover .seg-trim-handle-bar { background: #60A5FA; }
+
+/* Timecodes IN/OUT */
+.seg-trim-tc-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+}
+
+.seg-trim-tc-label {
+  font-size: 10px; color: var(--text-3);
+  font-family: var(--font-mono);
+}
+.seg-trim-tc-label span { color: var(--blue); font-weight: 700; }
+
+.seg-trim-reset {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-3); font-size: 10px; font-weight: 600;
+  font-family: var(--font); cursor: pointer;
+  transition: var(--transition);
+}
+.seg-trim-reset:hover { color: var(--text-1); background: var(--surface-3); }

@@ -252,16 +252,18 @@ async function loadSegments(jobId) {
     const segs = Array.isArray(data) ? data : (data.results || []);
 
     transcribeState.segments = segs.map(s => ({
-      id:           s.id,
-      index:        s.index,
-      start_ms:     s.start_ms,
-      end_ms:       s.end_ms,
-      text:         s.text || '',
-      speed_factor: s.speed_factor || 1.0,
-      speed_forced: s.speed_forced || false,
-      thumb_url:    s.thumb_url || '',
-      has_audio:    s.has_audio || false,
-      deleted:      false,
+      id:             s.id,
+      index:          s.index,
+      start_ms:       s.start_ms,
+      end_ms:         s.end_ms,
+      trim_start_ms:  s.trim_start_ms || 0,
+      trim_end_ms:    s.trim_end_ms   || 0,
+      text:           s.text || '',
+      speed_factor:   s.speed_factor || 1.0,
+      speed_forced:   s.speed_forced || false,
+      thumb_url:      s.thumb_url || '',
+      has_audio:      s.has_audio || false,
+      deleted:        false,
     }));
 
     // Restaurer les segments modifiés depuis sessionStorage
@@ -511,17 +513,6 @@ function renderTimeline() {
       <div class="tl-seg-tc">${tcStart} → ${tcEnd}</div>
       <div class="tl-seg-text">${seg.text || '<em>Silence</em>'}</div>
       <span class="tl-seg-speed ${sc}">x${seg.speed_factor.toFixed(2)} · ${durS}s</span>
-      <div class="tl-seg-actions">
-        <button class="tl-seg-btn cut" title="Couper" onclick="cutSegmentAt(${i}, event)">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="2" x2="12" y2="22"/></svg>
-        </button>
-        <button class="tl-seg-btn merge" title="Fusionner" onclick="mergeWithNext(${i})">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 9l7 7 7-7"/></svg>
-        </button>
-        <button class="tl-seg-btn del" title="Supprimer" onclick="confirmDeleteSegment(${i})">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
       <div class="tl-resize-handle tl-resize-left"  data-seg="${i}" data-side="left"></div>
       <div class="tl-resize-handle tl-resize-right" data-seg="${i}" data-side="right"></div>`;
 
@@ -684,7 +675,10 @@ function selectSegment(idx) {
   // Aller au bon moment dans la vidéo
   const seg = transcribeState.segments[idx];
   const vid = document.getElementById('video-player');
-  if (vid && seg) vid.currentTime = seg.start_ms / 1000;
+  if (vid && seg) {
+    const t = seg.start_ms / 1000;
+    if (isFinite(t) && t >= 0) vid.currentTime = t;
+  }
 }
 
 function loadSegmentEditor(idx) {
@@ -694,18 +688,24 @@ function loadSegmentEditor(idx) {
   TDOM.segmentEditor.style.display = 'block';
   TDOM.segEditorIndex.textContent  = `Segment ${idx + 1}`;
 
+  // Afficher le bouton sauvegarder
+  const btnSave = document.getElementById('btn-save-segment');
+  if (btnSave) btnSave.style.display = 'flex';
+
+  // Afficher les boutons Fusionner / Supprimer
+  const actionsPanel = document.getElementById('seg-actions-panel');
+  if (actionsPanel) actionsPanel.style.display = 'flex';
+
   // Timecodes éditables
   renderEditableTc(idx);
 
-  // Miniature
-  if (seg.thumb_url) {
-    TDOM.segThumb.src = seg.thumb_url;
-    TDOM.segThumb.style.display = 'block';
-    TDOM.segThumbPlaceholder.style.display = 'none';
-  } else {
-    TDOM.segThumb.style.display = 'none';
-    TDOM.segThumbPlaceholder.style.display = 'flex';
+  // Mini player — toujours réinitialiser au segment sélectionné
+  if (window._miniPlayerLoop) {
+    cancelAnimationFrame(window._miniPlayerLoop);
+    window._miniPlayerLoop = null;
   }
+  initMiniPlayer(seg);
+  TDOM.segmentEditor.dataset.currentIdx = String(idx);
 
   // Bouton lecture audio
   const audioBtn = document.getElementById('seg-audio-btn');
@@ -713,11 +713,12 @@ function loadSegmentEditor(idx) {
     audioBtn.style.display = seg.has_audio ? 'flex' : 'none';
   }
 
-  const autoFactor = calcSpeedFactor(seg.text, seg.end_ms - seg.start_ms, transcribeState.wpm);
+  const effStart   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const effEnd     = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+  const effDur     = effEnd - effStart;
 
-  // Budget mots — toujours calculé sur x0.25 (max possible) pour ne jamais bloquer
-  // Le vrai ajustement se fait à l'export
-  const maxMots = calcMaxMots(seg.end_ms - seg.start_ms, transcribeState.wpm, 0.25);
+  const autoFactor = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
+  const maxMots    = calcMaxMots(effDur, transcribeState.wpm, 0.25);
 
   // Texte
   TDOM.segTextInput.value = seg.text || '';
@@ -725,9 +726,9 @@ function loadSegmentEditor(idx) {
   updateWordBudget(seg.text, maxMots);
 
   // Vitesse
-  updateSpeedUI(seg.speed_factor, seg.text, seg.end_ms - seg.start_ms, seg.speed_forced, autoFactor);
+  updateSpeedUI(seg.speed_factor, seg.text, effDur, seg.speed_forced, autoFactor);
 
-  // Slider — min x0.25, max = speed_factor auto
+  // Slider
   TDOM.speedSlider.min   = '0.25';
   TDOM.speedSlider.max   = Math.max(autoFactor, 0.25).toFixed(2);
   TDOM.speedSlider.value = seg.speed_forced
@@ -915,14 +916,14 @@ if (TDOM.segTextInput) {
     const seg = transcribeState.segments[idx];
     if (!seg) return;
 
-    const newText = TDOM.segTextInput.value;
-    const durMs   = seg.end_ms - seg.start_ms;
+    const newText  = TDOM.segTextInput.value;
+    const effStart = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+    const effEnd   = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+    const effDur   = effEnd - effStart;
 
-    // Max absolu = budget à x0.25
-    const maxMots = calcMaxMots(durMs, transcribeState.wpm, 0.25);
+    const maxMots = calcMaxMots(effDur, transcribeState.wpm, 0.25);
     const words   = newText.trim().split(/\s+/).filter(Boolean);
 
-    // Si dépasse le max → tronquer automatiquement
     if (words.length > maxMots) {
       const truncated = words.slice(0, maxMots).join(' ');
       TDOM.segTextInput.value = truncated;
@@ -936,14 +937,13 @@ if (TDOM.segTextInput) {
 
     markSegmentModified(idx);
 
-    // Recalculer le speed
-    const newSpeed = calcSpeedFactor(seg.text, durMs, transcribeState.wpm);
+    const newSpeed = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
     if (!seg.speed_forced) {
       seg.speed_factor = newSpeed;
       TDOM.speedSlider.max   = Math.max(newSpeed, 0.25).toFixed(2);
       TDOM.speedSlider.value = newSpeed.toFixed(2);
       TDOM.speedSliderVal.textContent = `x${newSpeed.toFixed(2)}`;
-      updateSpeedUI(newSpeed, seg.text, durMs, false, newSpeed);
+      updateSpeedUI(newSpeed, seg.text, effDur, false, newSpeed);
     }
 
     transcribeState.dirty = true;
@@ -962,16 +962,18 @@ if (TDOM.speedSlider) {
     const seg = transcribeState.segments[idx];
     if (!seg) return;
 
+    const effStart   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+    const effEnd     = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+    const effDur     = effEnd - effStart;
     const val        = parseFloat(TDOM.speedSlider.value);
-    const autoFactor = calcSpeedFactor(seg.text, seg.end_ms - seg.start_ms, transcribeState.wpm);
+    const autoFactor = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
 
     seg.speed_factor = val;
     seg.speed_forced = true;
     TDOM.speedSliderVal.textContent = `x${val.toFixed(2)}`;
-    updateSpeedUI(val, seg.text, seg.end_ms - seg.start_ms, true, autoFactor);
+    updateSpeedUI(val, seg.text, effDur, true, autoFactor);
 
-    // Recalculer le budget de mots avec le nouveau speed
-    const maxMots = calcMaxMots(seg.end_ms - seg.start_ms, transcribeState.wpm, val);
+    const maxMots = calcMaxMots(effDur, transcribeState.wpm, val);
     updateWordBudget(seg.text, maxMots);
 
     transcribeState.dirty = true;
@@ -1000,54 +1002,92 @@ function resetSpeedFactor() {
    COUPER UN SEGMENT
 ═══════════════════════════════════════════════════ */
 
-function cutSegmentAt(idx, event) {
+function cutSegmentAt(idx, eventOrMs) {
   const seg       = transcribeState.segments[idx];
   const container = TDOM.timelineSegments;
-  if (!seg || !container) return;
+  if (!seg) return;
 
-  // Calculer le timing au clic
-  const rect    = container.getBoundingClientRect();
-  const clickX  = event.clientX - rect.left + container.scrollLeft;
-  const innerW  = container.firstChild?.offsetWidth || container.offsetWidth;
-  const totalMs = transcribeState.segments[transcribeState.segments.length - 1].end_ms;
-  const clickMs = Math.round((clickX / innerW) * totalMs);
+  let clickMs;
 
-  // Vérifier que le clic est dans le segment
-  if (clickMs <= seg.start_ms || clickMs >= seg.end_ms) {
-    window.Toast?.warn('Cliquez à l\'intérieur du segment pour le couper.');
+  // Si on reçoit un timecode direct (depuis cutAtMiniPlayer)
+  if (typeof eventOrMs === 'number') {
+    clickMs = eventOrMs;
+  } else {
+    // Si on reçoit un event (depuis double-clic timeline)
+    if (!container) return;
+    const rect    = container.getBoundingClientRect();
+    const clickX  = eventOrMs.clientX - rect.left + container.scrollLeft;
+    const innerW  = container.firstChild?.offsetWidth || container.offsetWidth;
+    const totalMs = transcribeState.segments[transcribeState.segments.length - 1].end_ms;
+    clickMs = Math.round((clickX / innerW) * totalMs);
+  }
+
+  // Vérifier que le point de coupe est dans le segment
+  if (clickMs <= seg.start_ms + 200 || clickMs >= seg.end_ms - 200) {
+    window.Toast?.warn('Le point de coupe doit être à l\'intérieur du segment.');
     return;
   }
 
   pushUndo('Couper segment');
 
   // Répartir le texte proportionnellement
-  const ratio   = (clickMs - seg.start_ms) / (seg.end_ms - seg.start_ms);
-  const words   = (seg.text || '').trim().split(/\s+/).filter(Boolean);
-  const split   = Math.max(1, Math.round(words.length * ratio));
-  const text1   = words.slice(0, split).join(' ');
-  const text2   = words.slice(split).join(' ');
+  const ratio = (clickMs - seg.start_ms) / (seg.end_ms - seg.start_ms);
+  const words = (seg.text || '').trim().split(/\s+/).filter(Boolean);
+  const split = Math.max(1, Math.round(words.length * ratio));
+  const text1 = words.slice(0, split).join(' ');
+  const text2 = words.slice(split).join(' ');
 
-  const seg1 = { ...seg, end_ms: clickMs, text: text1 };
+  const dur1 = clickMs - seg.start_ms;
+  const dur2 = seg.end_ms - clickMs;
+
+  // Vérifier budget texte pour chaque morceau
+  const maxMots1 = calcMaxMots(dur1, transcribeState.wpm, 0.25);
+  const maxMots2 = calcMaxMots(dur2, transcribeState.wpm, 0.25);
+
+  if (text1 && text1.split(/\s+/).filter(Boolean).length > maxMots1) {
+    window.Toast?.error(`Le premier morceau dépasse son budget (${maxMots1} mots max). Coupez plus loin à droite.`);
+    return;
+  }
+  if (text2 && text2.split(/\s+/).filter(Boolean).length > maxMots2) {
+    window.Toast?.error(`Le second morceau dépasse son budget (${maxMots2} mots max). Coupez plus loin à gauche.`);
+    return;
+  }
+
+  const seg1 = {
+    ...seg,
+    end_ms:        clickMs,
+    text:          text1,
+    trim_start_ms: seg.trim_start_ms || seg.start_ms,
+    trim_end_ms:   clickMs,
+    has_audio:     false,
+    speed_forced:  false,
+  };
   const seg2 = {
-    id:           `new_${Date.now()}`,
-    index:        seg.index + 0.5,
-    start_ms:     clickMs,
-    end_ms:       seg.end_ms,
-    text:         text2,
-    speed_forced: false,
-    thumb_url:    seg.thumb_url,
-    deleted:      false,
-    speed_factor: 1.0,
+    id:            `new_${Date.now()}`,
+    index:         seg.index + 0.5,
+    start_ms:      clickMs,
+    end_ms:        seg.end_ms,
+    trim_start_ms: clickMs,
+    trim_end_ms:   seg.trim_end_ms || seg.end_ms,
+    text:          text2,
+    speed_forced:  false,
+    thumb_url:     seg.thumb_url,
+    has_audio:     false,
+    deleted:       false,
+    speed_factor:  1.0,
   };
 
-  seg1.speed_factor = calcSpeedFactor(text1, seg1.end_ms - seg1.start_ms, transcribeState.wpm);
-  seg2.speed_factor = calcSpeedFactor(text2, seg2.end_ms - seg2.start_ms, transcribeState.wpm);
+  seg1.speed_factor = calcSpeedFactor(text1, dur1, transcribeState.wpm);
+  seg2.speed_factor = calcSpeedFactor(text2, dur2, transcribeState.wpm);
 
   transcribeState.segments.splice(idx, 1, seg1, seg2);
   reindexSegments();
   renderTimeline();
   selectSegment(idx);
-  window.Toast?.success('Segment coupé en deux.');
+
+  const sc1 = seg1.speed_factor.toFixed(2);
+  const sc2 = seg2.speed_factor.toFixed(2);
+  window.Toast?.success(`Segment coupé — x${sc1} / x${sc2}`);
   transcribeState.dirty = true;
 }
 
@@ -1068,9 +1108,11 @@ function mergeWithNext(idx) {
   const s2  = transcribeState.segments[idx + 1];
   const merged = {
     ...s1,
-    end_ms:       s2.end_ms,
-    text:         [s1.text, s2.text].filter(Boolean).join(' '),
-    speed_forced: false,
+    end_ms:        s2.end_ms,
+    trim_end_ms:   s2.trim_end_ms > 0 ? s2.trim_end_ms : s2.end_ms,
+    text:          [s1.text, s2.text].filter(Boolean).join(' '),
+    speed_forced:  false,
+    has_audio:     false, // Forcer regénération après fusion
   };
   merged.speed_factor = calcSpeedFactor(merged.text, merged.end_ms - merged.start_ms, transcribeState.wpm);
 
@@ -1079,6 +1121,7 @@ function mergeWithNext(idx) {
   renderTimeline();
   selectSegment(idx);
   transcribeState.dirty = true;
+  markSegmentModified(idx);
 
   // Sauvegarder automatiquement pour que la fusion soit effective en base
   saveAllSegments().then(() => {
@@ -1206,6 +1249,298 @@ function showConfirmModal({ title, message, confirmLabel, confirmClass, onConfir
 }
 
 window.showConfirmModal = showConfirmModal;
+
+/* ═══════════════════════════════════════════════════
+   MINI PLAYER & TRIM IN/OUT
+═══════════════════════════════════════════════════ */
+
+let _trimDragging = null;
+
+function initMiniPlayer(seg) {
+  const placeholder = document.getElementById('seg-mini-placeholder');
+  const videoUrl    = window.JOB_DATA?.video_url || '';
+
+  // Arrêter loop précédent
+  if (window._miniPlayerLoop) {
+    cancelAnimationFrame(window._miniPlayerLoop);
+    window._miniPlayerLoop = null;
+  }
+
+  const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+
+  // Supprimer img miniature si présente
+  const oldThumb = document.getElementById('seg-mini-thumb');
+  if (oldThumb) oldThumb.remove();
+  const oldCanvas = document.getElementById('seg-mini-canvas');
+  if (oldCanvas) oldCanvas.remove();
+
+  // Créer ou récupérer l'élément vidéo
+  let video = document.getElementById('seg-mini-video');
+  if (!video) {
+    video = document.createElement('video');
+    video.id = 'seg-mini-video';
+    video.muted = false;
+    video.style.cssText = 'width:100%;max-height:140px;object-fit:cover;display:block;background:#000;';
+    const player = document.getElementById('seg-mini-player');
+    if (player) player.insertBefore(video, player.firstChild);
+  }
+
+  if (videoUrl) {
+    video.src = videoUrl;
+    video.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+
+    // Seek au point IN après chargement
+    video.addEventListener('loadedmetadata', () => {
+      video.currentTime = inMs / 1000;
+    }, { once: true });
+
+    // Si déjà chargé
+    if (video.readyState >= 1) {
+      video.currentTime = inMs / 1000;
+    }
+
+    // Arrêter au point OUT
+    video.ontimeupdate = () => {
+      const s = transcribeState.segments[transcribeState.selectedIdx];
+      if (!s) return;
+      const sOut = s.trim_end_ms > 0 ? s.trim_end_ms : s.end_ms;
+      if (!video.paused && video.currentTime * 1000 >= sOut) {
+        video.pause();
+        video.currentTime = (s.trim_start_ms > 0 ? s.trim_start_ms : s.start_ms) / 1000;
+        updateMiniPlayBtn(false);
+      }
+      updateMiniTc(video.currentTime * 1000, s);
+      updateTrimCursor(video.currentTime * 1000, s);
+    };
+  } else {
+    video.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'flex';
+  }
+
+  initTrimBar(seg);
+}
+function seekMiniVideo(ms) {
+  const video = document.getElementById('seg-mini-video');
+  if (!video) return;
+  const t = ms / 1000;
+  if (!isFinite(t) || t < 0) return;
+  video.currentTime = t;
+  const seg = transcribeState.segments[transcribeState.selectedIdx];
+  if (seg) {
+    updateTrimCursor(ms, seg);
+    updateMiniTc(ms, seg);
+  }
+}
+
+function updateMiniPlayBtn(playing) {
+  const btn = document.getElementById('seg-mini-play');
+  if (!btn) return;
+  btn.innerHTML = playing
+    ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+       </svg>`
+    : `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5 3 19 12 5 21"/>
+       </svg>`;
+}
+
+function toggleMiniPlay() {
+  const video = document.getElementById('seg-mini-video');
+  const seg   = transcribeState.segments[transcribeState.selectedIdx];
+  if (!video || !seg) return;
+
+  if (video.paused) {
+    const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+    const outMs = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+    if (video.currentTime * 1000 < inMs || video.currentTime * 1000 >= outMs) {
+      video.currentTime = inMs / 1000;
+    }
+    video.play();
+    updateMiniPlayBtn(true);
+  } else {
+    video.pause();
+    updateMiniPlayBtn(false);
+  }
+}
+
+function updateMiniTc(currentMs, seg) {
+  const tc = document.getElementById('seg-mini-tc');
+  if (!tc) return;
+  const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+  tc.textContent = `${msToTC(currentMs - inMs)} / ${msToTC(outMs - inMs)}`;
+}
+
+function initTrimBar(seg) {
+  const wrap = document.getElementById('seg-trim-bar-wrap');
+  if (!wrap) return;
+
+  const totalMs = seg.end_ms - seg.start_ms;
+  const inMs    = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs   = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+
+  updateTrimUI(seg, inMs, outMs, totalMs);
+
+  // Clic direct sur la barre pour positionner le curseur
+  wrap.onclick = (e) => {
+    if (_trimDragging) return;
+    if (e.target.closest('.seg-trim-handle')) return;
+    const currentSeg = transcribeState.segments[transcribeState.selectedIdx];
+    if (!currentSeg) return;
+    const currentTotal = currentSeg.end_ms - currentSeg.start_ms;
+    const rect    = wrap.getBoundingClientRect();
+    const pct     = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const clickMs = currentSeg.start_ms + Math.round(pct * currentTotal);
+    const video   = document.getElementById('seg-mini-video');
+    if (video) {
+      seekMiniVideo(clickMs);
+      updateTrimCursor(clickMs, currentSeg);
+      updateMiniTc(clickMs, currentSeg);
+    }
+  };
+
+  const handleIn  = document.getElementById('seg-trim-in');
+  const handleOut = document.getElementById('seg-trim-out');
+  if (handleIn)  handleIn.onmousedown  = (e) => startTrimDrag(e, 'in');
+  if (handleOut) handleOut.onmousedown = (e) => startTrimDrag(e, 'out');
+}
+
+function updateTrimUI(seg, inMs, outMs, totalMs) {
+  const inPct  = ((inMs - seg.start_ms) / totalMs) * 100;
+  const outPct = ((outMs - seg.start_ms) / totalMs) * 100;
+
+  const cutLeft  = document.getElementById('seg-trim-cut-left');
+  const active   = document.getElementById('seg-trim-active');
+  const cutRight = document.getElementById('seg-trim-cut-right');
+  const handleIn  = document.getElementById('seg-trim-in');
+  const handleOut = document.getElementById('seg-trim-out');
+  const inTc  = document.getElementById('seg-trim-in-tc');
+  const outTc = document.getElementById('seg-trim-out-tc');
+
+  if (cutLeft)   { cutLeft.style.left  = '0'; cutLeft.style.width  = `${inPct}%`; }
+  if (active)    { active.style.left   = `${inPct}%`; active.style.width = `${outPct - inPct}%`; }
+  if (cutRight)  { cutRight.style.right = '0'; cutRight.style.width = `${100 - outPct}%`; }
+  if (handleIn)   handleIn.style.left  = `${inPct}%`;
+  if (handleOut)  handleOut.style.left = `${outPct}%`;
+  if (inTc)      inTc.textContent  = msToTC(inMs - seg.start_ms);
+  if (outTc)     outTc.textContent = msToTC(outMs - seg.start_ms);
+}
+
+function updateTrimCursor(currentMs, seg) {
+  const cursor  = document.getElementById('seg-trim-cursor');
+  const totalMs = seg.end_ms - seg.start_ms;
+  if (!cursor || !totalMs) return;
+  const pct = Math.max(0, Math.min(100, ((currentMs - seg.start_ms) / totalMs) * 100));
+  cursor.style.left = `${pct}%`;
+}
+
+function startTrimDrag(e, handle) {
+  e.preventDefault();
+  _trimDragging = handle;
+
+  const onMove = (ev) => {
+    const seg  = transcribeState.segments[transcribeState.selectedIdx];
+    const wrap = document.getElementById('seg-trim-bar-wrap');
+    if (!seg || !wrap) return;
+
+    const rect    = wrap.getBoundingClientRect();
+    const pct     = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+    const totalMs = seg.end_ms - seg.start_ms;
+    const ms      = seg.start_ms + Math.round(pct * totalMs);
+
+    let inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+    let outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+
+    // Durée minimale selon le budget texte
+    const nbMots = (seg.text || '').trim().split(/\s+/).filter(Boolean).length;
+    const minDur = Math.max(500, Math.ceil(nbMots / (transcribeState.wpm / 60 * 4) * 1000));
+
+    if (handle === 'in') {
+      inMs = Math.max(seg.start_ms, Math.min(ms, outMs - minDur));
+      seg.trim_start_ms = inMs;
+    } else {
+      outMs = Math.min(seg.end_ms, Math.max(ms, inMs + minDur));
+      seg.trim_end_ms = outMs;
+    }
+
+    updateTrimUI(seg, inMs, outMs, totalMs);
+
+    const video = document.getElementById('seg-mini-video');
+    if (video) {
+      const t = (handle === 'in' ? inMs : outMs) / 1000;
+      if (isFinite(t) && t >= 0) video.currentTime = t;
+    }
+  };
+
+  const onUp = () => {
+    _trimDragging = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',  onUp);
+    saveTrim();
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',  onUp);
+}
+
+async function saveTrim() {
+  const idx   = transcribeState.selectedIdx;
+  const seg   = transcribeState.segments[idx];
+  const jobId = document.getElementById('current-job-id')?.value;
+  const csrf  = document.getElementById('csrf-token')?.value || '';
+  if (!seg || !jobId) return;
+
+  const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+
+  try {
+    await fetch(`/api/jobs/${jobId}/segments/${seg.index}/set-trim/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body:    JSON.stringify({ trim_start_ms: inMs, trim_end_ms: outMs }),
+    });
+    window.Toast?.success(`Trim : ${msToTC(inMs - seg.start_ms)} → ${msToTC(outMs - seg.start_ms)}`);
+    const effDur  = outMs - inMs;
+    const maxMots = calcMaxMots(effDur, transcribeState.wpm, 0.25);
+    updateWordBudget(seg.text, maxMots);
+  } catch {
+    window.Toast?.error('Erreur lors de la sauvegarde du trim.');
+  }
+}
+
+function resetTrim() {
+  const idx = transcribeState.selectedIdx;
+  const seg = transcribeState.segments[idx];
+  if (!seg) return;
+  seg.trim_start_ms = seg.start_ms;
+  seg.trim_end_ms   = seg.end_ms;
+  initTrimBar(seg);
+  saveTrim();
+}
+
+function cutAtMiniPlayer() {
+  const video = document.getElementById('seg-mini-video');
+  const idx   = transcribeState.selectedIdx;
+  if (!video || idx === null) return;
+
+  const seg    = transcribeState.segments[idx];
+  const cutMs  = Math.round(video.currentTime * 1000);
+  const inMs   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs  = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+
+  // Le cut doit être dans la zone active
+  if (cutMs <= inMs + 200 || cutMs >= outMs - 200) {
+    window.Toast?.warn('Placez le curseur au moins 200ms à l\'intérieur du segment.');
+    return;
+  }
+
+  // Couper au timecode exact
+  cutSegmentAt(idx, cutMs);
+}
+
+window.cutAtMiniPlayer = cutAtMiniPlayer;
 
 function pushUndo(label) {
   const snapshot = JSON.parse(JSON.stringify(transcribeState.segments));
@@ -1375,52 +1710,119 @@ function onResizeMove(e) {
   const nextSeg = transcribeState.segments[idx + 1];
   if (!seg) return;
 
-  // Durée minimale basée sur le texte du segment
+  // Durée effective d'un segment (après trim)
+  function effDurMs(s) {
+    if (!s) return 0;
+    const eStart = s.trim_start_ms > 0 ? s.trim_start_ms : s.start_ms;
+    const eEnd   = s.trim_end_ms   > 0 ? s.trim_end_ms   : s.end_ms;
+    return eEnd - eStart;
+  }
+
+  // Durée minimale = texte à x4.0
   function minDurMs(s) {
     if (!s) return MIN_SEG_MS;
     const nbMots = (s.text || '').trim().split(/\s+/).filter(Boolean).length;
     if (nbMots === 0) return MIN_SEG_MS;
-    // Durée minimale = durée estimée de la voix
-    return Math.max(MIN_SEG_MS, Math.round((nbMots / transcribeState.wpm) * 60 * 1000));
+    const dureeVoixMs = (nbMots / transcribeState.wpm) * 60 * 1000;
+    return Math.max(MIN_SEG_MS, Math.round(dureeVoixMs / 4.0));
+  }
+
+  // Durée maximale = texte à x0.25
+  function maxDurMs(s) {
+    if (!s) return Infinity;
+    const nbMots = (s.text || '').trim().split(/\s+/).filter(Boolean).length;
+    if (nbMots === 0) return Infinity;
+    const dureeVoixMs = (nbMots / transcribeState.wpm) * 60 * 1000;
+    return Math.round(dureeVoixMs / 0.25);
   }
 
   if (side === 'right') {
-    // Le segment actuel doit garder sa durée minimale (son texte)
     const minEnd = seg.start_ms + minDurMs(seg);
-    // Le segment suivant doit garder SA durée minimale (son texte)
-    const maxEnd = nextSeg
-      ? nextSeg.end_ms - minDurMs(nextSeg)
-      : origEnd + 60000;
+    const maxEnd = Math.min(
+      nextSeg ? nextSeg.end_ms - minDurMs(nextSeg) : origEnd + 60000,
+      seg.start_ms + maxDurMs(seg)
+    );
     const cappedEnd = Math.max(minEnd, Math.min(maxEnd, origEnd + dMs));
 
     seg.end_ms = cappedEnd;
-    if (nextSeg) nextSeg.start_ms = cappedEnd;
+    // Sync trim_end — s'il n'y a pas de trim personnalisé, trim_end suit end_ms
+    if (seg.trim_end_ms === 0 || seg.trim_end_ms >= origEnd) {
+      seg.trim_end_ms = cappedEnd;
+    } else {
+      seg.trim_end_ms = Math.min(seg.trim_end_ms, cappedEnd);
+    }
+    if (nextSeg) {
+      nextSeg.start_ms = cappedEnd;
+      // Sync trim_start du voisin
+      if (nextSeg.trim_start_ms === 0 || nextSeg.trim_start_ms <= origEnd) {
+        nextSeg.trim_start_ms = cappedEnd;
+      } else {
+        nextSeg.trim_start_ms = Math.max(nextSeg.trim_start_ms, cappedEnd);
+      }
+    }
 
   } else {
-    // Le segment actuel doit garder sa durée minimale
     const maxStart = seg.end_ms - minDurMs(seg);
-    // Le segment précédent doit garder SA durée minimale
-    const minStart = prevSeg
-      ? prevSeg.start_ms + minDurMs(prevSeg)
-      : 0;
+    const minStart = Math.max(
+      prevSeg ? prevSeg.start_ms + minDurMs(prevSeg) : 0,
+      seg.end_ms - maxDurMs(seg)
+    );
     const cappedStart = Math.max(minStart, Math.min(maxStart, origStart + dMs));
 
     seg.start_ms = cappedStart;
-    if (prevSeg) prevSeg.end_ms = cappedStart;
+    // Sync trim_start — s'il n'y a pas de trim personnalisé, trim_start suit start_ms
+    if (seg.trim_start_ms === 0 || seg.trim_start_ms <= origStart) {
+      seg.trim_start_ms = cappedStart;
+    } else {
+      seg.trim_start_ms = Math.max(seg.trim_start_ms, cappedStart);
+    }
+    if (prevSeg) {
+      prevSeg.end_ms = cappedStart;
+      // Sync trim_end du voisin
+      if (prevSeg.trim_end_ms === 0 || prevSeg.trim_end_ms >= origStart) {
+        prevSeg.trim_end_ms = cappedStart;
+      } else {
+        prevSeg.trim_end_ms = Math.min(prevSeg.trim_end_ms, cappedStart);
+      }
+    }
   }
 
-  // Recalculer speed_factor
+  // Recalculer speed_factor sur la durée effective (après trim)
   [seg, prevSeg, nextSeg].forEach(s => {
-    if (s && !s.speed_forced) {
-      s.speed_factor = calcSpeedFactor(s.text, s.end_ms - s.start_ms, transcribeState.wpm);
-    }
+    if (!s || s.speed_forced) return;
+    const effStart = s.trim_start_ms > 0 ? s.trim_start_ms : s.start_ms;
+    const effEnd   = s.trim_end_ms   > 0 ? s.trim_end_ms   : s.end_ms;
+    const effDur   = effEnd - effStart;
+    s.speed_factor = calcSpeedFactor(s.text, effDur, transcribeState.wpm);
   });
+
+  // Mettre à jour le panneau segment en temps réel (segment sélectionné)
+  const selIdx = transcribeState.selectedIdx;
+  const selSeg = selIdx !== null ? transcribeState.segments[selIdx] : null;
+  if (selSeg) {
+    const effStart   = selSeg.trim_start_ms > 0 ? selSeg.trim_start_ms : selSeg.start_ms;
+    const effEnd     = selSeg.trim_end_ms   > 0 ? selSeg.trim_end_ms   : selSeg.end_ms;
+    const effDur     = effEnd - effStart;
+    const autoFactor = calcSpeedFactor(selSeg.text, effDur, transcribeState.wpm);
+    const maxMots    = calcMaxMots(effDur, transcribeState.wpm, 0.25);
+
+    updateSpeedUI(selSeg.speed_factor, selSeg.text, effDur, selSeg.speed_forced, autoFactor);
+    updateWordBudget(selSeg.text, maxMots);
+
+    if (TDOM.speedSlider) {
+      TDOM.speedSlider.max   = Math.max(autoFactor, 0.25).toFixed(2);
+      TDOM.speedSlider.value = autoFactor.toFixed(2);
+    }
+    if (TDOM.speedSliderVal) {
+      TDOM.speedSliderVal.textContent = `x${autoFactor.toFixed(2)}`;
+    }
+    initTrimBar(selSeg);
+  }
 
   clearTimeout(_dragState?._timer);
   if (_dragState) {
     _dragState._timer = setTimeout(() => {
       renderTimeline();
-      if (transcribeState.selectedIdx === idx) loadSegmentEditor(idx);
     }, 30);
   }
 }
@@ -1428,8 +1830,32 @@ function onResizeMove(e) {
 function onResizeEnd() {
   if (_dragState) {
     clearTimeout(_dragState._timer);
+    const idx = _dragState.idx;
     renderTimeline();
-    if (transcribeState.selectedIdx !== null) loadSegmentEditor(transcribeState.selectedIdx);
+
+    // Mettre à jour le panneau segment sans réinitialiser le mini player
+    if (transcribeState.selectedIdx !== null) {
+      const seg = transcribeState.segments[transcribeState.selectedIdx];
+    if (seg) {
+        const effStart   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+        const effEnd     = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+        const effDur     = effEnd - effStart;
+        const autoFactor = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
+        const maxMots    = calcMaxMots(effDur, transcribeState.wpm, 0.25);
+        updateSpeedUI(seg.speed_factor, seg.text, effDur, seg.speed_forced, autoFactor);
+        updateWordBudget(seg.text, maxMots);
+        if (TDOM.speedSlider) {
+          TDOM.speedSlider.max   = Math.max(autoFactor, 0.25).toFixed(2);
+          TDOM.speedSlider.value = autoFactor.toFixed(2);
+        }
+        if (TDOM.speedSliderVal) {
+          TDOM.speedSliderVal.textContent = `x${autoFactor.toFixed(2)}`;
+        }
+        renderEditableTc(transcribeState.selectedIdx);
+        initTrimBar(seg);
+        markSegmentModified(transcribeState.selectedIdx);
+      }
+    }
   }
   _dragState = null;
   document.removeEventListener('mousemove', onResizeMove);
@@ -1450,6 +1876,11 @@ async function saveCurrentSegment() {
   const seg  = transcribeState.segments[idx];
   if (!seg?.id) { window.Toast?.warn('Ce segment n\'a pas encore d\'ID — sauvegardez tout.'); return; }
 
+  // Guard contre double clic
+  const btnSave = document.getElementById('btn-save-segment');
+  if (btnSave?.dataset.saving === '1') return;
+  if (btnSave) btnSave.dataset.saving = '1';
+
   const jobId = document.getElementById('current-job-id')?.value;
   const csrf  = document.getElementById('csrf-token')?.value || '';
 
@@ -1466,8 +1897,6 @@ async function saveCurrentSegment() {
       }),
     });
     if (res.ok) {
-      // Retirer du badge unsaved — sauvegardé en base
-      // Garder dans modifiedSegments pour la prochaine régénération TTS
       const segId = String(transcribeState.segments[idx]?.id);
       transcribeState.modifiedSegments.add(segId);
       transcribeState.unsavedSegments.delete(segId);
@@ -1480,6 +1909,8 @@ async function saveCurrentSegment() {
     }
   } catch (e) {
     window.Toast?.error('Erreur réseau lors de la sauvegarde.');
+  } finally {
+    if (btnSave) btnSave.dataset.saving = '0';
   }
 }
 
