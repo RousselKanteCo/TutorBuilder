@@ -383,11 +383,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.subtitled_url) {
           const btnDlSubs = document.getElementById('btn-download-subs');
           if (btnDlSubs) {
-            btnDlSubs.href = `${data.subtitled_url}?t=${Date.now()}`;
-            btnDlSubs.download = 'video_avec_sous_titres.mp4';
+            const url = `${data.subtitled_url}?t=${Date.now()}`;
             btnDlSubs.style.display = 'flex';
             btnDlSubs.style.pointerEvents = 'auto';
             btnDlSubs.style.opacity = '1';
+            btnDlSubs.onclick = (e) => {
+              e.preventDefault();
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'video_avec_sous_titres.mp4';
+              a.target = '_blank';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            };
           }
           const btnGen = document.getElementById('btn-generate-subs');
           if (btnGen) btnGen.textContent = 'Regénérer sous-titres';
@@ -479,11 +488,20 @@ async function generateSubtitles() {
               if (btn) { btn.disabled = false; btn.textContent = 'Regénérer sous-titres'; }
 
               if (btnDl && d.subtitled_url) {
-                btnDl.href = `${d.subtitled_url}?t=${Date.now()}`;
-                btnDl.download = 'video_avec_sous_titres.mp4';
+                const url = `${d.subtitled_url}?t=${Date.now()}`;
                 btnDl.style.display = 'flex';
                 btnDl.style.pointerEvents = 'auto';
                 btnDl.style.opacity = '1';
+                btnDl.onclick = (e) => {
+                  e.preventDefault();
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'video_avec_sous_titres.mp4';
+                  a.target = '_blank';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                };
               }
 
               window.Toast?.success('Sous-titres générés et intégrés !');
