@@ -1552,3 +1552,46 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
   50%       { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
 }
+
+/* ── Segment supprimé — zone coupée ── */
+.tl-segment.deleted {
+  border: 1.5px dashed var(--red-border);
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(239,68,68,.04),
+    rgba(239,68,68,.04) 4px,
+    rgba(239,68,68,.08) 4px,
+    rgba(239,68,68,.08) 8px
+  );
+  opacity: 1; /* on retire l'opacity .45 — il reste lisible */
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Overlay "Coupé" centré */
+.tl-seg-deleted-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tl-seg-deleted-label {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--red-border);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  background: rgba(239,68,68,.08);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--red-border);
+  opacity: .7;
+}
+
+/* Retirer l'ancien opacity sur .deleted */
+.tl-segment.deleted {
+  opacity: 1 !important;
+}

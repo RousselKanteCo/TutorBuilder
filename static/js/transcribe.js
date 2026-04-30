@@ -15,37 +15,37 @@
 ═══════════════════════════════════════════════════ */
 
 const VOICES = [
-  { id: 'narrateur_pro',  name: 'Narrateur Pro',  wpm: 145 },
+  { id: 'narrateur_pro', name: 'Narrateur Pro', wpm: 145 },
   { id: 'narratrice_pro', name: 'Narratrice Pro', wpm: 140 },
-  { id: 'expert',         name: 'Expert',         wpm: 138 },
-  { id: 'experte',        name: 'Experte',        wpm: 142 },
-  { id: 'guide',          name: 'Guide',          wpm: 148 },
-  { id: 'pedagogique',    name: 'Pédagogique',    wpm: 135 },
+  { id: 'expert', name: 'Expert', wpm: 138 },
+  { id: 'experte', name: 'Experte', wpm: 142 },
+  { id: 'guide', name: 'Guide', wpm: 148 },
+  { id: 'pedagogique', name: 'Pédagogique', wpm: 135 },
 ];
 
-const DEFAULT_WPM    = 145;
-const MIN_SPEED      = 0.25;
-const MAX_SPEED      = 4.0;
-const POLL_INTERVAL  = 2500;
+const DEFAULT_WPM = 145;
+const MIN_SPEED = 0.25;
+const MAX_SPEED = 4.0;
+const POLL_INTERVAL = 2500;
 
 /* ═══════════════════════════════════════════════════
    ÉTAT
 ═══════════════════════════════════════════════════ */
 
 const transcribeState = {
-  segments:         [],
-  selectedIdx:      null,
-  undoStack:        [],
-  redoStack:        [],
-  dirty:            false,
-  pollTimer:        null,
-  zoomLevel:        4.0,
-  selectedVoice:    VOICES[0],
-  wpm:              DEFAULT_WPM,
-  videoDuration:    0,
-  waveformData:     [],
+  segments: [],
+  selectedIdx: null,
+  undoStack: [],
+  redoStack: [],
+  dirty: false,
+  pollTimer: null,
+  zoomLevel: 4.0,
+  selectedVoice: VOICES[0],
+  wpm: DEFAULT_WPM,
+  videoDuration: 0,
+  waveformData: [],
   modifiedSegments: new Set(), // IDs des segments modifiés depuis dernière synthèse TTS
-  unsavedSegments:  new Set(), // IDs des segments modifiés non encore sauvegardés en base
+  unsavedSegments: new Set(), // IDs des segments modifiés non encore sauvegardés en base
 };
 
 /* ═══════════════════════════════════════════════════
@@ -53,33 +53,33 @@ const transcribeState = {
 ═══════════════════════════════════════════════════ */
 
 const TDOM = {
-  wsec2:             document.getElementById('wsec-2'),
-  btnTranscribe:     document.getElementById('btn-transcribe'),
-  transcribeError:   document.getElementById('transcribe-error'),
-  progressWrap:      document.getElementById('transcribe-progress-wrap'),
-  progressLabel:     document.getElementById('transcribe-progress-label'),
-  progressFill:      document.getElementById('transcribe-progress-fill'),
-  voiceGrid:         document.getElementById('voice-grid'),
-  selectEngine:      document.getElementById('select-tts-engine'),
-  selectLanguage:    document.getElementById('select-language'),
-  timelineWrap:      document.getElementById('timeline-wrap'),
-  timelineSegments:  document.getElementById('timeline-segments'),
-  timelineEmpty:     document.getElementById('timeline-empty'),
-  timelineRuler:     document.getElementById('timeline-ruler'),
-  waveformCanvas:    document.getElementById('waveform-canvas'),
-  timelineCursor:    document.getElementById('timeline-cursor'),
-  zoomLabel:         document.getElementById('tl-zoom-label'),
-  segmentEditor:     document.getElementById('segment-editor'),
-  segEditorIndex:    document.getElementById('seg-editor-index'),
-  segEditorTc:       document.getElementById('seg-editor-tc'),
-  segThumb:          document.getElementById('seg-thumb'),
+  wsec2: document.getElementById('wsec-2'),
+  btnTranscribe: document.getElementById('btn-transcribe'),
+  transcribeError: document.getElementById('transcribe-error'),
+  progressWrap: document.getElementById('transcribe-progress-wrap'),
+  progressLabel: document.getElementById('transcribe-progress-label'),
+  progressFill: document.getElementById('transcribe-progress-fill'),
+  voiceGrid: document.getElementById('voice-grid'),
+  selectEngine: document.getElementById('select-tts-engine'),
+  selectLanguage: document.getElementById('select-language'),
+  timelineWrap: document.getElementById('timeline-wrap'),
+  timelineSegments: document.getElementById('timeline-segments'),
+  timelineEmpty: document.getElementById('timeline-empty'),
+  timelineRuler: document.getElementById('timeline-ruler'),
+  waveformCanvas: document.getElementById('waveform-canvas'),
+  timelineCursor: document.getElementById('timeline-cursor'),
+  zoomLabel: document.getElementById('tl-zoom-label'),
+  segmentEditor: document.getElementById('segment-editor'),
+  segEditorIndex: document.getElementById('seg-editor-index'),
+  segEditorTc: document.getElementById('seg-editor-tc'),
+  segThumb: document.getElementById('seg-thumb'),
   segThumbPlaceholder: document.getElementById('seg-thumb-placeholder'),
-  segTextInput:      document.getElementById('seg-text-input'),
-  speedValue:        document.getElementById('speed-value'),
-  speedBar:          document.getElementById('speed-bar'),
-  speedHint:         document.getElementById('speed-hint'),
-  speedSlider:       document.getElementById('speed-slider'),
-  speedSliderVal:    document.getElementById('speed-slider-val'),
+  segTextInput: document.getElementById('seg-text-input'),
+  speedValue: document.getElementById('speed-value'),
+  speedBar: document.getElementById('speed-bar'),
+  speedHint: document.getElementById('speed-hint'),
+  speedSlider: document.getElementById('speed-slider'),
+  speedSliderVal: document.getElementById('speed-slider-val'),
 };
 
 /* ═══════════════════════════════════════════════════
@@ -92,9 +92,9 @@ function buildVoiceGrid() {
 
   // Voix sauvegardée en base ou première voix par défaut
   const savedVoiceId = window.JOB_DATA?.tts_voice || VOICES[0].id;
-  const savedVoice   = VOICES.find(v => v.id === savedVoiceId) || VOICES[0];
+  const savedVoice = VOICES.find(v => v.id === savedVoiceId) || VOICES[0];
   transcribeState.selectedVoice = savedVoice;
-  transcribeState.wpm           = savedVoice.wpm;
+  transcribeState.wpm = savedVoice.wpm;
 
   VOICES.forEach((v) => {
     const card = document.createElement('div');
@@ -111,19 +111,19 @@ function buildVoiceGrid() {
 
 function selectVoice(voice, cardEl) {
   transcribeState.selectedVoice = voice;
-  transcribeState.wpm           = voice.wpm;
+  transcribeState.wpm = voice.wpm;
   document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
   cardEl.classList.add('selected');
 
   // Sauvegarder en base immédiatement
   const jobId = document.getElementById('current-job-id')?.value;
-  const csrf  = document.getElementById('csrf-token')?.value || '';
+  const csrf = document.getElementById('csrf-token')?.value || '';
   if (jobId) {
     fetch(`/api/jobs/${jobId}/set-voice/`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-      body:    JSON.stringify({ voice: voice.id }),
-    }).catch(() => {});
+      body: JSON.stringify({ voice: voice.id }),
+    }).catch(() => { });
   }
 
   // Recalculer les speed_factor si des segments existent
@@ -161,7 +161,7 @@ async function startTranscription() {
     return;
   }
 
-  const csrf     = document.getElementById('csrf-token')?.value || '';
+  const csrf = document.getElementById('csrf-token')?.value || '';
   const language = TDOM.selectLanguage?.value || 'fr';
 
   TDOM.btnTranscribe.disabled = true;
@@ -171,13 +171,13 @@ async function startTranscription() {
 
   try {
     const res = await fetch(`/api/jobs/${jobId}/transcribe/`, {
-      method:  'POST',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken':  csrf,
+        'X-CSRFToken': csrf,
       },
       body: JSON.stringify({
-        language:   language,
+        language: language,
         stt_engine: 'faster_whisper',
       }),
     });
@@ -237,7 +237,7 @@ function startPolling(jobId) {
         setTranscribeProgress(60, 'Transcription en cours…');
       }
 
-    } catch (_) {}
+    } catch (_) { }
   }, POLL_INTERVAL);
 }
 
@@ -247,23 +247,23 @@ function startPolling(jobId) {
 
 async function loadSegments(jobId) {
   try {
-    const res  = await fetch(`/api/jobs/${jobId}/segments/`);
+    const res = await fetch(`/api/jobs/${jobId}/segments/`);
     const data = await res.json();
     const segs = Array.isArray(data) ? data : (data.results || []);
 
     transcribeState.segments = segs.map(s => ({
-      id:             s.id,
-      index:          s.index,
-      start_ms:       s.start_ms,
-      end_ms:         s.end_ms,
-      trim_start_ms:  s.trim_start_ms || 0,
-      trim_end_ms:    s.trim_end_ms   || 0,
-      text:           s.text || '',
-      speed_factor:   s.speed_factor || 1.0,
-      speed_forced:   s.speed_forced || false,
-      thumb_url:      s.thumb_url || '',
-      has_audio:      s.has_audio || false,
-      deleted:        false,
+      id: s.id,
+      index: s.index,
+      start_ms: s.start_ms,
+      end_ms: s.end_ms,
+      trim_start_ms: s.trim_start_ms || 0,
+      trim_end_ms: s.trim_end_ms || 0,
+      text: s.text || '',
+      speed_factor: s.speed_factor || 1.0,
+      speed_forced: s.speed_forced || false,
+      thumb_url: s.thumb_url || '',
+      has_audio: s.has_audio || false,
+      deleted: false,
     }));
 
     // Restaurer les segments modifiés depuis sessionStorage
@@ -319,7 +319,7 @@ function markStep2Done() {
   if (btn) {
     btn.disabled = true;
     btn.style.opacity = '0.5';
-    btn.style.cursor  = 'not-allowed';
+    btn.style.cursor = 'not-allowed';
   }
 
   // Déverrouiller étape 3
@@ -343,16 +343,16 @@ function showTimeline() {
 }
 
 function updateUnsavedBadge() {
-  const count   = transcribeState.unsavedSegments.size;
-  const badge   = document.getElementById('unsaved-badge');
+  const count = transcribeState.unsavedSegments.size;
+  const badge = document.getElementById('unsaved-badge');
   const countEl = document.getElementById('unsaved-count');
-  const btn     = document.getElementById('btn-save-all');
+  const btn = document.getElementById('btn-save-all');
 
-  if (badge)   badge.style.display = count > 0 ? 'flex' : 'none';
+  if (badge) badge.style.display = count > 0 ? 'flex' : 'none';
   if (countEl) countEl.textContent = count;
   if (btn) {
     if (count > 0) btn.classList.add('btn-save-pulse');
-    else           btn.classList.remove('btn-save-pulse');
+    else btn.classList.remove('btn-save-pulse');
   }
 }
 
@@ -388,21 +388,21 @@ function restoreModifiedSegments() {
     return;
   }
 
-  const key    = `modified_segs_${jobId}`;
+  const key = `modified_segs_${jobId}`;
   const stored = sessionStorage.getItem(key);
   if (stored) {
     try {
       const ids = JSON.parse(stored);
       ids.forEach(id => transcribeState.modifiedSegments.add(id));
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
-window.getModifiedSegmentIds  = () => [...transcribeState.modifiedSegments];
-window.clearModifiedSegments  = clearModifiedSegments;
+window.getModifiedSegmentIds = () => [...transcribeState.modifiedSegments];
+window.clearModifiedSegments = clearModifiedSegments;
 window.restoreModifiedSegments = restoreModifiedSegments;
-window.transcribeState        = transcribeState;
-window.updateUnsavedBadge     = updateUnsavedBadge;
+window.transcribeState = transcribeState;
+window.updateUnsavedBadge = updateUnsavedBadge;
 
 /* ═══════════════════════════════════════════════════
    CALCUL VITESSE
@@ -412,13 +412,13 @@ function calcSpeedFactor(text, durationMs, wpm) {
   if (!text || !text.trim()) {
     // Silence — accélérer selon la durée
     const s = durationMs / 1000;
-    if (s < 2)  return 1.0;
-    if (s < 5)  return 2.0;
+    if (s < 2) return 1.0;
+    if (s < 5) return 2.0;
     if (s < 15) return 4.0;
     return 4.0;
   }
   const nbMots = text.trim().split(/\s+/).filter(Boolean).length;
-  const voixS  = (nbMots / wpm) * 60;
+  const voixS = (nbMots / wpm) * 60;
   const videoS = durationMs / 1000;
   if (videoS <= 0 || voixS <= 0) return 1.0;
   const factor = videoS / voixS;
@@ -439,8 +439,8 @@ function recalcAllSpeeds() {
 }
 
 function speedClass(factor) {
-  if (factor < 0.8)  return 'warn';  // ralenti significatif
-  if (factor < 1.0)  return 'slow';  // légèrement ralenti
+  if (factor < 0.8) return 'warn';  // ralenti significatif
+  if (factor < 1.0) return 'slow';  // légèrement ralenti
   if (factor === 1.0) return 'normal';
   return 'fast';                      // accéléré
 }
@@ -467,13 +467,15 @@ function renderTimeline() {
   if (!container) return;
 
   const segs = transcribeState.segments;
-  if (!segs.length) {
+  const visibleSegs = segs.filter(s => !s.deleted);
+
+  if (!visibleSegs.length) {
     container.innerHTML = `<div class="timeline-empty"><p>La timeline apparaît après la transcription</p></div>`;
     return;
   }
 
   const totalMs = segs[segs.length - 1].end_ms;
-  const zoom    = transcribeState.zoomLevel;
+  const zoom = transcribeState.zoomLevel;
 
   const inner = document.createElement('div');
   inner.style.cssText = `
@@ -484,17 +486,17 @@ function renderTimeline() {
   `;
 
   segs.forEach((seg, i) => {
-    const durMs    = seg.end_ms - seg.start_ms;
-    const leftPct  = (seg.start_ms / totalMs) * 100;
+    const durMs = seg.end_ms - seg.start_ms;
+    const leftPct = (seg.start_ms / totalMs) * 100;
     const widthPct = Math.max(0.5, (durMs / totalMs) * 100);
-    const sc       = speedClass(seg.speed_factor);
+    const sc = speedClass(seg.speed_factor);
     const isSilence = !seg.text?.trim();
-    const durS     = (durMs / 1000).toFixed(1);
-    const tcStart  = msToTC(seg.start_ms);
-    const tcEnd    = msToTC(seg.end_ms);
+    const durS = (durMs / 1000).toFixed(1);
+    const tcStart = msToTC(seg.start_ms);
+    const tcEnd = msToTC(seg.end_ms);
 
     const block = document.createElement('div');
-    block.className  = 'tl-segment';
+    block.className = 'tl-segment';
     block.dataset.idx = i;
     block.style.cssText = `
       position: absolute;
@@ -504,27 +506,42 @@ function renderTimeline() {
       bottom: 4px;
     `;
 
-    if (seg.deleted)    block.classList.add('deleted');
-    else if (isSilence) block.classList.add('silence');
+    if (seg.deleted) {
+      block.classList.add('deleted');
+    } else if (isSilence) {
+      block.classList.add('silence');
+    }
     if (i === transcribeState.selectedIdx) block.classList.add('selected');
 
-    block.innerHTML = `
-      ${seg.thumb_url ? `<img class="tl-seg-thumb" src="${seg.thumb_url}" alt="" loading="lazy">` : ''}
-      <div class="tl-seg-tc">${tcStart} → ${tcEnd}</div>
-      <div class="tl-seg-text">${seg.text || '<em>Silence</em>'}</div>
-      <span class="tl-seg-speed ${sc}">x${seg.speed_factor.toFixed(2)} · ${durS}s</span>
-      <div class="tl-resize-handle tl-resize-left"  data-seg="${i}" data-side="left"></div>
-      <div class="tl-resize-handle tl-resize-right" data-seg="${i}" data-side="right"></div>`;
+    if (seg.deleted) {
+      block.classList.add('deleted');
+      // Pas cliquable, pas de poignées — le voisin vivant absorbe via ses propres poignées
+      block.style.pointerEvents = 'none';
+      block.innerHTML = `
+          <div class="tl-seg-deleted-overlay">
+            <span class="tl-seg-deleted-label">Coupé</span>
+          </div>`;
+    }
 
-    block.addEventListener('click', (e) => {
-      if (e.target.closest('.tl-seg-btn') || e.target.closest('.tl-resize-handle')) return;
-      selectSegment(i);
-    });
+    else {
+      block.innerHTML = `
+        ${seg.thumb_url ? `<img class="tl-seg-thumb" src="${seg.thumb_url}" alt="" loading="lazy">` : ''}
+        <div class="tl-seg-tc">${tcStart} → ${tcEnd}</div>
+        <div class="tl-seg-text">${seg.text || '<em>Silence</em>'}</div>
+        <span class="tl-seg-speed ${sc}">x${seg.speed_factor.toFixed(2)} · ${durS}s</span>
+        <div class="tl-resize-handle tl-resize-left"  data-seg="${i}" data-side="left"></div>
+        <div class="tl-resize-handle tl-resize-right" data-seg="${i}" data-side="right"></div>`;
 
-    block.addEventListener('dblclick', (e) => {
-      if (e.target.closest('.tl-seg-btn') || e.target.closest('.tl-resize-handle')) return;
-      cutSegmentAt(i, e);
-    });
+      block.addEventListener('click', (e) => {
+        if (e.target.closest('.tl-resize-handle')) return;
+        selectSegment(i);
+      });
+
+      block.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.tl-resize-handle')) return;
+        cutSegmentAt(i, e);
+      });
+    }
 
     inner.appendChild(block);
   });
@@ -537,11 +554,10 @@ function renderTimeline() {
     handle.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const idx  = parseInt(handle.dataset.seg);
+      const idx = parseInt(handle.dataset.seg);
       const side = handle.dataset.side;
-      const totalMs2 = transcribeState.segments[transcribeState.segments.length - 1].end_ms;
-      const innerW   = inner.offsetWidth || container.offsetWidth || 900;
-      startResize(e, idx, side, innerW, totalMs2);
+      const innerW = inner.offsetWidth || container.offsetWidth || 900;
+      startResize(e, idx, side, innerW, totalMs);
     });
   });
 
@@ -558,7 +574,7 @@ function playSegmentAudio() {
   const idx = transcribeState.selectedIdx;
   if (idx === null) return;
 
-  const seg   = transcribeState.segments[idx];
+  const seg = transcribeState.segments[idx];
   const jobId = document.getElementById('current-job-id')?.value;
   if (!seg?.id || !jobId) return;
 
@@ -607,11 +623,11 @@ function renderRuler(totalMs, widthPx) {
   if (!ruler) return;
   ruler.innerHTML = '';
   ruler.style.position = 'relative';
-  ruler.style.width    = `${widthPx}px`;
+  ruler.style.width = `${widthPx}px`;
 
   const stepMs = totalMs > 60000 ? 10000 : totalMs > 30000 ? 5000 : 2000;
   for (let ms = 0; ms <= totalMs; ms += stepMs) {
-    const pct  = ms / totalMs;
+    const pct = ms / totalMs;
     const left = pct * widthPx;
     const tick = document.createElement('div');
     tick.className = 'ruler-tick';
@@ -626,7 +642,7 @@ function renderRuler(totalMs, widthPx) {
 
 function msToTC(ms) {
   const s = Math.floor(ms / 1000);
-  return `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -638,7 +654,7 @@ function drawWaveform(data) {
   if (!canvas) return;
   const W = canvas.offsetWidth || 800;
   const H = canvas.offsetHeight || 40;
-  canvas.width  = W;
+  canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#0A0A0B';
@@ -646,11 +662,11 @@ function drawWaveform(data) {
   if (!data.length) return;
 
   const g = ctx.createLinearGradient(0, 0, W, 0);
-  g.addColorStop(0,   'rgba(59,130,246,.5)');
+  g.addColorStop(0, 'rgba(59,130,246,.5)');
   g.addColorStop(0.5, 'rgba(96,165,250,.7)');
-  g.addColorStop(1,   'rgba(59,130,246,.5)');
+  g.addColorStop(1, 'rgba(59,130,246,.5)');
   ctx.strokeStyle = g;
-  ctx.lineWidth   = 1;
+  ctx.lineWidth = 1;
 
   const step = W / data.length;
   for (let i = 0; i < data.length; i++) {
@@ -686,7 +702,7 @@ function loadSegmentEditor(idx) {
   if (!seg || !TDOM.segmentEditor) return;
 
   TDOM.segmentEditor.style.display = 'block';
-  TDOM.segEditorIndex.textContent  = `Segment ${idx + 1}`;
+  TDOM.segEditorIndex.textContent = `Segment ${idx + 1}`;
 
   // Afficher le bouton sauvegarder
   const btnSave = document.getElementById('btn-save-segment');
@@ -713,12 +729,12 @@ function loadSegmentEditor(idx) {
     audioBtn.style.display = seg.has_audio ? 'flex' : 'none';
   }
 
-  const effStart   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-  const effEnd     = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
-  const effDur     = effEnd - effStart;
+  const effStart = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const effEnd = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+  const effDur = effEnd - effStart;
 
   const autoFactor = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
-  const maxMots    = calcMaxMots(effDur, transcribeState.wpm, 0.25);
+  const maxMots = calcMaxMots(effDur, transcribeState.wpm, 0.25);
 
   // Texte
   TDOM.segTextInput.value = seg.text || '';
@@ -729,8 +745,8 @@ function loadSegmentEditor(idx) {
   updateSpeedUI(seg.speed_factor, seg.text, effDur, seg.speed_forced, autoFactor);
 
   // Slider
-  TDOM.speedSlider.min   = '0.25';
-  TDOM.speedSlider.max   = Math.max(autoFactor, 0.25).toFixed(2);
+  TDOM.speedSlider.min = '0.25';
+  TDOM.speedSlider.max = Math.max(autoFactor, 0.25).toFixed(2);
   TDOM.speedSlider.value = seg.speed_forced
     ? Math.min(seg.speed_factor, autoFactor).toFixed(2)
     : autoFactor.toFixed(2);
@@ -738,13 +754,13 @@ function loadSegmentEditor(idx) {
 }
 
 function calcMaxMots(durationMs, wpm, speedFactor) {
-  const speed      = Math.max(0.25, Math.min(4.0, speedFactor || 1.0));
+  const speed = Math.max(0.25, Math.min(4.0, speedFactor || 1.0));
   const dureeVoixS = (durationMs / 1000) / speed;
   return Math.max(1, Math.floor(dureeVoixS * wpm / 60));
 }
 
 function updateWordBudget(text, maxMots) {
-  const nbMots  = (text || '').trim().split(/\s+/).filter(Boolean).length;
+  const nbMots = (text || '').trim().split(/\s+/).filter(Boolean).length;
   const budgetEl = document.getElementById('seg-word-budget');
   if (!budgetEl) return;
 
@@ -769,9 +785,9 @@ function renderEditableTc(idx) {
   const tcEl = TDOM.segEditorTc;
   if (!tcEl) return;
 
-  const seg     = transcribeState.segments[idx];
+  const seg = transcribeState.segments[idx];
   const origStart = seg._origStart ?? seg.start_ms;
-  const origEnd   = seg._origEnd   ?? seg.end_ms;
+  const origEnd = seg._origEnd ?? seg.end_ms;
 
   // Sauvegarder originaux si première fois
   if (!seg._origStart) { seg._origStart = seg.start_ms; seg._origEnd = seg.end_ms; }
@@ -793,10 +809,10 @@ function renderEditableTc(idx) {
     </div>`;
 
   const inputStart = document.getElementById('tc-start');
-  const inputEnd   = document.getElementById('tc-end');
+  const inputEnd = document.getElementById('tc-end');
 
   inputStart.addEventListener('change', () => applyTcEdit(idx, 'start', inputStart.value));
-  inputEnd.addEventListener('change',   () => applyTcEdit(idx, 'end',   inputEnd.value));
+  inputEnd.addEventListener('change', () => applyTcEdit(idx, 'end', inputEnd.value));
 
   // Confirmer avec Entrée
   [inputStart, inputEnd].forEach(inp => {
@@ -818,7 +834,7 @@ function tcToMs(tc) {
 }
 
 function applyTcEdit(idx, side, value) {
-  const seg     = transcribeState.segments[idx];
+  const seg = transcribeState.segments[idx];
   const prevSeg = transcribeState.segments[idx - 1];
   const nextSeg = transcribeState.segments[idx + 1];
   if (!seg) return;
@@ -877,7 +893,7 @@ function resetTiming(idx) {
   if (!seg || !seg._origStart) return;
   pushUndo('Réinitialiser timing');
   seg.start_ms = seg._origStart;
-  seg.end_ms   = seg._origEnd;
+  seg.end_ms = seg._origEnd;
   if (!seg.speed_forced) {
     seg.speed_factor = calcSpeedFactor(seg.text, seg.end_ms - seg.start_ms, transcribeState.wpm);
   }
@@ -891,7 +907,7 @@ window.resetTiming = resetTiming;
 function updateSpeedUI(factor, text, durationMs, isForced, autoFactor) {
   const sc = speedClass(factor);
   TDOM.speedValue.textContent = `x${factor.toFixed(2)}`;
-  TDOM.speedValue.className   = `speed-value ${sc}`;
+  TDOM.speedValue.className = `speed-value ${sc}`;
 
   const pct = factor <= 1.0
     ? (factor / 1.0) * 50
@@ -899,8 +915,8 @@ function updateSpeedUI(factor, text, durationMs, isForced, autoFactor) {
   TDOM.speedBar.style.width = `${pct}%`;
   TDOM.speedBar.style.background =
     sc === 'warn' ? 'var(--red)' :
-    sc === 'slow' ? 'var(--amber)' :
-    sc === 'fast' ? 'var(--green)' : 'var(--blue)';
+      sc === 'slow' ? 'var(--amber)' :
+        sc === 'fast' ? 'var(--green)' : 'var(--blue)';
 
   TDOM.speedHint.textContent = speedHintText(factor, text, durationMs, isForced, autoFactor);
 }
@@ -916,13 +932,13 @@ if (TDOM.segTextInput) {
     const seg = transcribeState.segments[idx];
     if (!seg) return;
 
-    const newText  = TDOM.segTextInput.value;
+    const newText = TDOM.segTextInput.value;
     const effStart = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-    const effEnd   = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
-    const effDur   = effEnd - effStart;
+    const effEnd = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+    const effDur = effEnd - effStart;
 
     const maxMots = calcMaxMots(effDur, transcribeState.wpm, 0.25);
-    const words   = newText.trim().split(/\s+/).filter(Boolean);
+    const words = newText.trim().split(/\s+/).filter(Boolean);
 
     if (words.length > maxMots) {
       const truncated = words.slice(0, maxMots).join(' ');
@@ -940,7 +956,7 @@ if (TDOM.segTextInput) {
     const newSpeed = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
     if (!seg.speed_forced) {
       seg.speed_factor = newSpeed;
-      TDOM.speedSlider.max   = Math.max(newSpeed, 0.25).toFixed(2);
+      TDOM.speedSlider.max = Math.max(newSpeed, 0.25).toFixed(2);
       TDOM.speedSlider.value = newSpeed.toFixed(2);
       TDOM.speedSliderVal.textContent = `x${newSpeed.toFixed(2)}`;
       updateSpeedUI(newSpeed, seg.text, effDur, false, newSpeed);
@@ -962,10 +978,10 @@ if (TDOM.speedSlider) {
     const seg = transcribeState.segments[idx];
     if (!seg) return;
 
-    const effStart   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-    const effEnd     = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
-    const effDur     = effEnd - effStart;
-    const val        = parseFloat(TDOM.speedSlider.value);
+    const effStart = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+    const effEnd = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+    const effDur = effEnd - effStart;
+    const val = parseFloat(TDOM.speedSlider.value);
     const autoFactor = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
 
     seg.speed_factor = val;
@@ -990,7 +1006,7 @@ function resetSpeedFactor() {
 
   seg.speed_forced = false;
   seg.speed_factor = calcSpeedFactor(seg.text, seg.end_ms - seg.start_ms, transcribeState.wpm);
-  TDOM.speedSlider.max   = seg.speed_factor.toFixed(2);
+  TDOM.speedSlider.max = seg.speed_factor.toFixed(2);
   TDOM.speedSlider.value = seg.speed_factor;
   TDOM.speedSliderVal.textContent = `x${seg.speed_factor.toFixed(2)}`;
   updateSpeedUI(seg.speed_factor, seg.text, seg.end_ms - seg.start_ms, false, seg.speed_factor);
@@ -1003,7 +1019,7 @@ function resetSpeedFactor() {
 ═══════════════════════════════════════════════════ */
 
 function cutSegmentAt(idx, eventOrMs) {
-  const seg       = transcribeState.segments[idx];
+  const seg = transcribeState.segments[idx];
   const container = TDOM.timelineSegments;
   if (!seg) return;
 
@@ -1015,9 +1031,9 @@ function cutSegmentAt(idx, eventOrMs) {
   } else {
     // Si on reçoit un event (depuis double-clic timeline)
     if (!container) return;
-    const rect    = container.getBoundingClientRect();
-    const clickX  = eventOrMs.clientX - rect.left + container.scrollLeft;
-    const innerW  = container.firstChild?.offsetWidth || container.offsetWidth;
+    const rect = container.getBoundingClientRect();
+    const clickX = eventOrMs.clientX - rect.left + container.scrollLeft;
+    const innerW = container.firstChild?.offsetWidth || container.offsetWidth;
     const totalMs = transcribeState.segments[transcribeState.segments.length - 1].end_ms;
     clickMs = Math.round((clickX / innerW) * totalMs);
   }
@@ -1055,26 +1071,26 @@ function cutSegmentAt(idx, eventOrMs) {
 
   const seg1 = {
     ...seg,
-    end_ms:        clickMs,
-    text:          text1,
+    end_ms: clickMs,
+    text: text1,
     trim_start_ms: seg.trim_start_ms || seg.start_ms,
-    trim_end_ms:   clickMs,
-    has_audio:     false,
-    speed_forced:  false,
+    trim_end_ms: clickMs,
+    has_audio: false,
+    speed_forced: false,
   };
   const seg2 = {
-    id:            `new_${Date.now()}`,
-    index:         seg.index + 0.5,
-    start_ms:      clickMs,
-    end_ms:        seg.end_ms,
+    id: `new_${Date.now()}`,
+    index: seg.index + 0.5,
+    start_ms: clickMs,
+    end_ms: seg.end_ms,
     trim_start_ms: clickMs,
-    trim_end_ms:   seg.trim_end_ms || seg.end_ms,
-    text:          text2,
-    speed_forced:  false,
-    thumb_url:     seg.thumb_url,
-    has_audio:     false,
-    deleted:       false,
-    speed_factor:  1.0,
+    trim_end_ms: seg.trim_end_ms || seg.end_ms,
+    text: text2,
+    speed_forced: false,
+    thumb_url: seg.thumb_url,
+    has_audio: false,
+    deleted: false,
+    speed_factor: 1.0,
   };
 
   seg1.speed_factor = calcSpeedFactor(text1, dur1, transcribeState.wpm);
@@ -1097,33 +1113,40 @@ function cutSegmentAt(idx, eventOrMs) {
 
 function mergeWithNext(idx) {
   if (idx === undefined) idx = transcribeState.selectedIdx;
-  if (idx === null || idx >= transcribeState.segments.length - 1) {
+  if (idx === null) return;
+
+  // Trouver le vrai voisin non supprimé
+  const nextSeg = transcribeState.segments.slice(idx + 1).find(s => !s.deleted);
+  if (!nextSeg) {
     window.Toast?.warn('Pas de segment suivant à fusionner.');
     return;
   }
+  const nextIdx = transcribeState.segments.indexOf(nextSeg);
 
   pushUndo('Fusionner segments');
 
-  const s1  = transcribeState.segments[idx];
-  const s2  = transcribeState.segments[idx + 1];
+  const s1 = transcribeState.segments[idx];
   const merged = {
     ...s1,
-    end_ms:        s2.end_ms,
-    trim_end_ms:   s2.trim_end_ms > 0 ? s2.trim_end_ms : s2.end_ms,
-    text:          [s1.text, s2.text].filter(Boolean).join(' '),
-    speed_forced:  false,
-    has_audio:     false, // Forcer regénération après fusion
+    end_ms: nextSeg.end_ms,
+    trim_end_ms: nextSeg.trim_end_ms > 0 ? nextSeg.trim_end_ms : nextSeg.end_ms,
+    text: [s1.text, nextSeg.text].filter(Boolean).join(' '),
+    speed_forced: false,
+    has_audio: false,
   };
   merged.speed_factor = calcSpeedFactor(merged.text, merged.end_ms - merged.start_ms, transcribeState.wpm);
 
-  transcribeState.segments.splice(idx, 2, merged);
+  // Remplacer s1 par le merged et marquer nextSeg comme supprimé
+  transcribeState.segments[idx] = merged;
+  transcribeState.segments[nextIdx].deleted = true;
+  transcribeState.segments[nextIdx].text = '';
+
   reindexSegments();
   renderTimeline();
   selectSegment(idx);
   transcribeState.dirty = true;
   markSegmentModified(idx);
 
-  // Sauvegarder automatiquement pour que la fusion soit effective en base
   saveAllSegments().then(() => {
     window.Toast?.success('Segments fusionnés et sauvegardés.');
   });
@@ -1160,14 +1183,28 @@ function deleteSegment(idx) {
     confirmClass: 'danger',
     onConfirm: () => {
       pushUndo('Supprimer segment');
+
+      // Marquer supprimé — les timecodes source restent intacts
+      // L'export saute ce segment et colle les voisins automatiquement
       transcribeState.segments[idx].deleted = true;
-      transcribeState.segments[idx].text    = '';
-      reindexSegments();
+      transcribeState.segments[idx].text = '';
+
+      // Sélectionner le voisin
+      const visibleAfter = transcribeState.segments.find((s, i) => i > idx && !s.deleted);
+      const visibleBefore = [...transcribeState.segments].slice(0, idx).reverse().find(s => !s.deleted);
+      const newSel = visibleAfter || visibleBefore;
+      transcribeState.selectedIdx = newSel ? transcribeState.segments.indexOf(newSel) : null;
+
       renderTimeline();
-      transcribeState.selectedIdx = null;
+      if (transcribeState.selectedIdx !== null) {
+        loadSegmentEditor(transcribeState.selectedIdx);
+      } else {
+        if (TDOM.segmentEditor) TDOM.segmentEditor.style.display = 'none';
+      }
+
       transcribeState.dirty = true;
       saveAllSegments().then(() => {
-        window.Toast?.warn('Segment supprimé définitivement.');
+        window.Toast?.warn('Segment supprimé.');
       });
     }
   });
@@ -1208,16 +1245,16 @@ function showConfirmModal({ title, message, confirmLabel, confirmClass, onConfir
           color:${isDanger ? '#DC2626' : '#2563EB'};
         ">
           ${isDanger
-            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
                 <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
                </svg>`
-            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
                </svg>`
-          }
+    }
         </div>
         <div style="font-size:15px;font-weight:800;color:var(--text-1)">${title}</div>
       </div>
@@ -1258,7 +1295,7 @@ let _trimDragging = null;
 
 function initMiniPlayer(seg) {
   const placeholder = document.getElementById('seg-mini-placeholder');
-  const videoUrl    = window.JOB_DATA?.video_url || '';
+  const videoUrl = window.JOB_DATA?.video_url || '';
 
   // Arrêter loop précédent
   if (window._miniPlayerLoop) {
@@ -1266,8 +1303,8 @@ function initMiniPlayer(seg) {
     window._miniPlayerLoop = null;
   }
 
-  const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-  const outMs = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+  const inMs = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
 
   // Supprimer img miniature si présente
   const oldThumb = document.getElementById('seg-mini-thumb');
@@ -1348,12 +1385,12 @@ function updateMiniPlayBtn(playing) {
 
 function toggleMiniPlay() {
   const video = document.getElementById('seg-mini-video');
-  const seg   = transcribeState.segments[transcribeState.selectedIdx];
+  const seg = transcribeState.segments[transcribeState.selectedIdx];
   if (!video || !seg) return;
 
   if (video.paused) {
-    const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-    const outMs = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
+    const inMs = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+    const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
     if (video.currentTime * 1000 < inMs || video.currentTime * 1000 >= outMs) {
       video.currentTime = inMs / 1000;
     }
@@ -1368,7 +1405,7 @@ function toggleMiniPlay() {
 function updateMiniTc(currentMs, seg) {
   const tc = document.getElementById('seg-mini-tc');
   if (!tc) return;
-  const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const inMs = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
   const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
   tc.textContent = `${msToTC(currentMs - inMs)} / ${msToTC(outMs - inMs)}`;
 }
@@ -1378,8 +1415,8 @@ function initTrimBar(seg) {
   if (!wrap) return;
 
   const totalMs = seg.end_ms - seg.start_ms;
-  const inMs    = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-  const outMs   = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+  const inMs = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
 
   updateTrimUI(seg, inMs, outMs, totalMs);
 
@@ -1390,10 +1427,10 @@ function initTrimBar(seg) {
     const currentSeg = transcribeState.segments[transcribeState.selectedIdx];
     if (!currentSeg) return;
     const currentTotal = currentSeg.end_ms - currentSeg.start_ms;
-    const rect    = wrap.getBoundingClientRect();
-    const pct     = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const rect = wrap.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const clickMs = currentSeg.start_ms + Math.round(pct * currentTotal);
-    const video   = document.getElementById('seg-mini-video');
+    const video = document.getElementById('seg-mini-video');
     if (video) {
       seekMiniVideo(clickMs);
       updateTrimCursor(clickMs, currentSeg);
@@ -1401,35 +1438,35 @@ function initTrimBar(seg) {
     }
   };
 
-  const handleIn  = document.getElementById('seg-trim-in');
+  const handleIn = document.getElementById('seg-trim-in');
   const handleOut = document.getElementById('seg-trim-out');
-  if (handleIn)  handleIn.onmousedown  = (e) => startTrimDrag(e, 'in');
+  if (handleIn) handleIn.onmousedown = (e) => startTrimDrag(e, 'in');
   if (handleOut) handleOut.onmousedown = (e) => startTrimDrag(e, 'out');
 }
 
 function updateTrimUI(seg, inMs, outMs, totalMs) {
-  const inPct  = ((inMs - seg.start_ms) / totalMs) * 100;
+  const inPct = ((inMs - seg.start_ms) / totalMs) * 100;
   const outPct = ((outMs - seg.start_ms) / totalMs) * 100;
 
-  const cutLeft  = document.getElementById('seg-trim-cut-left');
-  const active   = document.getElementById('seg-trim-active');
+  const cutLeft = document.getElementById('seg-trim-cut-left');
+  const active = document.getElementById('seg-trim-active');
   const cutRight = document.getElementById('seg-trim-cut-right');
-  const handleIn  = document.getElementById('seg-trim-in');
+  const handleIn = document.getElementById('seg-trim-in');
   const handleOut = document.getElementById('seg-trim-out');
-  const inTc  = document.getElementById('seg-trim-in-tc');
+  const inTc = document.getElementById('seg-trim-in-tc');
   const outTc = document.getElementById('seg-trim-out-tc');
 
-  if (cutLeft)   { cutLeft.style.left  = '0'; cutLeft.style.width  = `${inPct}%`; }
-  if (active)    { active.style.left   = `${inPct}%`; active.style.width = `${outPct - inPct}%`; }
-  if (cutRight)  { cutRight.style.right = '0'; cutRight.style.width = `${100 - outPct}%`; }
-  if (handleIn)   handleIn.style.left  = `${inPct}%`;
-  if (handleOut)  handleOut.style.left = `${outPct}%`;
-  if (inTc)      inTc.textContent  = msToTC(inMs - seg.start_ms);
-  if (outTc)     outTc.textContent = msToTC(outMs - seg.start_ms);
+  if (cutLeft) { cutLeft.style.left = '0'; cutLeft.style.width = `${inPct}%`; }
+  if (active) { active.style.left = `${inPct}%`; active.style.width = `${outPct - inPct}%`; }
+  if (cutRight) { cutRight.style.right = '0'; cutRight.style.width = `${100 - outPct}%`; }
+  if (handleIn) handleIn.style.left = `${inPct}%`;
+  if (handleOut) handleOut.style.left = `${outPct}%`;
+  if (inTc) inTc.textContent = msToTC(inMs - seg.start_ms);
+  if (outTc) outTc.textContent = msToTC(outMs - seg.start_ms);
 }
 
 function updateTrimCursor(currentMs, seg) {
-  const cursor  = document.getElementById('seg-trim-cursor');
+  const cursor = document.getElementById('seg-trim-cursor');
   const totalMs = seg.end_ms - seg.start_ms;
   if (!cursor || !totalMs) return;
   const pct = Math.max(0, Math.min(100, ((currentMs - seg.start_ms) / totalMs) * 100));
@@ -1441,19 +1478,18 @@ function startTrimDrag(e, handle) {
   _trimDragging = handle;
 
   const onMove = (ev) => {
-    const seg  = transcribeState.segments[transcribeState.selectedIdx];
+    const seg = transcribeState.segments[transcribeState.selectedIdx];
     const wrap = document.getElementById('seg-trim-bar-wrap');
     if (!seg || !wrap) return;
 
-    const rect    = wrap.getBoundingClientRect();
-    const pct     = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+    const rect = wrap.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
     const totalMs = seg.end_ms - seg.start_ms;
-    const ms      = seg.start_ms + Math.round(pct * totalMs);
+    const ms = seg.start_ms + Math.round(pct * totalMs);
 
-    let inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+    let inMs = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
     let outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
 
-    // Durée minimale selon le budget texte
     const nbMots = (seg.text || '').trim().split(/\s+/).filter(Boolean).length;
     const minDur = Math.max(500, Math.ceil(nbMots / (transcribeState.wpm / 60 * 4) * 1000));
 
@@ -1477,32 +1513,32 @@ function startTrimDrag(e, handle) {
   const onUp = () => {
     _trimDragging = null;
     document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup',  onUp);
+    document.removeEventListener('mouseup', onUp);
     saveTrim();
   };
 
   document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup',  onUp);
+  document.addEventListener('mouseup', onUp);
 }
 
 async function saveTrim() {
-  const idx   = transcribeState.selectedIdx;
-  const seg   = transcribeState.segments[idx];
+  const idx = transcribeState.selectedIdx;
+  const seg = transcribeState.segments[idx];
   const jobId = document.getElementById('current-job-id')?.value;
-  const csrf  = document.getElementById('csrf-token')?.value || '';
+  const csrf = document.getElementById('csrf-token')?.value || '';
   if (!seg || !jobId) return;
 
-  const inMs  = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const inMs = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
   const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
 
   try {
     await fetch(`/api/jobs/${jobId}/segments/${seg.index}/set-trim/`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-      body:    JSON.stringify({ trim_start_ms: inMs, trim_end_ms: outMs }),
+      body: JSON.stringify({ trim_start_ms: inMs, trim_end_ms: outMs }),
     });
     window.Toast?.success(`Trim : ${msToTC(inMs - seg.start_ms)} → ${msToTC(outMs - seg.start_ms)}`);
-    const effDur  = outMs - inMs;
+    const effDur = outMs - inMs;
     const maxMots = calcMaxMots(effDur, transcribeState.wpm, 0.25);
     updateWordBudget(seg.text, maxMots);
   } catch {
@@ -1515,20 +1551,20 @@ function resetTrim() {
   const seg = transcribeState.segments[idx];
   if (!seg) return;
   seg.trim_start_ms = seg.start_ms;
-  seg.trim_end_ms   = seg.end_ms;
+  seg.trim_end_ms = seg.end_ms;
   initTrimBar(seg);
   saveTrim();
 }
 
 function cutAtMiniPlayer() {
   const video = document.getElementById('seg-mini-video');
-  const idx   = transcribeState.selectedIdx;
+  const idx = transcribeState.selectedIdx;
   if (!video || idx === null) return;
 
-  const seg    = transcribeState.segments[idx];
-  const cutMs  = Math.round(video.currentTime * 1000);
-  const inMs   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-  const outMs  = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+  const seg = transcribeState.segments[idx];
+  const cutMs = Math.round(video.currentTime * 1000);
+  const inMs = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+  const outMs = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
 
   // Le cut doit être dans la zone active
   if (cutMs <= inMs + 200 || cutMs >= outMs - 200) {
@@ -1588,9 +1624,9 @@ function zoomTimeline(dir) {
   // Label affiché : 50% → 75% → 100% → 150% → 200%
   const levels = [2.0, 3.0, 4.0, 6.0, 8.0];
   const labels = ['50%', '75%', '100%', '150%', '200%'];
-  const cur    = levels.indexOf(transcribeState.zoomLevel);
-  const idx    = cur === -1 ? 2 : cur;
-  const next   = Math.max(0, Math.min(levels.length - 1, idx + dir));
+  const cur = levels.indexOf(transcribeState.zoomLevel);
+  const idx = cur === -1 ? 2 : cur;
+  const next = Math.max(0, Math.min(levels.length - 1, idx + dir));
   transcribeState.zoomLevel = levels[next];
   if (TDOM.zoomLabel) TDOM.zoomLabel.textContent = labels[next];
   renderTimeline();
@@ -1659,28 +1695,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Exposer globalement
-window.undoSegment          = undoSegment;
-window.redoSegment          = redoSegment;
-window.zoomTimeline         = zoomTimeline;
-window.mergeWithNext        = mergeWithNext;
-window.cutSegmentAt         = cutSegmentAt;
+window.undoSegment = undoSegment;
+window.redoSegment = redoSegment;
+window.zoomTimeline = zoomTimeline;
+window.mergeWithNext = mergeWithNext;
+window.cutSegmentAt = cutSegmentAt;
 window.confirmDeleteSegment = confirmDeleteSegment;
-window.deleteSegment        = deleteSegment;
+window.deleteSegment = deleteSegment;
 window.splitSegmentAtCursor = cutSegmentAt;
-window.resetSpeedFactor     = resetSpeedFactor;
-window.saveAllSegments      = saveAllSegments;
-window.saveCurrentSegment   = saveCurrentSegment;
-window.importScript         = importScript;
-window.loadSegments         = loadSegments;
-window.markStep2Done        = markStep2Done;
-window.drawWaveform         = drawWaveform;
+window.resetSpeedFactor = resetSpeedFactor;
+window.saveAllSegments = saveAllSegments;
+window.saveCurrentSegment = saveCurrentSegment;
+window.importScript = importScript;
+window.loadSegments = loadSegments;
+window.markStep2Done = markStep2Done;
+window.drawWaveform = drawWaveform;
 
 /* ═══════════════════════════════════════════════════
    DRAG RESIZE — REDIMENSIONNEMENT DES SEGMENTS
 ═══════════════════════════════════════════════════ */
 
 const MIN_SEG_MS = 300;
-let _dragState   = null;
+let _dragState = null;
 
 function startResize(e, idx, side, innerW, totalMs) {
   e.preventDefault();
@@ -1695,122 +1731,145 @@ function startResize(e, idx, side, innerW, totalMs) {
     origEnd: seg.end_ms,
   };
   document.addEventListener('mousemove', onResizeMove);
-  document.addEventListener('mouseup',   onResizeEnd);
-  document.body.style.cursor     = 'ew-resize';
+  document.addEventListener('mouseup', onResizeEnd);
+  document.body.style.cursor = 'ew-resize';
   document.body.style.userSelect = 'none';
 }
 
 function onResizeMove(e) {
   if (!_dragState) return;
   const { idx, side, innerW, totalMs, startX, origStart, origEnd } = _dragState;
-  const dx      = e.clientX - startX;
-  const dMs     = Math.round((dx / innerW) * totalMs);
-  const seg     = transcribeState.segments[idx];
-  const prevSeg = transcribeState.segments[idx - 1];
-  const nextSeg = transcribeState.segments[idx + 1];
+  const dx = e.clientX - startX;
+  const dMs = Math.round((dx / innerW) * totalMs);
+  const seg = transcribeState.segments[idx];
+  const prevSeg = [...transcribeState.segments].slice(0, idx).reverse().find(s => !s.deleted);
+  const nextAlive = transcribeState.segments.slice(idx + 1).find(s => !s.deleted);
+
   if (!seg) return;
 
-  // Durée effective d'un segment (après trim)
   function effDurMs(s) {
     if (!s) return 0;
     const eStart = s.trim_start_ms > 0 ? s.trim_start_ms : s.start_ms;
-    const eEnd   = s.trim_end_ms   > 0 ? s.trim_end_ms   : s.end_ms;
+    const eEnd = s.trim_end_ms > 0 ? s.trim_end_ms : s.end_ms;
     return eEnd - eStart;
   }
-
-  // Durée minimale = texte à x4.0
   function minDurMs(s) {
     if (!s) return MIN_SEG_MS;
     const nbMots = (s.text || '').trim().split(/\s+/).filter(Boolean).length;
     if (nbMots === 0) return MIN_SEG_MS;
-    const dureeVoixMs = (nbMots / transcribeState.wpm) * 60 * 1000;
-    return Math.max(MIN_SEG_MS, Math.round(dureeVoixMs / 4.0));
+    return Math.max(MIN_SEG_MS, Math.round((nbMots / transcribeState.wpm) * 60 * 1000 / 4.0));
   }
-
-  // Durée maximale = texte à x0.25
   function maxDurMs(s) {
     if (!s) return Infinity;
     const nbMots = (s.text || '').trim().split(/\s+/).filter(Boolean).length;
     if (nbMots === 0) return Infinity;
-    const dureeVoixMs = (nbMots / transcribeState.wpm) * 60 * 1000;
-    return Math.round(dureeVoixMs / 0.25);
+    return Math.round((nbMots / transcribeState.wpm) * 60 * 1000 / 0.25);
   }
 
   if (side === 'right') {
+    // Trouver le prochain segment VIVANT (pas supprimé) comme vraie limite
+    const nextAlive = transcribeState.segments.slice(idx + 1).find(s => !s.deleted);
+
+    const hardStop = nextAlive
+      ? nextAlive.end_ms - minDurMs(nextAlive)
+      : origEnd + 60000;
+
+    const maxEnd = Math.min(hardStop, seg.start_ms + maxDurMs(seg));
     const minEnd = seg.start_ms + minDurMs(seg);
-    const maxEnd = Math.min(
-      nextSeg ? nextSeg.end_ms - minDurMs(nextSeg) : origEnd + 60000,
-      seg.start_ms + maxDurMs(seg)
-    );
     const cappedEnd = Math.max(minEnd, Math.min(maxEnd, origEnd + dMs));
 
     seg.end_ms = cappedEnd;
-    // Sync trim_end — s'il n'y a pas de trim personnalisé, trim_end suit end_ms
     if (seg.trim_end_ms === 0 || seg.trim_end_ms >= origEnd) {
       seg.trim_end_ms = cappedEnd;
     } else {
       seg.trim_end_ms = Math.min(seg.trim_end_ms, cappedEnd);
     }
-    if (nextSeg) {
-      nextSeg.start_ms = cappedEnd;
-      // Sync trim_start du voisin
-      if (nextSeg.trim_start_ms === 0 || nextSeg.trim_start_ms <= origEnd) {
-        nextSeg.trim_start_ms = cappedEnd;
-      } else {
-        nextSeg.trim_start_ms = Math.max(nextSeg.trim_start_ms, cappedEnd);
+
+    // Les supprimés entre idx et nextAlive : ajuster leur start_ms si absorbés
+    for (let j = idx + 1; j < transcribeState.segments.length; j++) {
+      const s = transcribeState.segments[j];
+      if (!s.deleted) break;
+      if (cappedEnd >= s.end_ms) {
+        // Totalement absorbé dans le segment vivant
+        s.start_ms = cappedEnd;
+        s.end_ms = cappedEnd;
+      } else if (cappedEnd > s.start_ms) {
+        // Partiellement absorbé
+        s.start_ms = cappedEnd;
       }
     }
 
-  } else {
-    const maxStart = seg.end_ms - minDurMs(seg);
-    const minStart = Math.max(
-      prevSeg ? prevSeg.start_ms + minDurMs(prevSeg) : 0,
-      seg.end_ms - maxDurMs(seg)
+    // Pousser nextAlive seulement si on empiète dessus
+    if (nextAlive && cappedEnd > nextAlive.start_ms) {
+      nextAlive.start_ms = cappedEnd;
+      if (nextAlive.trim_start_ms === 0 || nextAlive.trim_start_ms <= nextAlive.start_ms) {
+        nextAlive.trim_start_ms = cappedEnd;
+      }
+    }
+  } else { // side === 'left'
+    const prevAlive = [...transcribeState.segments].slice(0, idx).reverse().find(s => !s.deleted);
+
+    const minStart = prevAlive
+      ? prevAlive.start_ms + minDurMs(prevAlive)
+      : 0;
+
+    const maxStart = Math.min(
+      seg.end_ms - minDurMs(seg),
+      seg.end_ms - 0 // pas de maxDurMs par la gauche ici
     );
-    const cappedStart = Math.max(minStart, Math.min(maxStart, origStart + dMs));
+    const cappedStart = Math.max(
+      Math.max(minStart, seg.end_ms - maxDurMs(seg)),
+      Math.min(seg.end_ms - minDurMs(seg), origStart + dMs)
+    );
 
     seg.start_ms = cappedStart;
-    // Sync trim_start — s'il n'y a pas de trim personnalisé, trim_start suit start_ms
     if (seg.trim_start_ms === 0 || seg.trim_start_ms <= origStart) {
       seg.trim_start_ms = cappedStart;
     } else {
       seg.trim_start_ms = Math.max(seg.trim_start_ms, cappedStart);
     }
-    if (prevSeg) {
-      prevSeg.end_ms = cappedStart;
-      // Sync trim_end du voisin
-      if (prevSeg.trim_end_ms === 0 || prevSeg.trim_end_ms >= origStart) {
-        prevSeg.trim_end_ms = cappedStart;
-      } else {
-        prevSeg.trim_end_ms = Math.min(prevSeg.trim_end_ms, cappedStart);
+
+    // Absorber les supprimés entre prevAlive et idx
+    for (let j = idx - 1; j >= 0; j--) {
+      const s = transcribeState.segments[j];
+      if (!s.deleted) break;
+      if (cappedStart <= s.start_ms) {
+        s.start_ms = cappedStart;
+        s.end_ms = cappedStart;
+      } else if (cappedStart < s.end_ms) {
+        s.end_ms = cappedStart;
+      }
+    }
+
+    if (prevAlive && cappedStart < prevAlive.end_ms) {
+      prevAlive.end_ms = cappedStart;
+      if (prevAlive.trim_end_ms === 0 || prevAlive.trim_end_ms >= prevAlive.end_ms) {
+        prevAlive.trim_end_ms = cappedStart;
       }
     }
   }
 
-  // Recalculer speed_factor sur la durée effective (après trim)
-  [seg, prevSeg, nextSeg].forEach(s => {
-    if (!s || s.speed_forced) return;
+  // Recalculer speed_factor
+  [seg, prevSeg, nextAlive].forEach(s => {
+    if (!s || s.speed_forced || s.deleted) return;
     const effStart = s.trim_start_ms > 0 ? s.trim_start_ms : s.start_ms;
-    const effEnd   = s.trim_end_ms   > 0 ? s.trim_end_ms   : s.end_ms;
-    const effDur   = effEnd - effStart;
-    s.speed_factor = calcSpeedFactor(s.text, effDur, transcribeState.wpm);
+    const effEnd = s.trim_end_ms > 0 ? s.trim_end_ms : s.end_ms;
+    s.speed_factor = calcSpeedFactor(s.text, effEnd - effStart, transcribeState.wpm);
   });
 
-  // Mettre à jour le panneau segment en temps réel (segment sélectionné)
+  // Mise à jour panneau segment sélectionné
   const selIdx = transcribeState.selectedIdx;
   const selSeg = selIdx !== null ? transcribeState.segments[selIdx] : null;
-  if (selSeg) {
-    const effStart   = selSeg.trim_start_ms > 0 ? selSeg.trim_start_ms : selSeg.start_ms;
-    const effEnd     = selSeg.trim_end_ms   > 0 ? selSeg.trim_end_ms   : selSeg.end_ms;
-    const effDur     = effEnd - effStart;
+  if (selSeg && !selSeg.deleted) {
+    const effStart = selSeg.trim_start_ms > 0 ? selSeg.trim_start_ms : selSeg.start_ms;
+    const effEnd = selSeg.trim_end_ms > 0 ? selSeg.trim_end_ms : selSeg.end_ms;
+    const effDur = effEnd - effStart;
     const autoFactor = calcSpeedFactor(selSeg.text, effDur, transcribeState.wpm);
-    const maxMots    = calcMaxMots(effDur, transcribeState.wpm, 0.25);
-
+    const maxMots = calcMaxMots(effDur, transcribeState.wpm, 0.25);
     updateSpeedUI(selSeg.speed_factor, selSeg.text, effDur, selSeg.speed_forced, autoFactor);
     updateWordBudget(selSeg.text, maxMots);
-
     if (TDOM.speedSlider) {
-      TDOM.speedSlider.max   = Math.max(autoFactor, 0.25).toFixed(2);
+      TDOM.speedSlider.max = Math.max(autoFactor, 0.25).toFixed(2);
       TDOM.speedSlider.value = autoFactor.toFixed(2);
     }
     if (TDOM.speedSliderVal) {
@@ -1821,9 +1880,7 @@ function onResizeMove(e) {
 
   clearTimeout(_dragState?._timer);
   if (_dragState) {
-    _dragState._timer = setTimeout(() => {
-      renderTimeline();
-    }, 30);
+    _dragState._timer = setTimeout(() => renderTimeline(), 30);
   }
 }
 
@@ -1836,16 +1893,16 @@ function onResizeEnd() {
     // Mettre à jour le panneau segment sans réinitialiser le mini player
     if (transcribeState.selectedIdx !== null) {
       const seg = transcribeState.segments[transcribeState.selectedIdx];
-    if (seg) {
-        const effStart   = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
-        const effEnd     = seg.trim_end_ms   > 0 ? seg.trim_end_ms   : seg.end_ms;
-        const effDur     = effEnd - effStart;
+      if (seg) {
+        const effStart = seg.trim_start_ms > 0 ? seg.trim_start_ms : seg.start_ms;
+        const effEnd = seg.trim_end_ms > 0 ? seg.trim_end_ms : seg.end_ms;
+        const effDur = effEnd - effStart;
         const autoFactor = calcSpeedFactor(seg.text, effDur, transcribeState.wpm);
-        const maxMots    = calcMaxMots(effDur, transcribeState.wpm, 0.25);
+        const maxMots = calcMaxMots(effDur, transcribeState.wpm, 0.25);
         updateSpeedUI(seg.speed_factor, seg.text, effDur, seg.speed_forced, autoFactor);
         updateWordBudget(seg.text, maxMots);
         if (TDOM.speedSlider) {
-          TDOM.speedSlider.max   = Math.max(autoFactor, 0.25).toFixed(2);
+          TDOM.speedSlider.max = Math.max(autoFactor, 0.25).toFixed(2);
           TDOM.speedSlider.value = autoFactor.toFixed(2);
         }
         if (TDOM.speedSliderVal) {
@@ -1859,8 +1916,8 @@ function onResizeEnd() {
   }
   _dragState = null;
   document.removeEventListener('mousemove', onResizeMove);
-  document.removeEventListener('mouseup',   onResizeEnd);
-  document.body.style.cursor     = '';
+  document.removeEventListener('mouseup', onResizeEnd);
+  document.body.style.cursor = '';
   document.body.style.userSelect = '';
   transcribeState.dirty = true;
 }
@@ -1873,7 +1930,7 @@ async function saveCurrentSegment() {
   const idx = transcribeState.selectedIdx;
   if (idx === null) { window.Toast?.warn('Aucun segment sélectionné.'); return; }
 
-  const seg  = transcribeState.segments[idx];
+  const seg = transcribeState.segments[idx];
   if (!seg?.id) { window.Toast?.warn('Ce segment n\'a pas encore d\'ID — sauvegardez tout.'); return; }
 
   // Guard contre double clic
@@ -1882,18 +1939,18 @@ async function saveCurrentSegment() {
   if (btnSave) btnSave.dataset.saving = '1';
 
   const jobId = document.getElementById('current-job-id')?.value;
-  const csrf  = document.getElementById('csrf-token')?.value || '';
+  const csrf = document.getElementById('csrf-token')?.value || '';
 
   try {
     const res = await fetch(`/api/jobs/${jobId}/segments/${seg.id}/save/`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify({
-        text:         seg.text,
+        text: seg.text,
         speed_factor: seg.speed_factor,
         speed_forced: seg.speed_forced,
-        start_ms:     seg.start_ms,
-        end_ms:       seg.end_ms,
+        start_ms: seg.start_ms,
+        end_ms: seg.end_ms,
       }),
     });
     if (res.ok) {
@@ -1916,7 +1973,7 @@ async function saveCurrentSegment() {
 
 async function saveAllSegments() {
   const jobId = document.getElementById('current-job-id')?.value;
-  const csrf  = document.getElementById('csrf-token')?.value || '';
+  const csrf = document.getElementById('csrf-token')?.value || '';
 
   if (!jobId || !transcribeState.segments.length) {
     window.Toast?.warn('Aucun segment à sauvegarder.');
@@ -1926,20 +1983,20 @@ async function saveAllSegments() {
   const segsToSave = transcribeState.segments
     .filter(s => s.id && !s.deleted)
     .map(s => ({
-      id:           s.id,
-      index:        s.index,
-      text:         s.text,
+      id: s.id,
+      index: s.index,
+      text: s.text,
       speed_factor: s.speed_factor,
       speed_forced: s.speed_forced,
-      start_ms:     s.start_ms,
-      end_ms:       s.end_ms,
+      start_ms: s.start_ms,
+      end_ms: s.end_ms,
     }));
 
   console.log('save-all: envoi de', segsToSave.length, 'segments, IDs:', segsToSave.map(s => s.id));
 
   try {
     const res = await fetch(`/api/jobs/${jobId}/segments/save-all/`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify({ segments: segsToSave }),
     });
@@ -1993,8 +2050,8 @@ function importScript(input) {
       return;
     }
 
-    const segs    = transcribeState.segments;
-    const nbSegs  = segs.length;
+    const segs = transcribeState.segments;
+    const nbSegs = segs.length;
     const nbBlocs = blocs.length;
 
     // Préparer les données avec coupe auto et silences
@@ -2002,8 +2059,8 @@ function importScript(input) {
     const warnings = [];
 
     for (let i = 0; i < nbSegs; i++) {
-      const seg     = segs[i];
-      const durMs   = seg.end_ms - seg.start_ms;
+      const seg = segs[i];
+      const durMs = seg.end_ms - seg.start_ms;
       const maxMots = calcMaxMots(durMs, transcribeState.wpm, 0.25);
 
       if (i >= nbBlocs) {
@@ -2030,7 +2087,7 @@ function importScript(input) {
       warnings.push(`${nbBlocs - nbSegs} ligne(s) ignorée(s) car le projet n'a que ${nbSegs} segments.`);
     }
 
-    _importBlocs   = preview.map(p => p.texte);
+    _importBlocs = preview.map(p => p.texte);
     _importPreview = preview;
     openImportModal(preview, warnings);
     input.value = '';
@@ -2052,19 +2109,19 @@ function exportTemplate() {
   }
 
   const lines = segs.map((seg, i) => {
-    const durMs   = seg.end_ms - seg.start_ms;
+    const durMs = seg.end_ms - seg.start_ms;
     const maxMots = calcMaxMots(durMs, transcribeState.wpm, 0.25);
-    const tc      = `${msToTC(seg.start_ms)} → ${msToTC(seg.end_ms)}`;
-    const texte   = seg.text || '';
+    const tc = `${msToTC(seg.start_ms)} → ${msToTC(seg.end_ms)}`;
+    const texte = seg.text || '';
     return `[${i + 1}] (max ${maxMots} mots | ${tc})\n${texte || '(silence)'}`;
   });
 
   const content = lines.join('\n\n');
-  const blob    = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url     = URL.createObjectURL(blob);
-  const a       = document.createElement('a');
-  a.href        = url;
-  a.download    = 'script_template.txt';
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'script_template.txt';
   a.click();
   URL.revokeObjectURL(url);
   window.Toast?.success('Template exporté. Modifiez-le et réimportez-le.');
@@ -2095,7 +2152,7 @@ function parseScriptFile(content) {
     const blocs = [];
     for (const bloc of content.split(/\n\n+/)) {
       const lignes = bloc.trim().split('\n').filter(l => l.trim());
-      const texte  = lignes
+      const texte = lignes
         .filter(l => !l.match(/^\d+$/) && !l.includes('-->'))
         .join(' ').trim();
       if (texte) blocs.push(texte);
@@ -2177,9 +2234,9 @@ function openImportModal(preview, warnings) {
   const modal = document.getElementById('modal-import');
   if (!modal) return;
 
-  const nbCoupés  = preview.filter(p => p.coupe).length;
+  const nbCoupés = preview.filter(p => p.coupe).length;
   const nbSilences = preview.filter(p => p.silence).length;
-  const nbOk      = preview.filter(p => !p.coupe && !p.silence).length;
+  const nbOk = preview.filter(p => !p.coupe && !p.silence).length;
 
   // Header statut
   let statusHtml = '';
@@ -2208,7 +2265,7 @@ function openImportModal(preview, warnings) {
 
   // Tableau des segments
   const rowsHtml = preview.map((p, i) => {
-    const pct  = Math.min(100, Math.round((p.texte.split(/\s+/).filter(Boolean).length / p.maxMots) * 100));
+    const pct = Math.min(100, Math.round((p.texte.split(/\s+/).filter(Boolean).length / p.maxMots) * 100));
     const barColor = p.silence ? '#94a3b8' : p.coupe ? '#f59e0b' : pct > 85 ? '#f59e0b' : '#10b981';
 
     let statusBadge = '';
@@ -2290,10 +2347,10 @@ function openImportModal(preview, warnings) {
   // Event listeners sur les textareas éditables
   modal.querySelectorAll('.im-seg-textarea').forEach(ta => {
     ta.addEventListener('input', () => {
-      const idx     = parseInt(ta.dataset.idx);
+      const idx = parseInt(ta.dataset.idx);
       const maxMots = parseInt(ta.dataset.max);
-      const words   = ta.value.trim().split(/\s+/).filter(Boolean);
-      const nbMots  = words.length;
+      const words = ta.value.trim().split(/\s+/).filter(Boolean);
+      const nbMots = words.length;
 
       // Couper automatiquement si dépasse
       if (nbMots > maxMots) {
@@ -2305,14 +2362,14 @@ function openImportModal(preview, warnings) {
 
       // Mettre à jour barre, badge et budget
       const realMots = Math.min(nbMots, maxMots);
-      const pct      = Math.min(100, Math.round((realMots / maxMots) * 100));
+      const pct = Math.min(100, Math.round((realMots / maxMots) * 100));
       const barColor = pct > 95 ? '#f59e0b' : '#10b981';
 
-      const bar    = document.getElementById(`im-bar-${idx}`);
-      const badge  = document.getElementById(`im-badge-${idx}`);
+      const bar = document.getElementById(`im-bar-${idx}`);
+      const badge = document.getElementById(`im-badge-${idx}`);
       const budget = document.getElementById(`im-budget-${idx}`);
 
-      if (bar)    { bar.style.width = `${pct}%`; bar.style.background = barColor; }
+      if (bar) { bar.style.width = `${pct}%`; bar.style.background = barColor; }
       if (budget) budget.textContent = `${realMots} / ${maxMots} mots`;
       if (badge) {
         if (realMots === 0) {
@@ -2332,13 +2389,13 @@ function openImportModal(preview, warnings) {
 function closeImportModal() {
   const modal = document.getElementById('modal-import');
   if (modal) modal.style.display = 'none';
-  _importBlocs   = [];
+  _importBlocs = [];
   _importPreview = [];
 }
 
 async function confirmImport() {
   const jobId = document.getElementById('current-job-id')?.value;
-  const csrf  = document.getElementById('csrf-token')?.value || '';
+  const csrf = document.getElementById('csrf-token')?.value || '';
   if (!jobId || !_importPreview.length) return;
 
   const btn = document.querySelector('.im-btn-confirm');
@@ -2350,7 +2407,7 @@ async function confirmImport() {
   _importPreview.forEach((p, i) => {
     const seg = segs[i];
     if (!seg) return;
-    seg.text         = p.texte;
+    seg.text = p.texte;
     seg.speed_factor = calcSpeedFactor(p.texte, seg.end_ms - seg.start_ms, transcribeState.wpm);
     seg.speed_forced = false;
     markSegmentModified(i);
@@ -2359,11 +2416,11 @@ async function confirmImport() {
   renderTimeline();
   closeImportModal();
 
-  const nbCoupés  = _importPreview.filter(p => p.coupe).length;
+  const nbCoupés = _importPreview.filter(p => p.coupe).length;
   const nbSilences = _importPreview.filter(p => p.silence).length;
 
   let msg = `Script importé sur ${_importPreview.length} segments.`;
-  if (nbCoupés)   msg += ` ${nbCoupés} coupé(s).`;
+  if (nbCoupés) msg += ` ${nbCoupés} coupé(s).`;
   if (nbSilences) msg += ` ${nbSilences} mis en silence.`;
 
   window.Toast?.success(msg);
@@ -2371,4 +2428,4 @@ async function confirmImport() {
 }
 
 window.closeImportModal = closeImportModal;
-window.confirmImport    = confirmImport;
+window.confirmImport = confirmImport;
