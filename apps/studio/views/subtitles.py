@@ -56,7 +56,24 @@ class SubtitlesStatusView(APIView):
         subbed_path = job.output_dir / "final_subtitled.mp4"
         done = subbed_path.exists() and subbed_path.stat().st_size > 10_000
 
+        # Calculer l'URL directement depuis le fichier (pas depuis la base)
+        subtitled_url = ""
+        if done:
+            from django.conf import settings
+            try:
+                rel = subbed_path.relative_to(settings.OUTPUTS_ROOT)
+                subtitled_url = f"/outputs/{str(rel).replace(chr(92), '/')}"
+            except ValueError:
+                subtitled_url = job.subtitled_url or ""
+
+        # Vérifier si une erreur a été enregistrée
+        error_path = job.output_dir / "subtitles_error.txt"
+        error_msg = ""
+        if error_path.exists():
+            error_msg = error_path.read_text().strip()
+
         return Response({
             "done":          done,
-            "subtitled_url": job.subtitled_url if done else "",
+            "subtitled_url": subtitled_url,
+            "error":         error_msg,
         })
