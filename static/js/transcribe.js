@@ -1328,14 +1328,17 @@ function initMiniPlayer(seg) {
     video.style.display = 'block';
     if (placeholder) placeholder.style.display = 'none';
 
-    // Seek au point IN après chargement
-    video.addEventListener('loadedmetadata', () => {
-      video.currentTime = inMs / 1000;
-    }, { once: true });
+    const doSeek = () => {
+      video.pause(); // s'assurer qu'on est bien en pause avant de seeker
+      requestAnimationFrame(() => {
+        video.currentTime = inMs / 1000;
+      });
+    };
 
-    // Si déjà chargé
     if (video.readyState >= 1) {
-      video.currentTime = inMs / 1000;
+      doSeek();
+    } else {
+      video.addEventListener('loadedmetadata', doSeek, { once: true });
     }
 
     // Arrêter au point OUT
@@ -1343,11 +1346,18 @@ function initMiniPlayer(seg) {
       const s = transcribeState.segments[transcribeState.selectedIdx];
       if (!s) return;
       const sOut = s.trim_end_ms > 0 ? s.trim_end_ms : s.end_ms;
+
       if (!video.paused && video.currentTime * 1000 >= sOut) {
+        // Stocker le currentTime avant pause pour éviter la race
+        const inMs = (s.trim_start_ms > 0 ? s.trim_start_ms : s.start_ms) / 1000;
         video.pause();
-        video.currentTime = (s.trim_start_ms > 0 ? s.trim_start_ms : s.start_ms) / 1000;
-        updateMiniPlayBtn(false);
+        // Setter currentTime après pause, pas avant
+        requestAnimationFrame(() => {
+          video.currentTime = inMs;
+          updateMiniPlayBtn(false);
+        });
       }
+
       updateMiniTc(video.currentTime * 1000, s);
       updateTrimCursor(video.currentTime * 1000, s);
     };
@@ -1394,8 +1404,15 @@ function toggleMiniPlay() {
     if (video.currentTime * 1000 < inMs || video.currentTime * 1000 >= outMs) {
       video.currentTime = inMs / 1000;
     }
-    video.play();
-    updateMiniPlayBtn(true);
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => updateMiniPlayBtn(true))
+        .catch(err => {
+          // AbortError = interrompu avant de démarrer, on ignore
+          if (err.name !== 'AbortError') console.warn('play() error:', err);
+        });
+    }
   } else {
     video.pause();
     updateMiniPlayBtn(false);
