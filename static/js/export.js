@@ -18,6 +18,17 @@ async function startExport() {
   const jobId = document.getElementById('current-job-id')?.value;
   if (!jobId) { window.Toast?.error('Aucun job actif.'); return; }
 
+  // ── Forcer la sauvegarde de tous les segments avant export ──
+  if (typeof saveAllSegments === 'function') {
+    try {
+      window.Toast?.info('Sauvegarde avant export…');
+      await saveAllSegments();
+    } catch (e) {
+      window.Toast?.error('Erreur sauvegarde pré-export.');
+      return;
+    }
+  }
+
   const csrf  = document.getElementById('csrf-token')?.value || '';
   const btn   = document.getElementById('btn-export');
   const errEl = document.getElementById('export-error');

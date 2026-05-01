@@ -1968,6 +1968,8 @@ async function saveCurrentSegment() {
         speed_forced: seg.speed_forced,
         start_ms: seg.start_ms,
         end_ms: seg.end_ms,
+        trim_start_ms: seg.trim_start_ms || 0,  // ← AJOUT
+        trim_end_ms: seg.trim_end_ms || 0,       // ← AJOUT
       }),
     });
     if (res.ok) {
@@ -2007,6 +2009,8 @@ async function saveAllSegments() {
       speed_forced: s.speed_forced,
       start_ms: s.start_ms,
       end_ms: s.end_ms,
+      trim_start_ms: s.trim_start_ms || 0,  // ← AJOUT
+      trim_end_ms: s.trim_end_ms || 0,       // ← AJOUT
     }));
 
   console.log('save-all: envoi de', segsToSave.length, 'segments, IDs:', segsToSave.map(s => s.id));

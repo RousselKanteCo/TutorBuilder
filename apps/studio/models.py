@@ -287,12 +287,16 @@ class Segment(models.Model):
     @property
     def effective_start_ms(self):
         """Point IN réel dans la vidéo source."""
-        return self.trim_start_ms if self.trim_start_ms > 0 else self.start_ms
+        if self.trim_start_ms > 0 and self.trim_start_ms > self.start_ms:
+            return self.trim_start_ms
+        return self.start_ms
 
     @property
     def effective_end_ms(self):
         """Point OUT réel dans la vidéo source."""
-        return self.trim_end_ms if self.trim_end_ms > 0 else self.end_ms
+        if self.trim_end_ms > 0 and self.trim_end_ms < self.end_ms:
+            return self.trim_end_ms
+        return self.end_ms
 
     @property
     def effective_duration_ms(self):
