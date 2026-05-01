@@ -1784,7 +1784,6 @@ function onResizeMove(e) {
   }
 
   if (side === 'right') {
-    // Trouver le prochain segment VIVANT (pas supprimé) comme vraie limite
     const nextAlive = transcribeState.segments.slice(idx + 1).find(s => !s.deleted);
 
     const hardStop = nextAlive
@@ -1802,26 +1801,10 @@ function onResizeMove(e) {
       seg.trim_end_ms = Math.min(seg.trim_end_ms, cappedEnd);
     }
 
-    // Les supprimés entre idx et nextAlive : ajuster leur start_ms si absorbés
-    for (let j = idx + 1; j < transcribeState.segments.length; j++) {
-      const s = transcribeState.segments[j];
-      if (!s.deleted) break;
-      if (cappedEnd >= s.end_ms) {
-        // Totalement absorbé dans le segment vivant
-        s.start_ms = cappedEnd;
-        s.end_ms = cappedEnd;
-      } else if (cappedEnd > s.start_ms) {
-        // Partiellement absorbé
-        s.start_ms = cappedEnd;
-      }
-    }
-
-    // Pousser nextAlive seulement si on empiète dessus
-    if (nextAlive && cappedEnd > nextAlive.start_ms) {
-      nextAlive.start_ms = cappedEnd;
-      if (nextAlive.trim_start_ms === 0 || nextAlive.trim_start_ms <= nextAlive.start_ms) {
-        nextAlive.trim_start_ms = cappedEnd;
-      }
+    // ← REMPLACER le bloc "pousser nextAlive" par ça :
+    if (nextAlive) {
+      nextAlive.start_ms = cappedEnd;         // toujours coller, même si on réduit
+      nextAlive.trim_start_ms = cappedEnd;    // trim suit
     }
   } else { // side === 'left'
     const prevAlive = [...transcribeState.segments].slice(0, idx).reverse().find(s => !s.deleted);

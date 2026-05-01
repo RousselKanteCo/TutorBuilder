@@ -18,12 +18,6 @@ from django.conf import settings
 # ─────────────────────────────────────────
 
 def video_upload_path(instance, filename):
-    """
-    Stockage : media/uploads/<uuid>.<ext>
-    - Nom UUID : pas de collision, pas d'espaces
-    - Extension conservée pour que ffprobe détecte le format
-    - Nom original conservé dans video_filename
-    """
     ext = os.path.splitext(filename)[1].lower() or ".mp4"
     return f"uploads/{uuid.uuid4()}{ext}"
 
@@ -84,33 +78,25 @@ class Job(models.Model):
         IT = "it", _("Italiano")
         PT = "pt", _("Português")
 
-    # ── Identifiants ──────────────────────────────────────────────────────
     id      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE,
         related_name="jobs", verbose_name=_("projet"),
     )
-
-    # ── Titre (saisi par l'user) ───────────────────────────────────────────
     title = models.CharField(
         _("titre"), max_length=255, blank=True,
         help_text="Titre saisi par l'utilisateur dans l'interface",
     )
-
-    # ── Fichier source ────────────────────────────────────────────────────
     video_file = models.FileField(
         _("fichier vidéo"),
-        upload_to=video_upload_path,   # UUID dans media/uploads/
+        upload_to=video_upload_path,
         max_length=500,
     )
-    # Nom original du fichier — affiché dans l'interface, jamais modifié
     video_filename = models.CharField(
         _("nom original du fichier"), max_length=255, blank=True,
         help_text="Nom exact du fichier uploadé par l'utilisateur",
     )
     video_duration_ms = models.PositiveIntegerField(_("durée (ms)"), null=True, blank=True)
-
-    # ── Configuration ─────────────────────────────────────────────────────
     stt_engine = models.CharField(
         _("moteur STT"), max_length=20,
         choices=STTEngine.choices, default=STTEngine.FASTER_WHISPER,
@@ -124,21 +110,15 @@ class Job(models.Model):
         _("langue"), max_length=5,
         choices=Language.choices, default=Language.FR,
     )
-
-    # ── État ──────────────────────────────────────────────────────────────
     status         = models.CharField(
         _("statut"), max_length=20,
         choices=Status.choices, default=Status.PENDING,
     )
     error_message  = models.TextField(_("message d'erreur"), blank=True)
     celery_task_id = models.CharField(_("ID tâche Celery"), max_length=255, blank=True)
-
-    # ── Données dérivées ──────────────────────────────────────────────────
     waveform_data   = models.JSONField(_("waveform"), default=list, blank=True)
     thumbnail_paths = models.JSONField(_("vignettes"), default=list, blank=True)
     subtitled_url   = models.CharField(_("URL vidéo sous-titrée"), max_length=500, blank=True, default="")
-
-    # ── Horodatages ───────────────────────────────────────────────────────
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -153,7 +133,6 @@ class Job(models.Model):
 
     @property
     def display_name(self):
-        """Nom affiché : titre si renseigné, sinon nom du fichier original."""
         return self.title or self.video_filename or f"Job {str(self.pk)[:8]}"
 
     @property
@@ -183,11 +162,6 @@ class Job(models.Model):
 # ─────────────────────────────────────────
 
 class VoiceProfile(models.Model):
-    """
-    Profil de vitesse réelle d'une voix TTS.
-    WPM mesuré après chaque synthèse pour affiner les calculs.
-    """
-
     class TTSEngine(models.TextChoices):
         ELEVENLABS = "elevenlabs", _("ElevenLabs")
         CARTESIA   = "cartesia",   _("Cartesia")
@@ -209,46 +183,40 @@ class VoiceProfile(models.Model):
 
     @property
     def wpm_effective(self):
-        """WPM à utiliser pour les calculs — mesuré si dispo, sinon défaut."""
         return self.wpm_measured if self.wpm_measured else self.wpm_default
 
     def update_wpm(self, nb_words: int, duration_s: float):
-        """
-        Met à jour le WPM mesuré avec une moyenne glissante.
-        Appelé après chaque synthèse réussie.
-        """
         if nb_words < 3 or duration_s < 0.5:
-            return  # trop court pour être fiable
-
+            return
         new_wpm = (nb_words / duration_s) * 60.0
-
         if self.wpm_measured and self.nb_samples > 0:
-            # Moyenne pondérée — les nouvelles mesures ont plus de poids
             self.wpm_measured = (self.wpm_measured * self.nb_samples + new_wpm) / (self.nb_samples + 1)
         else:
             self.wpm_measured = new_wpm
-
         self.nb_samples += 1
         self.save(update_fields=["wpm_measured", "nb_samples", "updated_at"])
 
     @classmethod
     def get_wpm(cls, voice_id: str, tts_engine: str) -> float:
-        """Retourne le WPM effectif pour une voix donnée."""
         try:
             profile = cls.objects.get(voice_id=voice_id, tts_engine=tts_engine)
             return profile.wpm_effective
         except cls.DoesNotExist:
-            return 145.0  # défaut ElevenLabs
+            return 145.0
 
     @classmethod
     def get_or_create_profile(cls, voice_id: str, tts_engine: str) -> "VoiceProfile":
-        """Récupère ou crée un profil voix."""
         profile, _ = cls.objects.get_or_create(
             voice_id   = voice_id,
             tts_engine = tts_engine,
             defaults   = {"wpm_default": 145.0},
         )
         return profile
+
+
+# ─────────────────────────────────────────
+#  SEGMENT
+# ─────────────────────────────────────────
 
 class Segment(models.Model):
 
@@ -260,7 +228,6 @@ class Segment(models.Model):
     text_translated = models.TextField(_("texte traduit"), blank=True)
     audio_file      = models.CharField(_("fichier audio TTS"), max_length=500, blank=True)
 
-    # ── Sync vidéo ────────────────────────────────────────────────────────
     actual_tts_ms  = models.FloatField(_("durée TTS réelle (ms)"), null=True, blank=True)
     speed_factor   = models.FloatField(_("facteur vitesse vidéo"), default=1.0,
                                         help_text="< 1.0 = ralenti, > 1.0 = accéléré, 1.0 = normal")
@@ -270,6 +237,14 @@ class Segment(models.Model):
                                           help_text="Point IN dans la vidéo source (ms)")
     trim_end_ms    = models.IntegerField(default=0,
                                           help_text="Point OUT dans la vidéo source (ms). 0 = utiliser end_ms")
+
+    # ── Flag suppression logique ───────────────────────────────────────────
+    # Positionné par save-all quand le JS envoie deleted=True.
+    # L'export ignore tout segment avec is_deleted=True.
+    is_deleted = models.BooleanField(
+        _("supprimé"), default=False,
+        help_text="Segment marqué supprimé par l'utilisateur — exclu de l'assemblage",
+    )
 
     class Meta:
         verbose_name        = _("segment")
@@ -286,14 +261,31 @@ class Segment(models.Model):
 
     @property
     def effective_start_ms(self):
-        """Point IN réel dans la vidéo source."""
-        if self.trim_start_ms > 0 and self.trim_start_ms > self.start_ms:
+        """
+        Point IN réel dans la vidéo source.
+
+        FIX : la condition d'origine était `trim_start_ms > 0 AND > start_ms`,
+        ce qui échouait silencieusement après un resize qui aligne
+        trim_start_ms == start_ms (la poignée IN colle au bord gauche).
+
+        Règle simple : si trim_start_ms est strictement à l'intérieur du
+        segment (> start_ms), on l'utilise. Sinon on retombe sur start_ms.
+        La vérification `> 0` est supprimée — elle était redondante et
+        masquait le bug de bord gauche.
+        """
+        if self.trim_start_ms > self.start_ms:
             return self.trim_start_ms
         return self.start_ms
 
     @property
     def effective_end_ms(self):
-        """Point OUT réel dans la vidéo source."""
+        """
+        Point OUT réel dans la vidéo source.
+
+        La condition `trim_end_ms > 0` est conservée car 0 est la valeur
+        par défaut "non défini". On vérifie aussi qu'il est strictement
+        dans les bornes du segment pour éviter un OUT qui déborderait.
+        """
         if self.trim_end_ms > 0 and self.trim_end_ms < self.end_ms:
             return self.trim_end_ms
         return self.end_ms

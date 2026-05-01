@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class SegmentListView(APIView):
     """
     GET /api/jobs/<job_id>/segments/
-    Retourne tous les segments d'un job avec thumb_url.
+    Retourne tous les segments actifs d'un job (is_deleted=False).
     """
     permission_classes = [IsAuthenticated]
 
@@ -32,11 +32,12 @@ class SegmentListView(APIView):
         except Job.DoesNotExist:
             return Response({"error": "Job introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-        segments = Segment.objects.filter(job=job).order_by("index")
+        # FIX : exclure les segments supprimés — ils ne doivent plus apparaître
+        # dans la timeline après un rechargement de page
+        segments = Segment.objects.filter(job=job, is_deleted=False).order_by("index")
 
         data = []
         for seg in segments:
-            # Construire thumb_url depuis audio_file path pattern
             from django.conf import settings
             from pathlib import Path
             thumb_url = ""
@@ -45,19 +46,20 @@ class SegmentListView(APIView):
                 thumb_url = f"/media/jobs/{job.pk}/miniatures/seg_{seg.index:04d}.jpg"
 
             data.append({
-                "id":              seg.pk,
-                "index":           seg.index,
-                "start_ms":        seg.start_ms,
-                "end_ms":          seg.end_ms,
-                "trim_start_ms":   seg.trim_start_ms,
-                "trim_end_ms":     seg.trim_end_ms if seg.trim_end_ms > 0 else seg.end_ms,
-                "text":            seg.text,
-                "speed_factor":    seg.speed_factor,
-                "speed_forced":    seg.speed_forced,
-                "thumb_url":       thumb_url,
-                "duration_ms":     seg.end_ms - seg.start_ms,
+                "id":                    seg.pk,
+                "index":                 seg.index,
+                "start_ms":              seg.start_ms,
+                "end_ms":                seg.end_ms,
+                "trim_start_ms":         seg.trim_start_ms,
+                "trim_end_ms":           seg.trim_end_ms if seg.trim_end_ms > 0 else seg.end_ms,
+                "text":                  seg.text,
+                "speed_factor":          seg.speed_factor,
+                "speed_forced":          seg.speed_forced,
+                "thumb_url":             thumb_url,
+                "duration_ms":           seg.end_ms - seg.start_ms,
                 "effective_duration_ms": seg.effective_duration_ms,
-                "has_audio":       bool(seg.audio_file and os.path.exists(str(seg.audio_file))),
+                "has_audio":             bool(seg.audio_file and os.path.exists(str(seg.audio_file))),
+                "is_deleted":            seg.is_deleted,
             })
 
         return Response(data)
@@ -81,18 +83,20 @@ class SegmentSaveView(APIView):
         except (Job.DoesNotExist, Segment.DoesNotExist):
             return Response({"error": "Segment introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-        text         = request.data.get("text", seg.text)
-        speed_factor = request.data.get("speed_factor", seg.speed_factor)
-        speed_forced = request.data.get("speed_forced", seg.speed_forced)
-        start_ms     = request.data.get("start_ms", seg.start_ms)
-        end_ms       = request.data.get("end_ms", seg.end_ms)
+        seg.text          = request.data.get("text",         seg.text)
+        seg.speed_factor  = float(request.data.get("speed_factor", seg.speed_factor))
+        seg.speed_forced  = bool(request.data.get("speed_forced",  seg.speed_forced))
+        seg.start_ms      = int(request.data.get("start_ms",  seg.start_ms))
+        seg.end_ms        = int(request.data.get("end_ms",    seg.end_ms))
+        # FIX : sauvegarder aussi les trims
+        seg.trim_start_ms = int(request.data.get("trim_start_ms", seg.trim_start_ms or 0))
+        seg.trim_end_ms   = int(request.data.get("trim_end_ms",   seg.trim_end_ms or 0))
 
-        seg.text         = text
-        seg.speed_factor = float(speed_factor)
-        seg.speed_forced = bool(speed_forced)
-        seg.start_ms     = int(start_ms)
-        seg.end_ms       = int(end_ms)
-        seg.save(update_fields=["text", "speed_factor", "speed_forced", "start_ms", "end_ms"])
+        seg.save(update_fields=[
+            "text", "speed_factor", "speed_forced",
+            "start_ms", "end_ms",
+            "trim_start_ms", "trim_end_ms",
+        ])
 
         logger.info(f"Segment {seg.index} sauvegardé — job={job_id}")
         return Response({"status": "ok", "id": seg.pk})
@@ -105,8 +109,17 @@ class SegmentSaveView(APIView):
 class SegmentSaveAllView(APIView):
     """
     POST /api/jobs/<job_id>/segments/save-all/
-    Sauvegarde tous les segments — remplace complètement la liste en base.
-    Les segments absents de la liste envoyée sont supprimés (fusion, suppression).
+    Sauvegarde tous les segments actifs envoyés par le frontend.
+
+    FIX : les segments absents de la liste reçue sont marqués is_deleted=True
+    au lieu d'être supprimés physiquement. Cela préserve l'historique et
+    permet à l'export de les ignorer proprement via _is_deleted().
+
+    Pourquoi is_deleted plutôt que .delete() ?
+      - saveAllSegments() côté JS filtre les .deleted → ils sont simplement
+        absents de la payload, pas explicitement signalés
+      - Un .delete() physique rendait l'opération irréversible (pas d'undo)
+      - is_deleted=True est lu par task_export._is_deleted() à l'assemblage
     """
     permission_classes = [IsAuthenticated]
 
@@ -120,21 +133,14 @@ class SegmentSaveAllView(APIView):
         if not segments_data:
             return Response({"error": "Aucun segment fourni."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # IDs envoyés par le front
-        ids_front = set()
+        # IDs des segments actifs envoyés par le JS
+        ids_recus = set()
         for seg_data in segments_data:
             sid = seg_data.get("id")
             if sid:
-                ids_front.add(str(sid))
+                ids_recus.add(str(sid))
 
-        # Supprimer les segments absents du front (fusionnés ou supprimés)
-        tous = Segment.objects.filter(job=job)
-        for seg in tous:
-            if str(seg.pk) not in ids_front:
-                seg.delete()
-                logger.info(f"Segment {seg.pk} supprimé (fusion/suppression)")
-
-        # Mettre à jour les segments présents
+        # ── 1. Mettre à jour les segments reçus ──────────────────────────
         updated = 0
         errors  = []
 
@@ -144,24 +150,47 @@ class SegmentSaveAllView(APIView):
                 continue
             try:
                 seg = Segment.objects.get(pk=seg_id, job=job)
-                seg.text         = seg_data.get("text", seg.text)
-                seg.index        = int(seg_data.get("index", seg.index))
-                seg.speed_factor = float(seg_data.get("speed_factor", seg.speed_factor))
-                seg.speed_forced = bool(seg_data.get("speed_forced", seg.speed_forced))
-                seg.start_ms     = int(seg_data.get("start_ms", seg.start_ms))
-                seg.end_ms       = int(seg_data.get("end_ms", seg.end_ms))
-                seg.save(update_fields=["text", "index", "speed_factor", "speed_forced", "start_ms", "end_ms"])
+                seg.text          = seg_data.get("text",         seg.text)
+                seg.index         = int(seg_data.get("index",        seg.index))
+                seg.speed_factor  = float(seg_data.get("speed_factor", seg.speed_factor))
+                seg.speed_forced  = bool(seg_data.get("speed_forced",  seg.speed_forced))
+                seg.start_ms      = int(seg_data.get("start_ms",  seg.start_ms))
+                seg.end_ms        = int(seg_data.get("end_ms",    seg.end_ms))
+                seg.trim_start_ms = int(seg_data.get("trim_start_ms", seg.trim_start_ms or 0))
+                seg.trim_end_ms   = int(seg_data.get("trim_end_ms",   seg.trim_end_ms or 0))
+                seg.is_deleted    = False  # explicitement actif
+                seg.save(update_fields=[
+                    "text", "index", "speed_factor", "speed_forced",
+                    "start_ms", "end_ms", "trim_start_ms", "trim_end_ms",
+                    "is_deleted",
+                ])
                 updated += 1
             except Segment.DoesNotExist:
                 errors.append(f"Segment {seg_id} introuvable.")
             except Exception as e:
                 errors.append(f"Segment {seg_id} : {e}")
 
+        # ── 2. Marquer is_deleted les segments absents ───────────────────
+        # Les segments supprimés côté JS ne sont jamais inclus dans la payload.
+        # Leur absence signifie qu'ils ont été supprimés ou fusionnés.
+        deleted_count = (
+            Segment.objects
+            .filter(job=job)
+            .exclude(pk__in=ids_recus)
+            .update(is_deleted=True)
+        )
+
+        if deleted_count:
+            logger.info(
+                f"save-all job={job_id} : {deleted_count} segment(s) → is_deleted=True"
+            )
+
         logger.info(f"Sauvegarde globale : {updated} segments — job={job_id}")
         return Response({
-            "status":  "ok",
-            "updated": updated,
-            "errors":  errors,
+            "status":         "ok",
+            "updated":        updated,
+            "deleted_marked": deleted_count,
+            "errors":         errors,
         })
 
 
@@ -173,9 +202,6 @@ class SegmentImportScriptView(APIView):
     """
     POST /api/jobs/<job_id>/segments/import-script/
     Importe un script texte pour remplacer les textes des segments.
-
-    Règle stricte : le nombre de blocs du fichier doit correspondre
-    exactement au nombre de segments — sinon refus.
     """
     permission_classes = [IsAuthenticated]
 
@@ -189,7 +215,6 @@ class SegmentImportScriptView(APIView):
         if not file:
             return Response({"error": "Aucun fichier fourni."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Lire le fichier
         try:
             content = file.read().decode("utf-8")
         except Exception:
@@ -198,45 +223,37 @@ class SegmentImportScriptView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Détecter le format et parser
         blocs = self._parse_script(content)
 
-        # Récupérer les segments existants
-        segments = list(Segment.objects.filter(job=job).order_by("index"))
+        # Uniquement les segments actifs
+        segments = list(Segment.objects.filter(job=job, is_deleted=False).order_by("index"))
 
         if len(blocs) != len(segments):
             return Response({
                 "error": (
                     f"Le fichier contient {len(blocs)} blocs de texte "
-                    f"mais le job a {len(segments)} segments. "
+                    f"mais le job a {len(segments)} segments actifs. "
                     f"Le nombre doit être identique pour importer."
                 ),
                 "nb_blocs":    len(blocs),
                 "nb_segments": len(segments),
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Appliquer les textes — timings inchangés
         from ..models import VoiceProfile
         wpm = VoiceProfile.get_wpm(job.tts_voice, job.tts_engine)
 
         for seg, texte in zip(segments, blocs):
             seg.text = texte.strip()
-            # Recalculer speed_factor si pas forcé
             if not seg.speed_forced:
                 from ..tasks.task_transcribe import calculer_speed_factor
                 seg.speed_factor = calculer_speed_factor(
                     seg.text, seg.end_ms - seg.start_ms, wpm
                 )
 
-        Segment.objects.bulk_update(
-            segments,
-            ["text", "speed_factor"],
-            batch_size=200,
-        )
+        Segment.objects.bulk_update(segments, ["text", "speed_factor"], batch_size=200)
 
         logger.info(f"Script importé : {len(segments)} segments — job={job_id}")
 
-        # Retourner les segments mis à jour
         return Response({
             "status":   "ok",
             "updated":  len(segments),
@@ -252,21 +269,11 @@ class SegmentImportScriptView(APIView):
         })
 
     def _parse_script(self, content: str) -> list:
-        """
-        Parse le fichier texte en blocs.
-        Supporte :
-          - Format SRT (numéro + timecode + texte)
-          - Format paragraphes (séparés par lignes vides)
-          - Format ligne par ligne
-        """
         content = content.strip()
-
-        # Format SRT
         if "-->" in content:
             blocs = []
             for bloc in content.split("\n\n"):
                 lignes = [l.strip() for l in bloc.strip().split("\n")]
-                # Ignorer numéro et timecode
                 texte_lignes = [
                     l for l in lignes
                     if l and not l.isdigit() and "-->" not in l
@@ -274,15 +281,10 @@ class SegmentImportScriptView(APIView):
                 if texte_lignes:
                     blocs.append(" ".join(texte_lignes))
             return blocs
-
-        # Format paragraphes
         blocs = [b.strip() for b in content.split("\n\n") if b.strip()]
         if len(blocs) > 1:
             return blocs
-
-        # Format ligne par ligne
-        lignes = [l.strip() for l in content.split("\n") if l.strip()]
-        return lignes
+        return [l.strip() for l in content.split("\n") if l.strip()]
 
 
 # ─────────────────────────────────────────
@@ -335,12 +337,8 @@ class SegmentSetTrimView(APIView):
         trim_start = int(request.data.get("trim_start_ms", seg.trim_start_ms))
         trim_end   = int(request.data.get("trim_end_ms",   seg.trim_end_ms))
 
-        # Validation
-        src_start = seg.start_ms
-        src_end   = seg.end_ms
-
-        trim_start = max(src_start, min(trim_start, src_end))
-        trim_end   = max(src_start, min(trim_end,   src_end))
+        trim_start = max(seg.start_ms, min(trim_start, seg.end_ms))
+        trim_end   = max(seg.start_ms, min(trim_end,   seg.end_ms))
 
         if trim_start >= trim_end:
             return Response({"error": "trim_start doit être avant trim_end."}, status=400)
@@ -352,8 +350,8 @@ class SegmentSetTrimView(APIView):
         logger.info(f"Trim seg {segment_idx} : {trim_start}ms → {trim_end}ms — job={job_id}")
 
         return Response({
-            "status":          "ok",
-            "trim_start_ms":   seg.trim_start_ms,
-            "trim_end_ms":     seg.trim_end_ms,
+            "status":                "ok",
+            "trim_start_ms":         seg.trim_start_ms,
+            "trim_end_ms":           seg.trim_end_ms,
             "effective_duration_ms": seg.effective_duration_ms,
         })

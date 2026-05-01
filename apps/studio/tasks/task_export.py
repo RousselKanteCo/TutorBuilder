@@ -7,14 +7,14 @@ PRINCIPE ABSOLU :
     - Si actual_tts_ms > durée clip planifiée → on ralentit la vidéo davantage
     - Chaque segment respecte exactement speed_factor défini par l'user
     - Les silences gardent leur speed_factor
-    - Les segments supprimés sont ignorés
+    - Les segments supprimés (is_deleted=True) sont ignorés
 
 FLUX :
     1. Valider tous les segments
-    2. Pour chaque segment : extraire clip + appliquer speed_factor réel
+    2. Pour chaque segment actif : extraire clip selon effective_start/end_ms + appliquer speed_factor
     3. Pour chaque segment avec audio : poser la voix TTS
     4. Concaténer tous les clips
-    5. Générer les sous-titres ASS
+    5. Générer les sous-titres ASS / SRT / VTT
     6. Optionnellement brûler les sous-titres
     7. Export final
 """
@@ -28,7 +28,6 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Limites ffmpeg
 SPEED_MIN = 0.25
 SPEED_MAX = 4.0
 
@@ -47,7 +46,6 @@ def ws_send(job_id, msg_type, **kwargs):
 
 
 def run_ffmpeg(args: list, label: str = "") -> bool:
-    """Exécute une commande ffmpeg et retourne True si succès."""
     cmd = ["ffmpeg", "-y"] + args
     logger.debug(f"ffmpeg {label}: {' '.join(cmd)}")
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -58,7 +56,6 @@ def run_ffmpeg(args: list, label: str = "") -> bool:
 
 
 def _get_clip_duration_ms(clip_path: str) -> float:
-    """Mesure la durée réelle d'un clip avec ffprobe."""
     try:
         r = subprocess.run([
             "ffprobe", "-v", "error",
@@ -72,7 +69,6 @@ def _get_clip_duration_ms(clip_path: str) -> float:
 
 
 def get_video_fps(video_path: str) -> float:
-    """Récupère le FPS de la vidéo."""
     r = subprocess.run([
         "ffprobe", "-v", "error",
         "-select_streams", "v:0",
@@ -88,7 +84,6 @@ def get_video_fps(video_path: str) -> float:
 
 
 def get_video_has_audio(video_path: str) -> bool:
-    """Vérifie si la vidéo a une piste audio."""
     r = subprocess.run([
         "ffprobe", "-v", "error",
         "-select_streams", "a:0",
@@ -99,9 +94,23 @@ def get_video_has_audio(video_path: str) -> bool:
     return "audio" in r.stdout
 
 
+def _is_deleted(seg) -> bool:
+    """
+    FIX : on lit maintenant le champ is_deleted persisté en DB,
+    positionné par l'API save-all quand le JS envoie un segment absent
+    (segments supprimés) ou avec deleted=True explicite.
+
+    L'ancienne heuristique `not seg.text and not seg.audio_file` était
+    fausse : un segment supprimé qui avait du texte restait dans l'export.
+    """
+    return bool(seg.is_deleted)
+
+
 def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict = None):
     """
     Assemble la vidéo finale avec voix TTS et sous-titres.
+    Les bornes d'extraction sont toujours les effective_start/end_ms
+    du segment, qui combinent start_ms + trim éventuel.
     """
     from apps.studio.models import Job, Segment
 
@@ -113,8 +122,7 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
     job.set_status(Job.Status.SYNTHESIZING)
     ws_send(job_id, "status", message="Export démarré…", level="info")
 
-    # Dossier de travail
-    work_dir  = job.output_dir / "export_work"
+    work_dir   = job.output_dir / "export_work"
     output_dir = job.output_dir
     work_dir.mkdir(parents=True, exist_ok=True)
 
@@ -122,16 +130,15 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
     fps        = get_video_fps(video_path)
 
     try:
-        # ── 1. Charger et valider les segments ────────────────────────────
+        # ── 1. Charger les segments — lecture fraîche depuis DB ───────────
         segments = list(
-            Segment.objects.filter(job=job)
-            .order_by("index")
+            Segment.objects.filter(job=job).order_by("index")
         )
 
         if not segments:
             raise RuntimeError("Aucun segment en base.")
 
-        # Filtrer les supprimés
+        # Filtrer les supprimés via le champ is_deleted
         segments_actifs = [s for s in segments if not _is_deleted(s)]
 
         if not segments_actifs:
@@ -140,47 +147,60 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
         ws_send(job_id, "status",
                 message=f"{len(segments_actifs)} segments à assembler…", level="info")
 
-        # ── 2. Traiter chaque segment ─────────────────────────────────────
-        clips        = []  # liste des fichiers clip finaux
-        subtitle_events = []  # pour le fichier ASS
+        logger.info(
+            f"Export job={job_id} : {len(segments)} segs total, "
+            f"{len(segments_actifs)} actifs, "
+            f"{len(segments) - len(segments_actifs)} supprimés"
+        )
 
-        cursor_ms = 0.0  # position dans la vidéo finale
+        # ── 2. Traiter chaque segment ─────────────────────────────────────
+        clips           = []
+        subtitle_events = []
+        cursor_ms       = 0.0
 
         for i, seg in enumerate(segments_actifs):
             ws_send(job_id, "export_progress", current=i + 1, total=len(segments_actifs))
 
-            clip_path  = str(work_dir / f"clip_{i:04d}.mp4")
-            # Utiliser les points IN/OUT effectifs (trim)
-            eff_start  = seg.effective_start_ms
-            eff_end    = seg.effective_end_ms
-            dur_ms     = eff_end - eff_start
+            clip_path = str(work_dir / f"clip_{i:04d}.mp4")
+
+            # ── Bornes d'extraction : toujours les effective_* ────────────
+            # effective_start_ms / effective_end_ms combinent start_ms + trim.
+            # Si l'utilisateur n'a pas touché au trim, ils retournent
+            # simplement start_ms / end_ms (comportement transparent).
+            eff_start = seg.effective_start_ms
+            eff_end   = seg.effective_end_ms
+            dur_ms    = eff_end - eff_start
+
+            if dur_ms <= 0:
+                logger.warning(
+                    f"Seg {seg.index} : durée effective nulle "
+                    f"(eff_start={eff_start}, eff_end={eff_end}) — ignoré"
+                )
+                continue
 
             # ── Calculer le speed_factor réel ─────────────────────────────
             speed = float(seg.speed_factor or 1.0)
             speed = max(SPEED_MIN, min(SPEED_MAX, speed))
 
-            has_audio   = bool(seg.text and seg.text.strip() and seg.audio_file and os.path.exists(str(seg.audio_file)))
-            actual_tts  = float(seg.actual_tts_ms or 0)
+            has_audio  = bool(seg.text and seg.text.strip() and seg.audio_file and os.path.exists(str(seg.audio_file)))
+            actual_tts = float(seg.actual_tts_ms or 0)
 
             if has_audio and actual_tts > 0:
-                # Durée planifiée du clip
                 duree_clip_planifiee = dur_ms / speed
-
                 if actual_tts > duree_clip_planifiee:
-                    # La voix déborde → ralentir la vidéo davantage
+                    # La voix déborde → ralentir davantage
                     speed_reel = dur_ms / actual_tts
                     speed_reel = max(SPEED_MIN, speed_reel)
                     logger.info(
-                        f"Seg {seg.index} : débordement détecté "
+                        f"Seg {seg.index} : débordement TTS "
                         f"(tts={actual_tts:.0f}ms > clip={duree_clip_planifiee:.0f}ms) "
-                        f"→ speed ajusté {speed:.3f} → {speed_reel:.3f}"
+                        f"→ speed {speed:.3f} → {speed_reel:.3f}"
                     )
                     speed = speed_reel
 
-            # Durée réelle du clip après speed_factor
             duree_clip_ms = dur_ms / speed
 
-            # ── Extraire et ajuster le clip vidéo ─────────────────────────
+            # ── Extraire et speed-er le clip ──────────────────────────────
             ok = _extraire_clip(
                 video_path = video_path,
                 start_ms   = eff_start,
@@ -193,18 +213,18 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
             )
 
             if not ok:
-                logger.warning(f"Seg {seg.index} : extraction échouée, clip silence généré")
+                logger.warning(f"Seg {seg.index} : extraction échouée, fallback silence")
                 clip_path = str(work_dir / f"clip_{i:04d}_fallback.mp4")
                 _generer_clip_silence(duree_clip_ms, clip_path, fps)
 
             clips.append(clip_path)
 
-            # ── Mesurer la durée RÉELLE du clip généré ────────────────────
+            # ── Durée réelle du clip généré (mesurée, pas théorique) ──────
             duree_clip_reelle_ms = _get_clip_duration_ms(clip_path)
             if duree_clip_reelle_ms <= 0:
-                duree_clip_reelle_ms = duree_clip_ms  # fallback théorique
+                duree_clip_reelle_ms = duree_clip_ms
 
-            # ── Ajouter événement sous-titre ──────────────────────────────
+            # ── Sous-titre ─────────────────────────────────────────────────
             if seg.text and seg.text.strip():
                 subtitle_events.append({
                     "start_ms": cursor_ms,
@@ -214,45 +234,38 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
 
             cursor_ms += duree_clip_reelle_ms
 
-        # ── 3. Concaténer tous les clips ──────────────────────────────────
+        # ── 3. Concaténer ─────────────────────────────────────────────────
         ws_send(job_id, "status", message="Concaténation des clips…", level="info")
 
         concat_list = work_dir / "concat.txt"
         with open(concat_list, "w", encoding="utf-8") as f:
             for clip in clips:
-                # Échapper les chemins Windows
                 safe = clip.replace("\\", "/")
                 f.write(f"file '{safe}'\n")
 
         assembled_path = str(output_dir / "assembled.mp4")
+
+        # Re-encodage systématique au concat — évite les incompatibilités
+        # de streams audio entre clips (TTS vs silence, mono vs stéréo, etc.)
+        # On n'utilise plus -c copy dont le comportement est imprévisible
+        # quand les clips ont des paramètres audio légèrement différents.
         ok = run_ffmpeg([
             "-f", "concat", "-safe", "0",
             "-i", str(concat_list),
-            "-c", "copy",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "192k",
             assembled_path,
         ], "concat")
 
         if not ok:
-            # Fallback avec re-encodage
-            ok = run_ffmpeg([
-                "-f", "concat", "-safe", "0",
-                "-i", str(concat_list),
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                "-c:a", "aac", "-b:a", "192k",
-                assembled_path,
-            ], "concat_reencode")
-
-        if not ok:
             raise RuntimeError("La concaténation des clips a échoué.")
 
-        # ── 4. Générer les sous-titres SRT + VTT ─────────────────────────
+        # ── 4. Sous-titres SRT + VTT ──────────────────────────────────────
         ws_send(job_id, "status", message="Génération des sous-titres…", level="info")
         srt_path = str(output_dir / "subtitles.srt")
         vtt_path = str(output_dir / "subtitles.vtt")
 
-        # Découper les événements longs en sous-événements
         subtitle_events_expanded = _expand_events(subtitle_events)
-
         _generer_srt(subtitle_events_expanded, srt_path)
         _generer_vtt(subtitle_events_expanded, vtt_path)
 
@@ -266,18 +279,15 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
             position  = (subtitle_style or {}).get("position", 2)
             y_pos     = "h-th-40" if position == 2 else "40"
 
-            # Construire les filtres drawtext sur les événements découpés
             filters = []
             for ev in subtitle_events_expanded:
-                # Échapper les caractères spéciaux pour drawtext
                 text = ev["text"]
                 text = text.replace("\\", "\\\\")
-                text = text.replace("'",  "\u2019")  # apostrophe typographique
+                text = text.replace("'",  "\u2019")
                 text = text.replace(":",  "\\:")
                 text = text.replace("%",  "\\%")
                 start_s = ev["start_ms"] / 1000.0
                 end_s   = ev["end_ms"]   / 1000.0
-
                 filters.append(
                     f"drawtext=text='{text}'"
                     f":fontsize={font_size}"
@@ -287,9 +297,7 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
                     f":enable='between(t\\,{start_s:.3f}\\,{end_s:.3f})'"
                 )
 
-            vf_filter = ",".join(filters) if filters else "null"
-
-            # Écrire le filtre dans un fichier script pour éviter les problèmes de ligne de commande
+            vf_filter     = ",".join(filters) if filters else "null"
             filter_script = str(output_dir / "filter_script.txt")
             with open(filter_script, "w", encoding="utf-8") as f:
                 f.write(vf_filter)
@@ -302,9 +310,10 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
                 final_path,
             ], "burn_subs")
 
-            # Nettoyer
-            try: os.remove(filter_script)
-            except Exception: pass
+            try:
+                os.remove(filter_script)
+            except Exception:
+                pass
 
             if not ok:
                 logger.warning("Sous-titres échoués — export sans sous-titres")
@@ -312,7 +321,7 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
         else:
             shutil.copy(assembled_path, final_path)
 
-        # ── 6. Construire l'URL de téléchargement ─────────────────────────
+        # ── 6. URL de téléchargement ──────────────────────────────────────
         from django.conf import settings
         try:
             rel = Path(final_path).relative_to(settings.OUTPUTS_ROOT)
@@ -320,7 +329,7 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
         except ValueError:
             download_url = ""
 
-        # ── 7. Nettoyer les fichiers temporaires ──────────────────────────
+        # ── 7. Nettoyage ──────────────────────────────────────────────────
         try:
             shutil.rmtree(str(work_dir), ignore_errors=True)
         except Exception:
@@ -344,7 +353,6 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
         logger.error(f"Erreur export {job_id} : {msg}", exc_info=True)
         job.set_status(Job.Status.ERROR, error=msg)
         ws_send(job_id, "error", message=msg)
-        # Nettoyer quand même
         try:
             shutil.rmtree(str(work_dir), ignore_errors=True)
         except Exception:
@@ -356,27 +364,27 @@ def task_export(job_id: str, burn_subtitles: bool = False, subtitle_style: dict 
 #  HELPERS
 # ═══════════════════════════════════════════════════════════
 
-def _is_deleted(seg) -> bool:
-    """Un segment est supprimé si son texte est vide ET son audio aussi."""
-    return not seg.text and not seg.audio_file
-
-
 def _extraire_clip(video_path, start_ms, dur_ms, speed, has_audio,
                    audio_path, output, fps) -> bool:
     """
-    Extrait un clip vidéo, applique speed_factor, et colle l'audio TTS.
+    Extrait un clip vidéo entre start_ms et start_ms+dur_ms,
+    applique le speed_factor et colle l'audio TTS si fourni.
+
+    Note : start_ms est toujours le effective_start_ms du segment,
+    qui tient déjà compte du trim IN. dur_ms est la durée effective
+    (effective_end_ms - effective_start_ms).
     """
     start_s = start_ms / 1000.0
     dur_s   = dur_ms   / 1000.0
 
-    # Filtre vidéo speed
-    speed   = max(SPEED_MIN, min(SPEED_MAX, speed))
-    pts     = round(1.0 / speed, 6)
-
+    speed = max(SPEED_MIN, min(SPEED_MAX, speed))
+    pts   = round(1.0 / speed, 6)
     video_filter = f"setpts={pts}*PTS"
 
     if has_audio and audio_path:
-        # Avec audio TTS
+        # -shortest : le clip s'arrête dès que l'audio TTS est terminé
+        # -ar 44100 -ac 2 : normalise l'audio (ElevenLabs peut renvoyer du mono ou du 22050Hz)
+        #   → indispensable pour que le concat final soit compatible
         ok = run_ffmpeg([
             "-ss", f"{start_s:.3f}",
             "-t",  f"{dur_s:.3f}",
@@ -387,14 +395,15 @@ def _extraire_clip(video_path, start_ms, dur_ms, speed, has_audio,
             "-map", "[v]",
             "-map", "1:a",
             "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "aac", "-b:a", "192k",
+            "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "192k",
+            "-shortest",
             "-movflags", "+faststart",
             output,
         ], f"clip_audio_{start_ms}")
-
     else:
-        # Sans audio (silence) — générer audio silence de même durée
         duree_clip_s = dur_s / speed
+        # -ar 44100 -ac 2 : même normalisation que les clips TTS
+        #   → sans ça, concat -c copy mélange mono/stéréo et l'audio disparaît
         ok = run_ffmpeg([
             "-ss", f"{start_s:.3f}",
             "-t",  f"{dur_s:.3f}",
@@ -406,7 +415,7 @@ def _extraire_clip(video_path, start_ms, dur_ms, speed, has_audio,
             "-map", "1:a",
             "-t",  f"{duree_clip_s:.3f}",
             "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "aac", "-b:a", "192k",
+            "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "192k",
             "-movflags", "+faststart",
             output,
         ], f"clip_silence_{start_ms}")
@@ -415,7 +424,6 @@ def _extraire_clip(video_path, start_ms, dur_ms, speed, has_audio,
 
 
 def _generer_clip_silence(duree_ms, output, fps) -> bool:
-    """Génère un clip noir silencieux de secours."""
     duree_s = duree_ms / 1000.0
     return run_ffmpeg([
         "-f", "lavfi",
@@ -430,40 +438,27 @@ def _generer_clip_silence(duree_ms, output, fps) -> bool:
 
 
 def _burn_subtitles_sync(video_path, ass_path, output_path, font_size=28, position=2):
-    """
-    Intègre les sous-titres dans la vidéo via drawtext.
-    Utilise un fichier script ffmpeg pour éviter les problèmes de ligne de commande.
-    La police Arial sur Windows supporte les caractères français.
-    """
     import sys
-
-    # Lire les événements depuis le SRT
     srt_path = ass_path.replace("subtitles.ass", "subtitles.srt")
     events   = _parse_srt(srt_path)
-
     if not events:
         logger.error("Aucun événement SRT trouvé")
         return False
 
-    y_pos    = "h-th-50" if position == 2 else "50"
-    font     = "Arial" if sys.platform == "win32" else "DejaVu Sans"
-    filters  = []
+    y_pos   = "h-th-50" if position == 2 else "50"
+    font    = "Arial" if sys.platform == "win32" else "DejaVu Sans"
+    filters = []
 
     for ev in events:
-        # Remplacer les caractères problématiques
         text = ev["text"]
         text = text.replace("\\", "/")
-        text = text.replace("'",  "\u2019")   # apostrophe typographique
+        text = text.replace("'",  "\u2019")
         text = text.replace("\n", " ")
-        # Échapper pour le script ffmpeg
         text = text.replace(":", "\\:")
         text = text.replace("%", "\\%")
         text = text.replace("[", "\\[").replace("]", "\\]")
-
         start_s = ev["start_ms"] / 1000.0
         end_s   = ev["end_ms"]   / 1000.0
-
-        # Box autour du texte = fond semi-transparent
         filters.append(
             f"drawtext="
             f"text='{text}'"
@@ -476,7 +471,6 @@ def _burn_subtitles_sync(video_path, ass_path, output_path, font_size=28, positi
             f":enable='between(t\\,{start_s:.3f}\\,{end_s:.3f})'"
         )
 
-    # Écrire dans un fichier script
     script_path = output_path + ".filter.txt"
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(",".join(filters))
@@ -498,7 +492,6 @@ def _burn_subtitles_sync(video_path, ass_path, output_path, font_size=28, positi
 
 
 def _parse_srt(srt_path: str) -> list:
-    """Parse un fichier SRT et retourne les événements."""
     events = []
     if not os.path.exists(srt_path):
         return events
@@ -510,7 +503,6 @@ def _parse_srt(srt_path: str) -> list:
             lines = [l.strip() for l in block.strip().split("\n") if l.strip()]
             if len(lines) < 3:
                 continue
-            # Ligne 2 = timecodes
             tc_line = next((l for l in lines if "-->" in l), None)
             if not tc_line:
                 continue
@@ -531,16 +523,11 @@ def _parse_srt(srt_path: str) -> list:
     return events
 
 
-MAX_CHARS_PER_SCREEN = 80   # max caractères affichés à la fois
-MAX_CHARS_PER_LINE   = 42   # max caractères par ligne
+MAX_CHARS_PER_SCREEN = 80
+MAX_CHARS_PER_LINE   = 42
 
 
 def _split_event_in_time(ev, max_chars=MAX_CHARS_PER_SCREEN):
-    """
-    Découpe un événement long en plusieurs sous-événements
-    répartis proportionnellement dans le temps.
-    Ex: texte de 200 chars sur 10s → 3 sous-titres de ~67 chars × 3.3s chacun
-    """
     text     = ev["text"].strip()
     start_ms = ev["start_ms"]
     end_ms   = ev["end_ms"]
@@ -549,7 +536,6 @@ def _split_event_in_time(ev, max_chars=MAX_CHARS_PER_SCREEN):
     if len(text) <= max_chars:
         return [ev]
 
-    # Découper en chunks de max_chars caractères (par mots)
     words   = text.split()
     chunks  = []
     current = ""
@@ -566,7 +552,6 @@ def _split_event_in_time(ev, max_chars=MAX_CHARS_PER_SCREEN):
     if not chunks:
         return [ev]
 
-    # Répartir le temps proportionnellement à la longueur des chunks
     total_chars = sum(len(c) for c in chunks)
     result      = []
     cursor      = start_ms
@@ -586,7 +571,6 @@ def _split_event_in_time(ev, max_chars=MAX_CHARS_PER_SCREEN):
 
 
 def _expand_events(events):
-    """Développe tous les événements longs en sous-événements."""
     result = []
     for ev in events:
         result.extend(_split_event_in_time(ev))
@@ -594,7 +578,6 @@ def _expand_events(events):
 
 
 def _wrap_text(text, max_chars=MAX_CHARS_PER_LINE):
-    """Découpe le texte en max 2 lignes de max_chars caractères."""
     words   = text.split()
     lines   = []
     current = ""
@@ -611,9 +594,6 @@ def _wrap_text(text, max_chars=MAX_CHARS_PER_LINE):
 
 
 def _generer_vtt(events, vtt_path, offset_ms=-200):
-    """Génère un fichier WebVTT pour le player HTML5.
-    offset_ms : décalage à appliquer (négatif = avancer les sous-titres)
-    """
     def ms_to_vtt(ms):
         ms  = max(0, int(ms))
         h   = ms // 3600000; ms -= h * 3600000
@@ -638,7 +618,6 @@ def _generer_vtt(events, vtt_path, offset_ms=-200):
 
 
 def _generer_srt(events, srt_path):
-    """Génère un fichier SRT standard."""
     def ms_to_srt(ms):
         ms  = max(0, int(ms))
         h   = ms // 3600000; ms -= h * 3600000
@@ -660,14 +639,11 @@ def _generer_srt(events, srt_path):
 
 
 def _generer_ass(events, ass_path, style):
-    """
-    Génère un fichier de sous-titres ASS.
-    """
-    font_size  = style.get("font_size",  28)
-    font_name  = style.get("font_name",  "Arial")
-    primary    = style.get("primary",    "&H00FFFFFF")  # blanc
-    outline    = style.get("outline",    "&H00000000")  # noir
-    position   = style.get("position",  2)  # 2=bas centre, 8=haut centre
+    font_size = style.get("font_size",  28)
+    font_name = style.get("font_name",  "Arial")
+    primary   = style.get("primary",    "&H00FFFFFF")
+    outline   = style.get("outline",    "&H00000000")
+    position  = style.get("position",  2)
 
     header = f"""[Script Info]
 ScriptType: v4.00+
