@@ -11,7 +11,11 @@ from .views import (
     SegmentListView, SegmentSaveView, SegmentSaveAllView, SegmentImportScriptView, SegmentAudioView,
     SegmentSetTrimView,
     dashboard_view, logout_view, ProjectCreateAPIView, ProjectDeleteAPIView, JobDeleteAPIView,
+    TutorialPublicListView, TutorialListView, TutorialCreateView, TutorialDetailView,
+    tutorials_manage_view, TechValleePageView
 )
+
+path("techvallee/", TechValleePageView.as_view(), name="techvallee"),
 
 app_name = "studio"
 
@@ -50,5 +54,13 @@ urlpatterns = [
     path("api/jobs/<uuid:job_id>/segments/<int:seg_id>/save/",  SegmentSaveView.as_view(),         name="segment_save"),
     path("api/jobs/<uuid:job_id>/segments/<int:segment_idx>/set-trim/", SegmentSetTrimView.as_view(), name="segment_set_trim"),
     path("api/jobs/<uuid:job_id>/segments/<int:seg_id>/audio/", SegmentAudioView.as_view(),        name="segment_audio"),
+
+    # Dans urlpatterns :
+    path("api/tutorials/",                        TutorialPublicListView.as_view(), name="tutorial_public_list"),
+    path("api/tutorials/manage/",                 TutorialListView.as_view(),       name="tutorial_list"),
+    path("api/tutorials/manage/create/",          TutorialCreateView.as_view(),     name="tutorial_create"),
+    path("api/tutorials/manage/<int:tutorial_id>/", TutorialDetailView.as_view(),   name="tutorial_detail"),
+    path("tutorials/", tutorials_manage_view, name="tutorials_manage"),
+    path("techvallee/", TechValleePageView.as_view(), name="techvallee"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static("/outputs/", document_root=settings.OUTPUTS_ROOT)

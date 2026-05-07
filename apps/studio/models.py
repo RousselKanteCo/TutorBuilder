@@ -316,3 +316,40 @@ class Segment(models.Model):
         ]
         cls.objects.bulk_create(objs, batch_size=500)
         return len(objs)
+    
+
+# ─────────────────────────────────────────
+#  TUTORIAL
+# ─────────────────────────────────────────
+
+class Tutorial(models.Model):
+
+    class Category(models.TextChoices):
+        PRESENTATION = 'presentation', _('Présentation')
+        COMPTE       = 'compte',       _('Mon compte')
+        SECURITE     = 'securite',     _('Sécurité')
+        FOURNISSEUR  = 'fournisseur',  _('Fournisseurs')
+
+    class Level(models.TextChoices):
+        DEBUTANT      = 'd', _('Débutant')
+        INTERMEDIAIRE = 'i', _('Intermédiaire')
+        AVANCE        = 'a', _('Avancé')
+
+    title    = models.CharField(_('titre'), max_length=255)
+    desc     = models.TextField(_('description'))
+    cat      = models.CharField(_('catégorie'), max_length=32, choices=Category.choices)
+    lv       = models.CharField(_('niveau'), max_length=4, choices=Level.choices, default=Level.DEBUTANT)
+    src      = models.URLField(_('URL vidéo'), max_length=1024)
+    img      = models.URLField(_('URL miniature'), max_length=1024, blank=True)
+    tags     = models.JSONField(_('tags'), default=list)
+    order    = models.PositiveIntegerField(_('ordre'), default=0)
+    active   = models.BooleanField(_('actif'), default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name        = _('tutoriel')
+        verbose_name_plural = _('tutoriels')
+        ordering            = ['order', 'id']
+
+    def __str__(self):
+        return self.title

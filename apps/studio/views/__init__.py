@@ -8,3 +8,5 @@ from .export import ExportView, ExportStatusView
 from .burn import BurnSubtitlesView
 from .segments import SegmentListView, SegmentSaveView, SegmentSaveAllView, SegmentImportScriptView, SegmentAudioView, SegmentSetTrimView
 from .subtitles import GenerateSubtitlesView, SubtitlesStatusView
+from .tutorials import TutorialPublicListView, TutorialListView, TutorialCreateView, TutorialDetailView
+from .tutorials import tutorials_manage_view, TechValleePageView

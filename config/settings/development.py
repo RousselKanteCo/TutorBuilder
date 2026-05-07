@@ -6,6 +6,11 @@ Hérite de base.py et active debug toolbar, SQLite fallback, etc.
 from .base import *  # noqa: F401, F403
 
 # ─────────────────────────────────────────
+#  BYTE-RANGE pour seek vidéo en dev
+# ─────────────────────────────────────────
+MIDDLEWARE = ['apps.studio.middleware.ByteRangeMiddleware'] + MIDDLEWARE
+
+# ─────────────────────────────────────────
 #  DÉVELOPPEMENT
 # ─────────────────────────────────────────
 

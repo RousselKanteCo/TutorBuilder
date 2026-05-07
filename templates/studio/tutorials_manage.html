@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}TutoBuilder — Tutoriels TechVallée{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+<main class="main">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Tutoriels TechVallée</div>
+      <div class="page-subtitle" id="subtitle">Chargement...</div>
+    </div>
+    <button class="btn-primary" onclick="openForm()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Ajouter un tutoriel
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card blue">
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-value" id="statActive">—</div>
+      <div class="stat-label">Actifs</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-value" id="statInactive">—</div>
+      <div class="stat-label">Inactifs</div>
+    </div>
+  </div>
+
+  <!-- Liste -->
+  <div class="col-projects" style="max-width:100%;">
+    <div class="col-header">
+      <span class="col-title">Catalogue</span>
+    </div>
+    <div class="project-list" id="tutorialList">
+      <div class="no-selection"><p>Chargement...</p></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL FORMULAIRE -->
+<div class="modal-overlay" id="modal-form">
+  <div class="modal" style="max-width:560px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div class="modal-title" id="formTitle">Nouveau tutoriel</div>
+    <div class="modal-error" id="formError"></div>
+    <input type="hidden" id="fId">
+
+    <div class="field-group">
+      <label class="field-label">Titre *</label>
+      <input class="field-input" id="fTitle" type="text" placeholder="Ex: Mise en place du 2FA" maxlength="255">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Description *</label>
+      <textarea class="field-input" id="fDesc" rows="3" placeholder="Description du tutoriel..." style="resize:vertical;"></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group">
+        <label class="field-label">Catégorie *</label>
+        <select class="field-input" id="fCat">
+          <option value="presentation">Présentation</option>
+          <option value="compte">Mon compte</option>
+          <option value="securite">Sécurité</option>
+          <option value="fournisseur">Fournisseurs</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Niveau</label>
+        <select class="field-input" id="fLv">
+          <option value="d">Débutant</option>
+          <option value="i">Intermédiaire</option>
+          <option value="a">Avancé</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">URL vidéo *</label>
+      <input class="field-input" id="fSrc" type="url" placeholder="http://...">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Miniature</label>
+      <input class="field-input" id="fImg" type="file" accept="image/*" style="padding:6px 12px;">
+      <div id="imgPreview" style="margin-top:8px;display:none;">
+        <img id="imgPreviewEl" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px;border:1px solid #e5e2dd;">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Tags <span style="font-weight:400;color:#888;">(séparés par des virgules)</span></label>
+      <input class="field-input" id="fTags" type="text" placeholder="2FA, Sécurité, Configuration">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group">
+        <label class="field-label">Ordre d'affichage</label>
+        <input class="field-input" id="fOrder" type="number" value="0" min="0">
+      </div>
+      <div class="field-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="fActive" checked> Actif (visible sur le site)
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeForm()">Annuler</button>
+      <button class="btn-primary" id="submitBtn" onclick="submitForm()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF     = document.getElementById('csrf-token').value;
+const API_LIST = '/api/tutorials/manage/';
+const API_PUB  = '/api/tutorials/';
+
+const catLabel = { presentation:'Présentation', compte:'Mon compte', securite:'Sécurité', fournisseur:'Fournisseurs' };
+const lvLabel  = { d:'Débutant', i:'Intermédiaire', a:'Avancé' };
+const lvColor  = { d:'#3a7d1e', i:'#7a5500', a:'#0038a5' };
+
+let tutorials = [];
+
+/* ── CHARGEMENT ── */
+async function load() {
+  const res  = await fetch(API_LIST, { headers: { 'X-CSRFToken': CSRF } });
+  tutorials  = await res.json();
+
+  const total    = tutorials.length;
+  const active   = tutorials.filter(t => t.active).length;
+  const inactive = total - active;
+
+  document.getElementById('statTotal').textContent   = total;
+  document.getElementById('statActive').textContent  = active;
+  document.getElementById('statInactive').textContent = inactive;
+  document.getElementById('subtitle').textContent    = `${total} tutoriel${total > 1 ? 's' : ''} · ${active} actif${active > 1 ? 's' : ''}`;
+
+  renderList();
+}
+
+/* ── RENDU LISTE ── */
+function renderList() {
+  const el = document.getElementById('tutorialList');
+  if (!tutorials.length) {
+    el.innerHTML = `
+      <div class="no-selection">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+        <p>Aucun tutoriel pour l'instant</p>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = tutorials.map(t => `
+    <div class="project-item" style="align-items:center;gap:14px;">
+      ${t.img
+        ? `<img src="${t.img}" style="width:80px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0;">`
+        : `<div style="width:80px;height:48px;background:#e5e2dd;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+           </div>`
+      }
+      <div class="project-item-info" style="flex:1;min-width:0;">
+        <div class="project-item-name">${t.title}</div>
+        <div class="project-item-meta" style="display:flex;gap:8px;align-items:center;margin-top:2px;">
+          <span>${catLabel[t.cat] || t.cat}</span>
+          <span style="color:${lvColor[t.lv]};font-weight:600;">${lvLabel[t.lv]}</span>
+          ${!t.active ? '<span style="color:#c0392b;">● Inactif</span>' : ''}
+        </div>
+      </div>
+      <div class="project-item-actions">
+        <button class="icon-btn" onclick="openForm(${t.id})" title="Modifier">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="icon-btn danger" onclick="deleteTutorial(${t.id}, '${t.title.replace(/'/g,"\\'")}') " title="Supprimer">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── APERÇU IMAGE ── */
+document.getElementById('fImg').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('imgPreviewEl').src = e.target.result;
+    document.getElementById('imgPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ── OUVRIR FORMULAIRE ── */
+function openForm(id = null) {
+  document.getElementById('formError').textContent = '';
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('fImg').value = '';
+
+  if (id) {
+    const t = tutorials.find(x => x.id === id);
+    document.getElementById('formTitle').textContent = 'Modifier le tutoriel';
+    document.getElementById('fId').value    = t.id;
+    document.getElementById('fTitle').value = t.title;
+    document.getElementById('fDesc').value  = t.desc;
+    document.getElementById('fCat').value   = t.cat;
+    document.getElementById('fLv').value    = t.lv;
+    document.getElementById('fSrc').value   = t.src;
+    document.getElementById('fTags').value  = (t.tags || []).join(', ');
+    document.getElementById('fOrder').value = t.order;
+    document.getElementById('fActive').checked = t.active;
+    if (t.img) {
+      document.getElementById('imgPreviewEl').src = t.img;
+      document.getElementById('imgPreview').style.display = 'block';
+    }
+  } else {
+    document.getElementById('formTitle').textContent = 'Nouveau tutoriel';
+    document.getElementById('fId').value    = '';
+    document.getElementById('fTitle').value = '';
+    document.getElementById('fDesc').value  = '';
+    document.getElementById('fCat').value   = 'presentation';
+    document.getElementById('fLv').value    = 'd';
+    document.getElementById('fSrc').value   = '';
+    document.getElementById('fTags').value  = '';
+    document.getElementById('fOrder').value = 0;
+    document.getElementById('fActive').checked = true;
+  }
+
+  document.getElementById('modal-form').classList.add('open');
+}
+
+function closeForm() {
+  document.getElementById('modal-form').classList.remove('open');
+}
+
+/* ── SOUMETTRE ── */
+async function submitForm() {
+  const id = document.getElementById('fId').value;
+
+  const title = document.getElementById('fTitle').value.trim();
+  const desc  = document.getElementById('fDesc').value.trim();
+  const src   = document.getElementById('fSrc').value.trim();
+
+  if (!title || !desc || !src) {
+    const errEl = document.getElementById('formError');
+    errEl.textContent = 'Titre, description et URL vidéo sont obligatoires.';
+    return;
+  }
+
+  const form = new FormData();
+  form.append('title',  title);
+  form.append('desc',   desc);
+  form.append('cat',    document.getElementById('fCat').value);
+  form.append('lv',     document.getElementById('fLv').value);
+  form.append('src',    src);
+  form.append('tags',   JSON.stringify(
+    document.getElementById('fTags').value.split(',').map(t => t.trim()).filter(Boolean)
+  ));
+  form.append('order',  parseInt(document.getElementById('fOrder').value) || 0);
+  form.append('active', document.getElementById('fActive').checked);
+
+  const imgFile = document.getElementById('fImg').files[0];
+  if (imgFile) form.append('img', imgFile);
+
+  const url    = id ? `${API_LIST}${id}/` : `${API_LIST}create/`;
+  const method = id ? 'PATCH' : 'POST';
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '…';
+
+  const res = await fetch(url, {
+    method,
+    headers: { 'X-CSRFToken': CSRF },
+    body: form,
+  });
+
+  btn.disabled = false; btn.textContent = 'Enregistrer';
+
+  if (res.ok) {
+    closeForm();
+    showToast(id ? 'Tutoriel mis à jour.' : 'Tutoriel ajouté.');
+    load();
+  } else {
+    const err = await res.json().catch(() => ({}));
+    document.getElementById('formError').textContent = err.error || 'Erreur serveur.';
+  }
+}
+
+/* ── SUPPRIMER ── */
+async function deleteTutorial(id, title) {
+  if (!confirm(`Supprimer "${title}" ?`)) return;
+  await fetch(`${API_LIST}${id}/`, { method: 'DELETE', headers: { 'X-CSRFToken': CSRF } });
+  showToast('Tutoriel supprimé.');
+  load();
+}
+
+/* ── TOAST ── */
+function showToast(msg) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ── FERMER MODAL AU CLIC EXTÉRIEUR ── */
+document.getElementById('modal-form').addEventListener('click', function(e) {
+  if (e.target === this) closeForm();
+});
+
+load();
+</script>
+{% endblock %}
