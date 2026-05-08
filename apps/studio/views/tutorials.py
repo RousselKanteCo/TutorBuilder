@@ -172,3 +172,10 @@ class TechValleePageView(APIView):
     def get(self, request):
         from django.shortcuts import render
         return render(request, "studio/techvallee.html")
+    
+    
+from django.views.decorators.http import require_GET
+
+@require_GET
+def techvallee_view(request):
+    return render(request, "studio/techvallee.html")

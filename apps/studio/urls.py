@@ -12,11 +12,8 @@ from .views import (
     SegmentSetTrimView,
     dashboard_view, logout_view, ProjectCreateAPIView, ProjectDeleteAPIView, JobDeleteAPIView,
     TutorialPublicListView, TutorialListView, TutorialCreateView, TutorialDetailView,
-    tutorials_manage_view, TechValleePageView
+    tutorials_manage_view, TechValleePageView, techvallee_view,
 )
-
-path("techvallee/", TechValleePageView.as_view(), name="techvallee"),
-path("techvallee", TechValleePageView.as_view(), name="techvallee"),
 
 app_name = "studio"
 
@@ -30,10 +27,10 @@ urlpatterns = [
     path("cockpit/<uuid:job_id>/", CockpitView.as_view(), name="cockpit_job"),
 
     # ── Projets ──
-    path("projects/new/",                      ProjectCreateView.as_view(),       name="project_create"),
-    path("api/projects/",                      ProjectListAPIView.as_view(),      name="project_list_api"),
-    path("api/projects/create/",               ProjectCreateAPIView.as_view(),    name="project_create_api"),
-    path("api/projects/<uuid:project_id>/delete/", ProjectDeleteAPIView.as_view(), name="project_delete_api"),
+    path("projects/new/",                          ProjectCreateView.as_view(),       name="project_create"),
+    path("api/projects/",                          ProjectListAPIView.as_view(),      name="project_list_api"),
+    path("api/projects/create/",                   ProjectCreateAPIView.as_view(),    name="project_create_api"),
+    path("api/projects/<uuid:project_id>/delete/", ProjectDeleteAPIView.as_view(),    name="project_delete_api"),
 
     # ── Jobs ──
     path("api/jobs/",                           JobUploadView.as_view(),         name="job_upload"),
@@ -44,11 +41,11 @@ urlpatterns = [
     path("api/jobs/<uuid:job_id>/transcribe/",  TranscribeView.as_view(),        name="job_transcribe"),
     path("api/jobs/<uuid:job_id>/synthesize/",  SynthesizeView.as_view(),        name="job_synthesize"),
     path("api/jobs/<uuid:job_id>/set-voice/",   SetVoiceView.as_view(),          name="job_set_voice"),
-    path("api/jobs/<uuid:job_id>/export/",              ExportView.as_view(),        name="job_export"),
-    path("api/jobs/<uuid:job_id>/export/status/",       ExportStatusView.as_view(),  name="job_export_status"),
-    path("api/jobs/<uuid:job_id>/export/burn/",         BurnSubtitlesView.as_view(),       name="job_burn"),
-    path("api/jobs/<uuid:job_id>/generate-subtitles/",  GenerateSubtitlesView.as_view(),    name="job_generate_subtitles"),
-    path("api/jobs/<uuid:job_id>/subtitles/status/",    SubtitlesStatusView.as_view(),      name="job_subtitles_status"),
+    path("api/jobs/<uuid:job_id>/export/",             ExportView.as_view(),           name="job_export"),
+    path("api/jobs/<uuid:job_id>/export/status/",      ExportStatusView.as_view(),     name="job_export_status"),
+    path("api/jobs/<uuid:job_id>/export/burn/",        BurnSubtitlesView.as_view(),    name="job_burn"),
+    path("api/jobs/<uuid:job_id>/generate-subtitles/", GenerateSubtitlesView.as_view(), name="job_generate_subtitles"),
+    path("api/jobs/<uuid:job_id>/subtitles/status/",   SubtitlesStatusView.as_view(),  name="job_subtitles_status"),
     path("api/jobs/<uuid:job_id>/segments/",                    SegmentListView.as_view(),         name="segment_list"),
     path("api/jobs/<uuid:job_id>/segments/save-all/",           SegmentSaveAllView.as_view(),      name="segment_save_all"),
     path("api/jobs/<uuid:job_id>/segments/import-script/",      SegmentImportScriptView.as_view(), name="segment_import_script"),
@@ -56,12 +53,14 @@ urlpatterns = [
     path("api/jobs/<uuid:job_id>/segments/<int:segment_idx>/set-trim/", SegmentSetTrimView.as_view(), name="segment_set_trim"),
     path("api/jobs/<uuid:job_id>/segments/<int:seg_id>/audio/", SegmentAudioView.as_view(),        name="segment_audio"),
 
-    # Dans urlpatterns :
-    path("api/tutorials/",                        TutorialPublicListView.as_view(), name="tutorial_public_list"),
-    path("api/tutorials/manage/",                 TutorialListView.as_view(),       name="tutorial_list"),
-    path("api/tutorials/manage/create/",          TutorialCreateView.as_view(),     name="tutorial_create"),
-    path("api/tutorials/manage/<int:tutorial_id>/", TutorialDetailView.as_view(),   name="tutorial_detail"),
-    path("tutorials/", tutorials_manage_view, name="tutorials_manage"),
-    path("techvallee/", TechValleePageView.as_view(), name="techvallee"),
+    # ── Tutoriels ──
+    path("api/tutorials/",                          TutorialPublicListView.as_view(), name="tutorial_public_list"),
+    path("api/tutorials/manage/",                   TutorialListView.as_view(),       name="tutorial_list"),
+    path("api/tutorials/manage/create/",            TutorialCreateView.as_view(),     name="tutorial_create"),
+    path("api/tutorials/manage/<int:tutorial_id>/", TutorialDetailView.as_view(),     name="tutorial_detail"),
+    path("tutorials/",   tutorials_manage_view,  name="tutorials_manage"),
+    path("techvallee",   techvallee_view),
+    path("techvallee/",  techvallee_view,         name="techvallee"),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static("/outputs/", document_root=settings.OUTPUTS_ROOT)
