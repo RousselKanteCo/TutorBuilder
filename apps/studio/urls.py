@@ -16,6 +16,7 @@ from .views import (
 )
 
 path("techvallee/", TechValleePageView.as_view(), name="techvallee"),
+path("techvallee", TechValleePageView.as_view(), name="techvallee"),
 
 app_name = "studio"
 
