@@ -45,10 +45,9 @@ def serialize_tutorial(t):
 # ─────────────────────────────────────────
 
 def _save_file(file, folder="tutorials"):
-    ext      = os.path.splitext(file.name)[1].lower() or '.bin'
-    filename = f"{folder}/{uuid.uuid4()}{ext}"
-    path     = default_storage.save(filename, file)
-    return default_storage.url(path)
+    filepath = f"{folder}/{file.name}"
+    default_storage.save(filepath, file)
+    return default_storage.url(filepath)
 
 def _collect_downloads(data, files):
     """
