@@ -132,7 +132,7 @@ h1 em { font-style: italic; color: var(--blue); }
 .hero-right { position: relative; overflow: hidden; }
 .hero-img {
   position: absolute; inset: 0;
-  background: url("{% static 'images/site-montage.png' %}") center/cover no-repeat;
+  background: url("{% static 'images/site-montage.jpg' %}") center/cover no-repeat;
 }
 .hero-img::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0;
@@ -522,6 +522,7 @@ h1            { animation: fadeUp 0.7s ease both; animation-delay: 0.2s; }
       <h3 class="mtitle" id="mtitle"></h3>
       <p class="mdesc" id="mdesc"></p>
       <div class="mtags" id="mtags"></div>
+      <div id="mdownloads" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;"></div>
     </div>
   </div>
 </div>
@@ -641,6 +642,19 @@ function openModal(id) {
   $('mtitle').textContent = v.title;
   $('mdesc').textContent  = v.desc;
   $('mtags').innerHTML    = (v.tags || []).map(t => `<span class="mtag">${t}</span>`).join('');
+
+  $('mdownloads').innerHTML = (v.downloads || []).map(d => `
+    <a href="${d.url}" target="_blank" download
+      style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;
+      background:#0038a5;color:white;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      ${d.label}
+    </a>
+  `).join('');
 
   const vid    = $('mvideo');
   const loader = $('videoLoading');

@@ -56,7 +56,7 @@
 
 <!-- MODAL FORMULAIRE -->
 <div class="modal-overlay" id="modal-form">
-  <div class="modal" style="max-width:560px;width:100%;max-height:90vh;overflow-y:auto;">
+  <div class="modal" style="max-width:600px;width:100%;max-height:92vh;overflow-y:auto;">
     <div class="modal-title" id="formTitle">Nouveau tutoriel</div>
     <div class="modal-error" id="formError"></div>
     <input type="hidden" id="fId">
@@ -109,6 +109,24 @@
       <input class="field-input" id="fTags" type="text" placeholder="2FA, Sécurité, Configuration">
     </div>
 
+    <!-- FICHIERS TÉLÉCHARGEABLES -->
+    <div class="field-group">
+      <label class="field-label">Fichiers téléchargeables</label>
+      <div id="downloadsList" style="margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" onclick="addDownloadFile()"
+          style="padding:7px 14px;border:1px solid #ddd;border-radius:6px;font-size:12px;cursor:pointer;background:#fff;display:flex;align-items:center;gap:6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Uploader un fichier
+        </button>
+        <button type="button" onclick="addDownloadUrl()"
+          style="padding:7px 14px;border:1px solid #ddd;border-radius:6px;font-size:12px;cursor:pointer;background:#fff;display:flex;align-items:center;gap:6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Lien externe
+        </button>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="field-group">
         <label class="field-label">Ordre d'affichage</label>
@@ -136,27 +154,27 @@
 <script>
 const CSRF     = document.getElementById('csrf-token').value;
 const API_LIST = '/api/tutorials/manage/';
-const API_PUB  = '/api/tutorials/';
 
 const catLabel = { presentation:'Présentation', compte:'Mon compte', securite:'Sécurité', fournisseur:'Fournisseurs' };
 const lvLabel  = { d:'Débutant', i:'Intermédiaire', a:'Avancé' };
 const lvColor  = { d:'#3a7d1e', i:'#7a5500', a:'#0038a5' };
 
 let tutorials = [];
+let dlIndex   = 0;
 
 /* ── CHARGEMENT ── */
 async function load() {
-  const res  = await fetch(API_LIST, { headers: { 'X-CSRFToken': CSRF } });
+  const res = await fetch(API_LIST, { headers: { 'X-CSRFToken': CSRF } });
   tutorials  = await res.json();
 
   const total    = tutorials.length;
   const active   = tutorials.filter(t => t.active).length;
   const inactive = total - active;
 
-  document.getElementById('statTotal').textContent   = total;
-  document.getElementById('statActive').textContent  = active;
+  document.getElementById('statTotal').textContent    = total;
+  document.getElementById('statActive').textContent   = active;
   document.getElementById('statInactive').textContent = inactive;
-  document.getElementById('subtitle').textContent    = `${total} tutoriel${total > 1 ? 's' : ''} · ${active} actif${active > 1 ? 's' : ''}`;
+  document.getElementById('subtitle').textContent     = `${total} tutoriel${total > 1 ? 's' : ''} · ${active} actif${active > 1 ? 's' : ''}`;
 
   renderList();
 }
@@ -165,11 +183,9 @@ async function load() {
 function renderList() {
   const el = document.getElementById('tutorialList');
   if (!tutorials.length) {
-    el.innerHTML = `
-      <div class="no-selection">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
-        <p>Aucun tutoriel pour l'instant</p>
-      </div>`;
+    el.innerHTML = `<div class="no-selection">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+      <p>Aucun tutoriel pour l'instant</p></div>`;
     return;
   }
 
@@ -178,14 +194,14 @@ function renderList() {
       ${t.img
         ? `<img src="${t.img}" style="width:80px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0;">`
         : `<div style="width:80px;height:48px;background:#e5e2dd;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-           </div>`
-      }
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+           </div>`}
       <div class="project-item-info" style="flex:1;min-width:0;">
         <div class="project-item-name">${t.title}</div>
-        <div class="project-item-meta" style="display:flex;gap:8px;align-items:center;margin-top:2px;">
+        <div class="project-item-meta" style="display:flex;gap:8px;align-items:center;margin-top:2px;flex-wrap:wrap;">
           <span>${catLabel[t.cat] || t.cat}</span>
           <span style="color:${lvColor[t.lv]};font-weight:600;">${lvLabel[t.lv]}</span>
+          ${(t.downloads||[]).length ? `<span style="color:#0038a5;">📎 ${t.downloads.length} fichier${t.downloads.length>1?'s':''}</span>` : ''}
           ${!t.active ? '<span style="color:#c0392b;">● Inactif</span>' : ''}
         </div>
       </div>
@@ -196,7 +212,7 @@ function renderList() {
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
-        <button class="icon-btn danger" onclick="deleteTutorial(${t.id}, '${t.title.replace(/'/g,"\\'")}') " title="Supprimer">
+        <button class="icon-btn danger" onclick="deleteTutorial(${t.id}, '${t.title.replace(/'/g,"\\'")}')" title="Supprimer">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
           </svg>
@@ -218,11 +234,44 @@ document.getElementById('fImg').addEventListener('change', function () {
   reader.readAsDataURL(file);
 });
 
+/* ── DOWNLOADS ── */
+function addDownloadFile(label='') {
+  const i   = dlIndex++;
+  const div = document.createElement('div');
+  div.style = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
+  div.innerHTML = `
+    <input type="text" placeholder="Nom affiché (ex: Guide PDF)" value="${label}"
+      name="dl_label_${i}"
+      style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+    <input type="file" name="dl_file_${i}" accept=".pdf,.zip,.docx,.xlsx,.pptx,.txt"
+      style="flex:2;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+    <button type="button" onclick="this.parentElement.remove()"
+      style="padding:6px 10px;border:1px solid #fca5a5;border-radius:6px;color:#c0392b;font-size:12px;cursor:pointer;flex-shrink:0;">✕</button>
+  `;
+  document.getElementById('downloadsList').appendChild(div);
+}
+
+function addDownloadUrl(label='', url='') {
+  const div = document.createElement('div');
+  div.style = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
+  div.innerHTML = `
+    <input type="text" placeholder="Nom affiché" value="${label}"
+      style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;" class="dl-label">
+    <input type="url" placeholder="https://..." value="${url}"
+      style="flex:2;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;" class="dl-url">
+    <button type="button" onclick="this.parentElement.remove()"
+      style="padding:6px 10px;border:1px solid #fca5a5;border-radius:6px;color:#c0392b;font-size:12px;cursor:pointer;flex-shrink:0;">✕</button>
+  `;
+  document.getElementById('downloadsList').appendChild(div);
+}
+
 /* ── OUVRIR FORMULAIRE ── */
 function openForm(id = null) {
   document.getElementById('formError').textContent = '';
   document.getElementById('imgPreview').style.display = 'none';
   document.getElementById('fImg').value = '';
+  document.getElementById('downloadsList').innerHTML = '';
+  dlIndex = 0;
 
   if (id) {
     const t = tutorials.find(x => x.id === id);
@@ -240,6 +289,8 @@ function openForm(id = null) {
       document.getElementById('imgPreviewEl').src = t.img;
       document.getElementById('imgPreview').style.display = 'block';
     }
+    // Recharger les downloads existants comme liens externes
+    (t.downloads || []).forEach(d => addDownloadUrl(d.label, d.url));
   } else {
     document.getElementById('formTitle').textContent = 'Nouveau tutoriel';
     document.getElementById('fId').value    = '';
@@ -262,15 +313,13 @@ function closeForm() {
 
 /* ── SOUMETTRE ── */
 async function submitForm() {
-  const id = document.getElementById('fId').value;
-
+  const id    = document.getElementById('fId').value;
   const title = document.getElementById('fTitle').value.trim();
   const desc  = document.getElementById('fDesc').value.trim();
   const src   = document.getElementById('fSrc').value.trim();
 
   if (!title || !desc || !src) {
-    const errEl = document.getElementById('formError');
-    errEl.textContent = 'Titre, description et URL vidéo sont obligatoires.';
+    document.getElementById('formError').textContent = 'Titre, description et URL vidéo sont obligatoires.';
     return;
   }
 
@@ -286,8 +335,24 @@ async function submitForm() {
   form.append('order',  parseInt(document.getElementById('fOrder').value) || 0);
   form.append('active', document.getElementById('fActive').checked);
 
+  // Image
   const imgFile = document.getElementById('fImg').files[0];
   if (imgFile) form.append('img', imgFile);
+
+  // Downloads — liens externes
+  const urlDownloads = [...document.querySelectorAll('#downloadsList .dl-label')].map(el => ({
+    label: el.value.trim(),
+    url:   el.parentElement.querySelector('.dl-url').value.trim(),
+  })).filter(d => d.label && d.url);
+  form.append('downloads', JSON.stringify(urlDownloads));
+
+  // Downloads — fichiers uploadés
+  document.querySelectorAll('#downloadsList input[type=file]').forEach(input => {
+    if (input.files[0]) form.append(input.name, input.files[0]);
+  });
+  document.querySelectorAll('#downloadsList input[name^=dl_label]').forEach(input => {
+    form.append(input.name, input.value);
+  });
 
   const url    = id ? `${API_LIST}${id}/` : `${API_LIST}create/`;
   const method = id ? 'PATCH' : 'POST';

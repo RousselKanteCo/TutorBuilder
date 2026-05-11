@@ -345,6 +345,8 @@ class Tutorial(models.Model):
     order    = models.PositiveIntegerField(_('ordre'), default=0)
     active   = models.BooleanField(_('actif'), default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    downloads = models.JSONField(_('téléchargements'), default=list, blank=True)
+    # Format : [{"label": "Guide PDF", "url": "/media/..."}, ...]
 
     class Meta:
         verbose_name        = _('tutoriel')
