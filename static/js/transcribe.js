@@ -21,6 +21,8 @@ const VOICES = [
   { id: 'experte', name: 'Experte', wpm: 142 },
   { id: 'guide', name: 'Guide', wpm: 148 },
   { id: 'pedagogique', name: 'Pédagogique', wpm: 135 },
+  { id: 'audrey', name: 'Audrey - Femme', wpm: 142 },
+  { id: 'antoine', name: 'Antoine - Homme', wpm: 140 },
 ];
 
 const DEFAULT_WPM = 145;

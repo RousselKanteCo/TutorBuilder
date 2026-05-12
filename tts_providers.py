@@ -333,6 +333,8 @@ class CartesiaProvider(TTSProvider):
         "experte":        {"id": "b7d50908-b17c-442d-ad8d-810c63997ed9"},
         "guide":          {"id": "41534e16-2966-4c6b-9670-111411def906"},
         "pedagogique":    {"id": "694f9389-aac1-45b6-b726-9d9369183238"},
+        "audrey":  {"id": "McVZB9hVxVSk3Equu8EH"},
+        "antoine": {"id": "nbiTBaMRdSobTQJDzIWm"},
     }
 
     LANGUE_CODES = {
