@@ -123,33 +123,43 @@ class ElevenLabsProvider(TTSProvider):
     VOIX_CATALOGUE = {
         "narrateur_pro": {
             "id":    "onwK4e9ZLuTAKqWW03F9",
-            "label": "Narrateur Pro — Clair, professionnel",
+            "label": "Narrateur Pro - Clair, professionnel",
             "settings": {"stability": 0.50, "similarity_boost": 0.80, "style": 0.30},
         },
         "narratrice_pro": {
             "id":    "XB0fDUnXU5powFXDhCwa",
-            "label": "Narratrice Pro — Douce, narrative",
+            "label": "Narratrice Pro - Douce, narrative",
             "settings": {"stability": 0.45, "similarity_boost": 0.80, "style": 0.35},
         },
         "expert": {
             "id":    "N2lVS1w4EtoT3dr4eOWO",
-            "label": "Expert — Grave, autorité",
+            "label": "Expert - Grave, autorité",
             "settings": {"stability": 0.55, "similarity_boost": 0.75, "style": 0.25},
         },
         "experte": {
             "id":    "XrExE9yKIg1WjnnlVkGX",
-            "label": "Experte — Confiante, expressive",
+            "label": "Experte - Confiante, expressive",
             "settings": {"stability": 0.50, "similarity_boost": 0.78, "style": 0.30},
         },
         "guide": {
             "id":    "TX3LPaxmHKxFdv7VOQHJ",
-            "label": "Guide — Chaleureux, accessible",
+            "label": "Guide - Chaleureux, accessible",
             "settings": {"stability": 0.40, "similarity_boost": 0.80, "style": 0.40},
         },
         "pedagogique": {
             "id":    "cgSgspJ2msm6clMCkdW9",
-            "label": "Pédagogique — Claire, rassurante",
+            "label": "Pédagogique - Claire, rassurante",
             "settings": {"stability": 0.60, "similarity_boost": 0.82, "style": 0.20},
+        },
+        "audrey": {
+            "id":    "McVZB9hVxVSk3Equu8EH",
+            "label": "Audrey - Energétique, commerciale (Femme)",
+            "settings": {"stability": 0.50, "similarity_boost": 0.80, "style": 0.35},
+        },
+        "antoine": {
+            "id":    "nbiTBaMRdSobTQJDzIWm",
+            "label": "Antoine - Voix masculine française",
+            "settings": {"stability": 0.50, "similarity_boost": 0.80, "style": 0.30},
         },
     }
 
