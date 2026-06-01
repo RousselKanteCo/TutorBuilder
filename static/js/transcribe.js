@@ -1641,8 +1641,8 @@ function redoSegment() {
 function zoomTimeline(dir) {
   // Zoom réel : 2.0 → 3.0 → 4.0 → 6.0 → 8.0
   // Label affiché : 50% → 75% → 100% → 150% → 200%
-  const levels = [2.0, 3.0, 4.0, 6.0, 8.0];
-  const labels = ['50%', '75%', '100%', '150%', '200%'];
+  const levels = [2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0];
+  const labels = ['50%', '75%', '100%', '150%', '200%', '300%', '400%', '600%'];
   const cur = levels.indexOf(transcribeState.zoomLevel);
   const idx = cur === -1 ? 2 : cur;
   const next = Math.max(0, Math.min(levels.length - 1, idx + dir));
